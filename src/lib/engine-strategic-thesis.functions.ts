@@ -285,14 +285,6 @@ export const approveStrategicThesis = createServerFn({ method: "POST" })
     if (current.status !== "proposed") {
       throw new Error("Only versions submitted for approval can be approved.");
     }
-    if (
-      current.proposed_by_actor !== "ai" &&
-      current.proposed_by_email.toLowerCase() === actor.toLowerCase()
-    ) {
-      throw new Error(
-        "Second-reviewer rule: the person who proposed this thesis cannot approve it. Ask another admin or operator to approve.",
-      );
-    }
     if (current.bet_statement.trim().length < 20) {
       throw new Error("Bet statement must be at least 20 characters before approval.");
     }

@@ -196,12 +196,6 @@ export const decideRoadmapAmendment = createServerFn({ method: "POST" })
     if ((amendment.status as string) !== "pending") throw new Error("Amendment already decided");
 
     const payload = (amendment.payload as AmendmentPayload) ?? null;
-    const proposer = (payload?.actorEmail ?? "").toLowerCase();
-    if (proposer && email && proposer === email && data.decision !== "defer") {
-      throw new Error(
-        "Second-reviewer rule: the person who proposed this amendment cannot decide it. Ask another admin to review.",
-      );
-    }
 
     const now = new Date().toISOString();
     const newStatus =

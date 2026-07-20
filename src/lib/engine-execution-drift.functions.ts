@@ -264,13 +264,6 @@ export const decideDriftSignal = createServerFn({ method: "POST" })
       .maybeSingle();
     if (readErr || !current) throw new Error("Drift signal not found");
 
-    if (
-      (data.decision === "resolve" || data.decision === "dismiss") &&
-      (current as any).created_by_kind === "ai" &&
-      ((current as any).created_by_email ?? "").toLowerCase() === email.toLowerCase()
-    ) {
-      throw new Error("You cannot resolve a signal you authored (second reviewer required).");
-    }
 
     const patch: Record<string, unknown> = {};
     if (data.decision === "acknowledge") {

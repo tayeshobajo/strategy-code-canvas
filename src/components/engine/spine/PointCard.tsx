@@ -345,8 +345,7 @@ function PointEditor({
   return (
     <div className="mt-6 space-y-4">
       <div className="rounded-lg border border-[#cdd6f3] bg-[#f5f8ff] px-3 py-2 text-[12px] leading-[1.5] text-[#3f4a5e]">
-        Edits are submitted as change proposals. A second reviewer approves
-        them before they replace approved truth.
+        Edits are submitted as change proposals before they replace approved truth.
       </div>
 
       <Field label="Summary">

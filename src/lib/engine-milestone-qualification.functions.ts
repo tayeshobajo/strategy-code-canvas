@@ -365,7 +365,7 @@ export const runMilestoneJudges = createServerFn({ method: "POST" })
       projectId: data.projectId,
       kind: "milestone_qualification.entered",
       title: `Qualification opened — ${milestone.name}`,
-      body: `World: ${world.verdict} · Wow: ${wow.verdict} (${wow.wow_score}/5). Awaiting second-reviewer decision.`,
+      body: `World: ${world.verdict} · Wow: ${wow.verdict} (${wow.wow_score}/5). Awaiting decision.`,
       href: `/engine/projects/${data.projectId}/milestones/${data.milestoneId}/qualify`,
       actor,
       extra: {
@@ -389,13 +389,6 @@ export const decideMilestoneQualification = createServerFn({ method: "POST" })
     const sb = ctx.supabase as any;
     const { milestone, spirit } = await loadContext(sb, data.projectId, data.milestoneId);
 
-    // Second-reviewer: whoever approved the brief cannot qualify it.
-    const author = (milestone.approved_by_email ?? "").toLowerCase();
-    if (author && author === actor.toLowerCase() && data.decision === "qualified") {
-      throw new Error(
-        "Second-reviewer rule: the person who approved this milestone brief cannot qualify it. Ask another admin or operator.",
-      );
-    }
 
     const { map } = await readAll(sb, data.projectId);
     const prior: MilestoneQualification = map[data.milestoneId] ?? { status: "unqualified", history: [] };

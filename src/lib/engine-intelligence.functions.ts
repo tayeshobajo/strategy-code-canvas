@@ -484,13 +484,6 @@ export const approveVersion = createServerFn({ method: "POST" })
       throw new Error("Version is already approved.");
     }
 
-    // Self-approval guard: the same human who authored the version cannot approve it.
-    // AI-authored versions (created_by = 'ai') are still allowed because the
-    // approver is by definition a different actor (the human operator).
-    const createdBy = (current.created_by ?? "").toString().toLowerCase();
-    if (createdBy && createdBy !== "ai" && email && createdBy === email) {
-      throw new Error("You cannot approve a version you authored yourself — a second reviewer must approve it.");
-    }
 
     // Guard: block approving if any critical change_event is still unresolved.
     const { data: openCritical } = await sb

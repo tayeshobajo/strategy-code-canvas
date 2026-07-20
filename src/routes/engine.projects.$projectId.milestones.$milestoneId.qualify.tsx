@@ -486,7 +486,7 @@ function recommend(
       tier: "qualify",
       label: "Qualify",
       reason: `Both judges pass and the Wow score is ${wowScore}/5. Meets the ceremony bar.`,
-      actions: ["Confirm with a second reviewer and mark qualified."],
+      actions: ["Mark qualified."],
     };
   }
   return {
@@ -496,7 +496,6 @@ function recommend(
     actions: [
       world === "unclear" ? "Tighten World Entry citations in the brief." : "",
       wow === "unclear" ? "Sharpen the proof-metric impact statement." : "",
-      "Discuss with the second reviewer before deciding.",
     ].filter(Boolean),
   };
 }

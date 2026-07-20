@@ -55,8 +55,7 @@ function AmendmentsRoute() {
           </Link>
           <h1 className="text-xl font-semibold text-[#0A0F1F]">Roadmap Amendments</h1>
           <p className="mt-1 text-sm text-[#667085]">
-            New intelligence that would touch approved truth is queued here. A second reviewer must
-            approve before any downstream step regenerates.
+            New intelligence that would touch approved truth is queued here for review before any downstream step regenerates.
           </p>
         </div>
         <div className="flex gap-1 rounded-lg border border-[#E8E1D6] bg-white p-1 text-xs">

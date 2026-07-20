@@ -219,11 +219,6 @@ function CeremonyRow({
     (ceremony.key === "roadmap_v01" ? !!ceremony.roadmap_version_id : ceremony.version != null);
 
   const isAiDraft = ceremony.drafted_by_actor === "ai";
-  const selfDrafted =
-    !isAiDraft &&
-    !!currentEmail &&
-    !!ceremony.drafted_by_email &&
-    currentEmail.toLowerCase() === ceremony.drafted_by_email.toLowerCase();
 
   const rejectSupported =
     ceremony.key === "execution_boundary" || ceremony.key === "strategic_thesis";
@@ -259,11 +254,6 @@ function CeremonyRow({
                   v{ceremony.version}
                 </span>
               )}
-              {isAiDraft && (
-                <span className="text-[10px] rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-blue-800">
-                  AI draft · exempt from second-reviewer
-                </span>
-              )}
             </div>
             {ceremony.detail && (
               <p className="mt-1 text-xs text-muted-foreground">
@@ -284,7 +274,7 @@ function CeremonyRow({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          {canInlineDecide && !selfDrafted && (
+          {canInlineDecide && (
             <>
               <button
                 type="button"
@@ -311,11 +301,6 @@ function CeremonyRow({
                 </button>
               )}
             </>
-          )}
-          {canInlineDecide && selfDrafted && (
-            <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 max-w-[240px]">
-              Second reviewer required — you drafted this version
-            </span>
           )}
           {!canApprove && ceremony.state === "awaiting_review" && (
             <span className="text-[10px] text-muted-foreground bg-muted border border-border rounded px-2 py-1">
