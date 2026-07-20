@@ -223,11 +223,7 @@ function QualifyPage() {
       {run ? (
         <div className="rounded-2xl border border-[#E8E1D6] bg-white p-4 shadow-sm space-y-3">
           <div className="font-display text-base text-ink">Human decision</div>
-          {isAuthor ? (
-            <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-              You approved this milestone brief. A different admin or operator must qualify it.
-            </div>
-          ) : null}
+          {null}
           <textarea
             className="w-full min-h-[70px] rounded border border-[#E8E1D6] p-2 text-sm"
             placeholder="Note for the ceremony log (optional for qualified, required for rejected)."
@@ -238,7 +234,7 @@ function QualifyPage() {
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded bg-emerald-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-              disabled={isAuthor || decideMut.isPending}
+              disabled={decideMut.isPending}
               onClick={() => decideMut.mutate("qualified")}
             >
               <ThumbsUp className="w-3.5 h-3.5" /> Mark qualified
