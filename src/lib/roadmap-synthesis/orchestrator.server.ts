@@ -33,6 +33,23 @@ export type OrchestratorRunResult = {
 
 export async function runSynthesis(input: OrchestratorRunInput): Promise<OrchestratorRunResult> {
   const runGroupId = cryptoRandomId();
+
+  // Auto-resolve doctrine gates that are objectively satisfied so
+  // synthesis can proceed end-to-end. Human reviewers can still revise
+  // afterward — a new proposal supersedes the AI-approved version.
+  if (input.mode === "repair" || input.mode === "refresh") {
+    try {
+      const { autoResolveDoctrineGates } = await import("./doctrine-auto.server");
+      await autoResolveDoctrineGates({
+        supabase: input.supabase,
+        projectId: input.projectId,
+        actorEmail: input.actorEmail,
+      });
+    } catch {
+      /* auto-resolve is best-effort; the plan still runs */
+    }
+  }
+
   const plan = await deriveSynthesisPlan({
     projectId: input.projectId,
     supabase: input.supabase,
