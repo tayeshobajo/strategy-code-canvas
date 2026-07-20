@@ -256,7 +256,10 @@ ${JSON.stringify(asked).slice(0, 25_000)}`,
         if (brief.length >= 20) patch.brief_md = brief;
         if (acc.length >= 3) patch.acceptance_criteria = acc;
         if (Object.keys(patch).length === 0) continue;
-        const { error } = await sb.from("engine_milestones").update(patch).eq("id", row.id);
+        const { error } = await sb.rpc("admin_edit_milestone_governed", {
+          _id: row.id,
+          _patch: patch,
+        });
         if (!error) enriched++;
       }
     } catch {
