@@ -121,7 +121,6 @@ import { Route as EngineProjectsProjectIdSourcesRouteImport } from './routes/eng
 import { Route as EngineProjectsProjectIdSolutionsRouteImport } from './routes/engine.projects.$projectId.solutions'
 import { Route as EngineProjectsProjectIdSignalRoomRouteImport } from './routes/engine.projects.$projectId.signal-room'
 import { Route as EngineProjectsProjectIdSequencingRouteImport } from './routes/engine.projects.$projectId.sequencing'
-import { Route as EngineProjectsProjectIdRoadmapRouteImport } from './routes/engine.projects.$projectId.roadmap'
 import { Route as EngineProjectsProjectIdQaFactoryRouteImport } from './routes/engine.projects.$projectId.qa-factory'
 import { Route as EngineProjectsProjectIdQaDeliveryRouteImport } from './routes/engine.projects.$projectId.qa-delivery'
 import { Route as EngineProjectsProjectIdPublishHistoryRouteImport } from './routes/engine.projects.$projectId.publish-history'
@@ -163,6 +162,7 @@ import { Route as ApiPublicHooksOutcomeCheckinsRouteImport } from './routes/api/
 import { Route as ApiPublicHooksEngineTickRouteImport } from './routes/api/public/hooks/engine-tick'
 import { Route as ApiPublicHooksCostAutopauseRouteImport } from './routes/api/public/hooks/cost-autopause'
 import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
+import { Route as EngineProjectsProjectIdRoadmapIndexRouteImport } from './routes/engine.projects.$projectId.roadmap.index'
 import { Route as EngineProjectsProjectIdVersionsCompareRouteImport } from './routes/engine.projects.$projectId.versions.compare'
 import { Route as EngineProjectsProjectIdRoadmapStudioRouteImport } from './routes/engine.projects.$projectId.roadmap.studio'
 import { Route as EngineProjectsProjectIdAgentTasksRouteImport } from './routes/engine.projects.$projectId.agent.tasks'
@@ -756,12 +756,6 @@ const EngineProjectsProjectIdSequencingRoute =
     path: '/sequencing',
     getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
-const EngineProjectsProjectIdRoadmapRoute =
-  EngineProjectsProjectIdRoadmapRouteImport.update({
-    id: '/roadmap',
-    path: '/roadmap',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
 const EngineProjectsProjectIdQaFactoryRoute =
   EngineProjectsProjectIdQaFactoryRouteImport.update({
     id: '/qa-factory',
@@ -1008,6 +1002,12 @@ const ApiPublicHooksBuildRoadmapContactRoute =
     path: '/api/public/hooks/build-roadmap-contact',
     getParentRoute: () => rootRouteImport,
   } as any)
+const EngineProjectsProjectIdRoadmapIndexRoute =
+  EngineProjectsProjectIdRoadmapIndexRouteImport.update({
+    id: '/roadmap/',
+    path: '/roadmap/',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
+  } as any)
 const EngineProjectsProjectIdVersionsCompareRoute =
   EngineProjectsProjectIdVersionsCompareRouteImport.update({
     id: '/versions/compare',
@@ -1016,9 +1016,9 @@ const EngineProjectsProjectIdVersionsCompareRoute =
   } as any)
 const EngineProjectsProjectIdRoadmapStudioRoute =
   EngineProjectsProjectIdRoadmapStudioRouteImport.update({
-    id: '/studio',
-    path: '/studio',
-    getParentRoute: () => EngineProjectsProjectIdRoadmapRoute,
+    id: '/roadmap/studio',
+    path: '/roadmap/studio',
+    getParentRoute: () => EngineProjectsProjectIdRoute,
   } as any)
 const EngineProjectsProjectIdAgentTasksRoute =
   EngineProjectsProjectIdAgentTasksRouteImport.update({
@@ -1211,7 +1211,6 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/publish-history': typeof EngineProjectsProjectIdPublishHistoryRoute
   '/engine/projects/$projectId/qa-delivery': typeof EngineProjectsProjectIdQaDeliveryRoute
   '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
-  '/engine/projects/$projectId/roadmap': typeof EngineProjectsProjectIdRoadmapRouteWithChildren
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
@@ -1233,6 +1232,7 @@ export interface FileRoutesByFullPath {
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
   '/engine/projects/$projectId/roadmap/studio': typeof EngineProjectsProjectIdRoadmapStudioRoute
   '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
+  '/engine/projects/$projectId/roadmap/': typeof EngineProjectsProjectIdRoadmapIndexRoute
   '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
   '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
   '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
@@ -1371,7 +1371,6 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/publish-history': typeof EngineProjectsProjectIdPublishHistoryRoute
   '/engine/projects/$projectId/qa-delivery': typeof EngineProjectsProjectIdQaDeliveryRoute
   '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
-  '/engine/projects/$projectId/roadmap': typeof EngineProjectsProjectIdRoadmapRouteWithChildren
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
@@ -1393,6 +1392,7 @@ export interface FileRoutesByTo {
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
   '/engine/projects/$projectId/roadmap/studio': typeof EngineProjectsProjectIdRoadmapStudioRoute
   '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
+  '/engine/projects/$projectId/roadmap': typeof EngineProjectsProjectIdRoadmapIndexRoute
   '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
   '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
   '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
@@ -1539,7 +1539,6 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/publish-history': typeof EngineProjectsProjectIdPublishHistoryRoute
   '/engine/projects/$projectId/qa-delivery': typeof EngineProjectsProjectIdQaDeliveryRoute
   '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
-  '/engine/projects/$projectId/roadmap': typeof EngineProjectsProjectIdRoadmapRouteWithChildren
   '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
   '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
   '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
@@ -1561,6 +1560,7 @@ export interface FileRoutesById {
   '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
   '/engine/projects/$projectId/roadmap/studio': typeof EngineProjectsProjectIdRoadmapStudioRoute
   '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
+  '/engine/projects/$projectId/roadmap/': typeof EngineProjectsProjectIdRoadmapIndexRoute
   '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
   '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
   '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
@@ -1706,7 +1706,6 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/publish-history'
     | '/engine/projects/$projectId/qa-delivery'
     | '/engine/projects/$projectId/qa-factory'
-    | '/engine/projects/$projectId/roadmap'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/solutions'
@@ -1728,6 +1727,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/agent/tasks'
     | '/engine/projects/$projectId/roadmap/studio'
     | '/engine/projects/$projectId/versions/compare'
+    | '/engine/projects/$projectId/roadmap/'
     | '/engine/projects/$projectId/engines/runs/$runId'
     | '/engine/projects/$projectId/milestones/$milestoneId/brief'
     | '/engine/projects/$projectId/milestones/$milestoneId/build'
@@ -1866,7 +1866,6 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/publish-history'
     | '/engine/projects/$projectId/qa-delivery'
     | '/engine/projects/$projectId/qa-factory'
-    | '/engine/projects/$projectId/roadmap'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/solutions'
@@ -1888,6 +1887,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/agent/tasks'
     | '/engine/projects/$projectId/roadmap/studio'
     | '/engine/projects/$projectId/versions/compare'
+    | '/engine/projects/$projectId/roadmap'
     | '/engine/projects/$projectId/engines/runs/$runId'
     | '/engine/projects/$projectId/milestones/$milestoneId/brief'
     | '/engine/projects/$projectId/milestones/$milestoneId/build'
@@ -2033,7 +2033,6 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/publish-history'
     | '/engine/projects/$projectId/qa-delivery'
     | '/engine/projects/$projectId/qa-factory'
-    | '/engine/projects/$projectId/roadmap'
     | '/engine/projects/$projectId/sequencing'
     | '/engine/projects/$projectId/signal-room'
     | '/engine/projects/$projectId/solutions'
@@ -2055,6 +2054,7 @@ export interface FileRouteTypes {
     | '/engine/projects/$projectId/agent/tasks'
     | '/engine/projects/$projectId/roadmap/studio'
     | '/engine/projects/$projectId/versions/compare'
+    | '/engine/projects/$projectId/roadmap/'
     | '/engine/projects/$projectId/engines/runs/$runId'
     | '/engine/projects/$projectId/milestones/$milestoneId/brief'
     | '/engine/projects/$projectId/milestones/$milestoneId/build'
@@ -2895,13 +2895,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineProjectsProjectIdSequencingRouteImport
       parentRoute: typeof EngineProjectsProjectIdRoute
     }
-    '/engine/projects/$projectId/roadmap': {
-      id: '/engine/projects/$projectId/roadmap'
-      path: '/roadmap'
-      fullPath: '/engine/projects/$projectId/roadmap'
-      preLoaderRoute: typeof EngineProjectsProjectIdRoadmapRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
     '/engine/projects/$projectId/qa-factory': {
       id: '/engine/projects/$projectId/qa-factory'
       path: '/qa-factory'
@@ -3189,6 +3182,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksBuildRoadmapContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engine/projects/$projectId/roadmap/': {
+      id: '/engine/projects/$projectId/roadmap/'
+      path: '/roadmap'
+      fullPath: '/engine/projects/$projectId/roadmap/'
+      preLoaderRoute: typeof EngineProjectsProjectIdRoadmapIndexRouteImport
+      parentRoute: typeof EngineProjectsProjectIdRoute
+    }
     '/engine/projects/$projectId/versions/compare': {
       id: '/engine/projects/$projectId/versions/compare'
       path: '/versions/compare'
@@ -3198,10 +3198,10 @@ declare module '@tanstack/react-router' {
     }
     '/engine/projects/$projectId/roadmap/studio': {
       id: '/engine/projects/$projectId/roadmap/studio'
-      path: '/studio'
+      path: '/roadmap/studio'
       fullPath: '/engine/projects/$projectId/roadmap/studio'
       preLoaderRoute: typeof EngineProjectsProjectIdRoadmapStudioRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoadmapRoute
+      parentRoute: typeof EngineProjectsProjectIdRoute
     }
     '/engine/projects/$projectId/agent/tasks': {
       id: '/engine/projects/$projectId/agent/tasks'
@@ -3408,21 +3408,6 @@ const EngineProjectsProjectIdEnginesRouteWithChildren =
     EngineProjectsProjectIdEnginesRouteChildren,
   )
 
-interface EngineProjectsProjectIdRoadmapRouteChildren {
-  EngineProjectsProjectIdRoadmapStudioRoute: typeof EngineProjectsProjectIdRoadmapStudioRoute
-}
-
-const EngineProjectsProjectIdRoadmapRouteChildren: EngineProjectsProjectIdRoadmapRouteChildren =
-  {
-    EngineProjectsProjectIdRoadmapStudioRoute:
-      EngineProjectsProjectIdRoadmapStudioRoute,
-  }
-
-const EngineProjectsProjectIdRoadmapRouteWithChildren =
-  EngineProjectsProjectIdRoadmapRoute._addFileChildren(
-    EngineProjectsProjectIdRoadmapRouteChildren,
-  )
-
 interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdAgentRoute: typeof EngineProjectsProjectIdAgentRouteWithChildren
   EngineProjectsProjectIdAiWorkspaceRoute: typeof EngineProjectsProjectIdAiWorkspaceRoute
@@ -3459,7 +3444,6 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdPublishHistoryRoute: typeof EngineProjectsProjectIdPublishHistoryRoute
   EngineProjectsProjectIdQaDeliveryRoute: typeof EngineProjectsProjectIdQaDeliveryRoute
   EngineProjectsProjectIdQaFactoryRoute: typeof EngineProjectsProjectIdQaFactoryRoute
-  EngineProjectsProjectIdRoadmapRoute: typeof EngineProjectsProjectIdRoadmapRouteWithChildren
   EngineProjectsProjectIdSequencingRoute: typeof EngineProjectsProjectIdSequencingRoute
   EngineProjectsProjectIdSignalRoomRoute: typeof EngineProjectsProjectIdSignalRoomRoute
   EngineProjectsProjectIdSolutionsRoute: typeof EngineProjectsProjectIdSolutionsRoute
@@ -3471,7 +3455,9 @@ interface EngineProjectsProjectIdRouteChildren {
   EngineProjectsProjectIdWorkRoute: typeof EngineProjectsProjectIdWorkRoute
   EngineProjectsProjectIdWorldEntryRoute: typeof EngineProjectsProjectIdWorldEntryRoute
   EngineProjectsProjectIdIndexRoute: typeof EngineProjectsProjectIdIndexRoute
+  EngineProjectsProjectIdRoadmapStudioRoute: typeof EngineProjectsProjectIdRoadmapStudioRoute
   EngineProjectsProjectIdVersionsCompareRoute: typeof EngineProjectsProjectIdVersionsCompareRoute
+  EngineProjectsProjectIdRoadmapIndexRoute: typeof EngineProjectsProjectIdRoadmapIndexRoute
   EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
   EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
   EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
@@ -3538,8 +3524,6 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
       EngineProjectsProjectIdQaDeliveryRoute,
     EngineProjectsProjectIdQaFactoryRoute:
       EngineProjectsProjectIdQaFactoryRoute,
-    EngineProjectsProjectIdRoadmapRoute:
-      EngineProjectsProjectIdRoadmapRouteWithChildren,
     EngineProjectsProjectIdSequencingRoute:
       EngineProjectsProjectIdSequencingRoute,
     EngineProjectsProjectIdSignalRoomRoute:
@@ -3558,8 +3542,12 @@ const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren
     EngineProjectsProjectIdWorldEntryRoute:
       EngineProjectsProjectIdWorldEntryRoute,
     EngineProjectsProjectIdIndexRoute: EngineProjectsProjectIdIndexRoute,
+    EngineProjectsProjectIdRoadmapStudioRoute:
+      EngineProjectsProjectIdRoadmapStudioRoute,
     EngineProjectsProjectIdVersionsCompareRoute:
       EngineProjectsProjectIdVersionsCompareRoute,
+    EngineProjectsProjectIdRoadmapIndexRoute:
+      EngineProjectsProjectIdRoadmapIndexRoute,
     EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute:
       EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute,
     EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute:
