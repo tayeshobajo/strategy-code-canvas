@@ -13,7 +13,7 @@
  * (spine = 'strategic-thesis', field_key = 'thesis') so the doctrine
  * gate reader can find it without knowing about the sidecar.
  *
- * Second-Reviewer Rule: the proposer MUST NOT approve their own thesis.
+ * Approval rule: any admin or operator may approve, including the proposer.
  */
 
 import { createServerFn } from "@tanstack/react-start";
