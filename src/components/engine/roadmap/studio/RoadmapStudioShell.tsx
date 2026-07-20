@@ -281,7 +281,7 @@ function StudioInner({ projectId, view }: Props) {
   }, [nodes, setNodes, onSelectionChange]);
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-paper">
+    <div className="flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden bg-paper">
       <StudioTopBar
         projectId={projectId}
         versionLabel={view.version?.label ?? "v0.1"}
