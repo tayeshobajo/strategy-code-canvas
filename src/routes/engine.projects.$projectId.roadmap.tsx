@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Network,
   RefreshCw,
+  Maximize2,
 } from "lucide-react";
 import { getProjectRoadmap, type ProjectRoadmapPayload } from "@/lib/engine-roadmap.functions";
 import type {
