@@ -21,17 +21,44 @@ const TEMPLATES = [
   "Website Transformation",
 ] as const;
 
-export function StudioLeftRail() {
+export function StudioLeftRail({ collapsed, onToggle }: { collapsed?: boolean; onToggle?: () => void }) {
   const [tplOpen, setTplOpen] = useState(true);
+  if (collapsed) {
+    return (
+      <aside className="flex h-full w-[36px] shrink-0 flex-col items-center border-r border-rule bg-paper-soft py-2" aria-label="Studio components (collapsed)">
+        <button
+          type="button"
+          onClick={onToggle}
+          title="Expand components rail"
+          aria-label="Expand components rail"
+          className="rounded-md border border-rule bg-white p-1.5 text-ink/70 hover:text-ink"
+        >
+          <PanelLeftOpen className="h-3.5 w-3.5" />
+        </button>
+      </aside>
+    );
+  }
   return (
     <aside
       className="flex h-full w-[220px] shrink-0 flex-col overflow-y-auto border-r border-rule bg-paper-soft"
       aria-label="Studio components"
     >
-      <div className="px-4 pt-4">
-        <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-ink/45">
+      <div className="flex items-center justify-between px-4 pt-4">
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/45">
           Add to canvas
         </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          title="Collapse rail"
+          aria-label="Collapse components rail"
+          className="rounded p-1 text-ink/50 hover:text-ink"
+        >
+          <PanelLeftClose className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="px-4 pt-2">
+
         <div className="space-y-1">
           {PRIMITIVES.map(({ icon: Icon, label }) => (
             <button
