@@ -11,7 +11,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
-import { getProjectSpine } from "@/lib/engine.functions";
+import { getProjectSpine, type ProjectSpinePayload } from "@/lib/engine.functions";
 import {
   deriveProjectWork,
   type ProjectWorkReadModel,
@@ -69,12 +69,16 @@ export const getProjectWork = createServerFn({ method: "GET" })
       getProjectSpine as unknown as {
         __executeServer: (opts: {
           data: { id: string };
-          context?: unknown;
         }) => Promise<{ result?: unknown; error?: unknown }>;
       }
-    ).__executeServer({ data: { id: data.id }, context });
+    ).__executeServer({ data: { id: data.id } });
     if (spineExec.error) throw spineExec.error;
-    const spine = spineExec.result as Awaited<ReturnType<typeof getProjectSpine>>;
+    if (!spineExec.result) {
+      throw new Error(
+        `getProjectSpine returned no result: ${JSON.stringify(spineExec)}`,
+      );
+    }
+    const spine = spineExec.result as ProjectSpinePayload;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
