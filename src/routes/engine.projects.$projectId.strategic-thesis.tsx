@@ -64,7 +64,7 @@ function shortId(prefix: string) {
 function StrategicThesisPage() {
   const { projectId } = Route.useParams();
   const qc = useQueryClient();
-  const [me, setMe] = useState<string>("");
+  const [, setMe] = useState<string>("");
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMe((data.user?.email ?? "").toLowerCase()));
   }, []);
