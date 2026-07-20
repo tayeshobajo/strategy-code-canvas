@@ -52,6 +52,7 @@ function ProjectApprovalsRoom() {
     queryKey: ["ceremony-status", projectId],
     queryFn: () => getStatus({ data: { projectId } }),
     refetchOnWindowFocus: true,
+    refetchOnMount: "always",
     staleTime: 0,
   });
   const queryClient = useQueryClient();
