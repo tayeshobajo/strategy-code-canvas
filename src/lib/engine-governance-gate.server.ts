@@ -12,11 +12,12 @@
  *
  * Rules (per audit acceptance criteria, Gate 0):
  *   1. Actor has the required role for the artifact type.
- *   2. Actor is NOT the artifact's `created_by` (no self-approval).
- *   3. A `engine_review_items` row exists in `approved` state for the
+ *   2. A `engine_review_items` row exists in `approved` state for the
  *      transition, when the transition type requires a review.
- *   4. Artifact's completeness threshold is met (per-artifact predicate).
- *   5. Exactly one `engine_audit_log` row is written per successful transition.
+ *   3. Artifact's completeness threshold is met (per-artifact predicate).
+ *   4. Exactly one `engine_audit_log` row is written per successful transition.
+ *
+ * Self-approval is permitted: the proposer may approve their own artifact.
  *
  * NOT a place to add business logic — only the transition gate itself.
  */
