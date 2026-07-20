@@ -718,13 +718,13 @@ function StrategicJourneyBand({
             <li key={p.key} className="flex shrink-0 items-stretch gap-3">
               <PhaseArrow />
               <Link
-                to="/engine/projects/$projectId/roadmap"
+                from={Route.fullPath}
+                to="."
                 params={{ projectId }}
-                search={(prev: Record<string, unknown>) => {
+                search={(prev) => {
                   if (active) {
-                    const rest = { ...prev } as Record<string, unknown>;
-                    delete rest.phase;
-                    return rest as { view: "journey" | "timeline" | "table"; phase?: string; versionId?: string };
+                    const { phase: _omit, ...rest } = prev;
+                    return rest;
                   }
                   return { ...prev, phase: p.key };
                 }}
@@ -1113,6 +1113,7 @@ function MilestoneTable({
                 <Link
                   to="/engine/projects/$projectId/work"
                   params={{ projectId }}
+                  search={{ view: "milestones" }}
                   className="inline-flex items-center gap-1 text-xs text-royal hover:underline"
                 >
                   Open <ArrowUpRight className="h-3 w-3" />
