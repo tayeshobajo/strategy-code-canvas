@@ -328,11 +328,6 @@ export const decideReviewItem = createServerFn({ method: "POST" })
         throw new Error(`Cannot approve: linked version is already ${target.status}.`);
       }
 
-      const createdBy = (target.created_by ?? "").toString().toLowerCase();
-      // Self-approval guard mirrors approveVersion.
-      if (createdBy && createdBy !== "ai" && createdBy === actor.toLowerCase()) {
-        throw new Error("You cannot approve a version you authored yourself — a second reviewer must approve this review item.");
-      }
       // Block on unresolved critical change events.
       const { data: openCritical } = await sb
         .from("engine_change_events")

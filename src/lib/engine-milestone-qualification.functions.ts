@@ -389,13 +389,6 @@ export const decideMilestoneQualification = createServerFn({ method: "POST" })
     const sb = ctx.supabase as any;
     const { milestone, spirit } = await loadContext(sb, data.projectId, data.milestoneId);
 
-    // Second-reviewer: whoever approved the brief cannot qualify it.
-    const author = (milestone.approved_by_email ?? "").toLowerCase();
-    if (author && author === actor.toLowerCase() && data.decision === "qualified") {
-      throw new Error(
-        "Second-reviewer rule: the person who approved this milestone brief cannot qualify it. Ask another admin or operator.",
-      );
-    }
 
     const { map } = await readAll(sb, data.projectId);
     const prior: MilestoneQualification = map[data.milestoneId] ?? { status: "unqualified", history: [] };

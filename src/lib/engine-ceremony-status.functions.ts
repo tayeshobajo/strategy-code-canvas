@@ -206,9 +206,6 @@ export async function computeProjectCeremonyStatus(
       ].filter(Boolean)
     : [];
   const weConstraints: string[] = [];
-  if (weCur && weActor === "human" && weCur.drafted_by_email) {
-    weConstraints.push(`Second reviewer required (drafted by ${weCur.drafted_by_email}).`);
-  }
   if (!weCur) weConstraints.push("No draft yet — start in the World Entry room.");
 
   const ebActor: "human" | "ai" | null = ebCur
@@ -222,9 +219,6 @@ export async function computeProjectCeremonyStatus(
       ].filter(Boolean)
     : [];
   const ebConstraints: string[] = [];
-  if (ebCur && ebActor === "human" && ebCur.proposed_by_email) {
-    ebConstraints.push(`Second reviewer required (proposed by ${ebCur.proposed_by_email}).`);
-  }
   if (!ebCur) ebConstraints.push("No draft yet — start in the Execution Boundary room.");
 
   const stActor: "human" | "ai" | null = stCur
@@ -239,9 +233,6 @@ export async function computeProjectCeremonyStatus(
       ].filter(Boolean)
     : [];
   const stConstraints: string[] = [];
-  if (stCur && stActor === "human" && stCur.proposed_by_email) {
-    stConstraints.push(`Second reviewer required (proposed by ${stCur.proposed_by_email}).`);
-  }
   if (!stCur) stConstraints.push("No draft yet — draft the Strategic Thesis first.");
 
   const ceremonies: CeremonyStatus[] = [
