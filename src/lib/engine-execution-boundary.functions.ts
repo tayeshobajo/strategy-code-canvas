@@ -20,8 +20,8 @@
  * exists, a follow-up patch will migrate readers/writers to the
  * dedicated table without changing the gate contract.
  *
- * Human approval rule: the proposer MUST NOT approve their own
- * boundary (second-reviewer check).
+ * Human approval rule: any admin or operator may approve, including the
+ * proposer (self-approval is permitted).
  */
 
 import { createServerFn } from "@tanstack/react-start";
