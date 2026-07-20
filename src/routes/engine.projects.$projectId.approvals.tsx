@@ -219,11 +219,6 @@ function CeremonyRow({
     (ceremony.key === "roadmap_v01" ? !!ceremony.roadmap_version_id : ceremony.version != null);
 
   const isAiDraft = ceremony.drafted_by_actor === "ai";
-  const selfDrafted =
-    !isAiDraft &&
-    !!currentEmail &&
-    !!ceremony.drafted_by_email &&
-    currentEmail.toLowerCase() === ceremony.drafted_by_email.toLowerCase();
 
   const rejectSupported =
     ceremony.key === "execution_boundary" || ceremony.key === "strategic_thesis";
@@ -257,11 +252,6 @@ function CeremonyRow({
               {ceremony.version != null && (
                 <span className="text-[10px] text-muted-foreground font-mono">
                   v{ceremony.version}
-                </span>
-              )}
-              {isAiDraft && (
-                <span className="text-[10px] rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-blue-800">
-                  AI draft · exempt from second-reviewer
                 </span>
               )}
             </div>
