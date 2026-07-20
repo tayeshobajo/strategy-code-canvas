@@ -11,7 +11,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
-import { getProjectSpine } from "@/lib/engine.functions";
+import { getProjectSpine, type ProjectSpinePayload } from "@/lib/engine.functions";
 import {
   deriveProjectWork,
   type ProjectWorkReadModel,
