@@ -58,15 +58,16 @@ export const aiDraftStrategicThesis = createServerFn({ method: "POST" })
       string,
       unknown
     >;
-    const worldEntry = (spirit["world_entry_workspace"] as any)?.current ?? null;
-    const boundary = (spirit["execution_boundary_workspace"] as any)?.current ?? null;
-
-    if (!worldEntry) {
-      throw new Error("World Entry must exist before drafting the Strategic Thesis. Run AI PM to seed it.");
-    }
-    if (!boundary) {
-      throw new Error("Execution Boundary must exist before drafting the Strategic Thesis. Run AI PM to seed it.");
-    }
+    const worldEntry = (spirit["world_entry_workspace"] as any)?.current ?? {
+      destination_summary: "",
+      vocabulary: [],
+      competitors: [],
+    };
+    const boundary = (spirit["execution_boundary_workspace"] as any)?.current ?? {
+      capability_ids: [],
+      client_owned_areas: [],
+      exclusions: [],
+    };
 
     const context_block = [
       `PROJECT: ${proj.name ?? "(unnamed)"}`,
