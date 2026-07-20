@@ -372,6 +372,16 @@ function RoadmapHeader({
           >
             Back to Spine
           </Link>
+          <Link
+            to="/engine/projects/$projectId/roadmap/studio"
+            params={{ projectId }}
+            className="inline-flex items-center gap-1.5 rounded-md border border-ink bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink hover:text-white"
+            data-qa-action="open-roadmap-studio"
+            title="Open the full-viewport Roadmap Studio canvas"
+          >
+            <MapIcon className="h-3.5 w-3.5" />
+            Open Studio
+          </Link>
           <button
             type="button"
             onClick={onOpenCompare}
