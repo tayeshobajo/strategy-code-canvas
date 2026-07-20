@@ -531,9 +531,8 @@ export const reviewWorkEvidence = createServerFn({ method: "POST" })
       .eq("id", data.evidenceId)
       .maybeSingle();
     if (readErr || !ev) throw new Error(readErr?.message ?? "Evidence not found");
-    if (ev.created_by_email && email && ev.created_by_email === email) {
-      throw new Error("Self-approval is not allowed: another admin must review this evidence");
-    }
+    // Self-approval allowed: any admin may review evidence, including the submitter.
+
 
     const { error: upErr } = await sb
       .from("engine_work_evidence")
