@@ -329,7 +329,7 @@ export async function assertOfficialTransition(
     );
   }
 
-  // Rule 2: no self-approval + rule 4: completeness (parallel-safe)
+  // Rule 4: completeness (self-approval rule removed — proposers may approve)
   const [{ data: artifact }] = await Promise.all([
     sb
       .from(entry.table)
@@ -343,13 +343,6 @@ export async function assertOfficialTransition(
     throw new GovernanceGateError(
       "artifact_missing",
       `${input.artifact_type} ${input.artifact_id} not found`,
-    );
-  }
-  const createdBy = (artifact as any)[entry.created_by_column];
-  if (createdBy && createdBy === input.actor_email) {
-    throw new GovernanceGateError(
-      "self_approval",
-      `Actor ${input.actor_email} cannot approve their own ${input.artifact_type}`,
     );
   }
 
