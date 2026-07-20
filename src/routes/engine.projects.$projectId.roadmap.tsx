@@ -51,6 +51,7 @@ const searchSchema = z.object({
   phase: z.string().optional(),
   versionId: z.string().uuid().optional(),
 });
+type RoadmapSearch = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/engine/projects/$projectId/roadmap")({
   validateSearch: (raw) => searchSchema.parse(raw ?? {}),
@@ -721,7 +722,7 @@ function StrategicJourneyBand({
                 from={Route.fullPath}
                 to="."
                 params={{ projectId }}
-                search={(prev) => {
+                search={(prev: RoadmapSearch): RoadmapSearch => {
                   if (active) {
                     const { phase: _omit, ...rest } = prev;
                     return rest;
