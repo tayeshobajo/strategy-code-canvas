@@ -10,7 +10,7 @@
 //   2. approveEnginePromotion() activates via activate_business_engine() RPC.
 //      Self-approval is permitted; the activator may be the same person as
 //      the proposer.
-//      double-checks at the DB layer.
+//
 //
 // Eligibility:
 //   - milestone.approval_status = 'approved'
