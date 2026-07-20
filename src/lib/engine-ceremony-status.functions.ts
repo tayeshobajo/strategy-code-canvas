@@ -48,9 +48,9 @@ export type CeremonyStatus = {
   detail: string | null;
   /** Roadmap version id — only set for the roadmap_v01 ceremony. */
   roadmap_version_id: string | null;
-  /** Email of the person who drafted the awaiting-review version (for second-reviewer UI hints). */
+  /** Email of the person who drafted the awaiting-review version (informational). */
   drafted_by_email: string | null;
-  /** Whether the current draft was produced by AI (exempt from second-reviewer). */
+  /** Whether the current draft was produced by AI. */
   drafted_by_actor: "human" | "ai" | null;
   /** Concrete evidence lines derived from the current draft, for inline review. */
   evidence_summary: string[];
