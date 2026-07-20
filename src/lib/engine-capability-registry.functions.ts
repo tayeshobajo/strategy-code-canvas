@@ -63,9 +63,14 @@ const retireInput = z.object({
 function isMissingTable(err: unknown): boolean {
   const e = err as { code?: string; message?: string } | null;
   if (!e) return false;
-  if (e.code === "42P01") return true;
+  if (e.code === "42P01" || e.code === "PGRST205" || e.code === "PGRST202") return true;
   const m = (e.message ?? "").toLowerCase();
-  return m.includes("does not exist") || m.includes("relation") || m.includes("not found");
+  return (
+    m.includes("does not exist") ||
+    m.includes("not found") ||
+    m.includes("schema cache") ||
+    m.includes("could not find the table")
+  );
 }
 
 async function tryReadRegistry(sb: any): Promise<CapabilityRegistryRow[] | null> {
