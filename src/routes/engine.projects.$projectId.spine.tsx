@@ -115,6 +115,9 @@ function badgeToneFor(
 
 
 export const Route = createFileRoute("/engine/projects/$projectId/spine")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    export: search.export === 1 || search.export === "1" ? 1 : undefined,
+  }),
   component: ProjectSpine,
 });
 
