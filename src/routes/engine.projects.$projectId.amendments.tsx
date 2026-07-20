@@ -48,7 +48,7 @@ function AmendmentsRoute() {
           <Link
             to="/engine/projects/$projectId/roadmap"
             params={{ projectId }}
-            search={{ view: "flow" }}
+            search={{ view: "journey" }}
             className="mb-1 inline-flex items-center gap-1 text-xs text-[#3E68B2] hover:underline"
           >
             <ArrowLeft className="h-3 w-3" /> Back to roadmap

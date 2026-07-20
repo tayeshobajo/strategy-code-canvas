@@ -622,7 +622,7 @@ function MilestoneExecutionCard({
             </>
           ) : null}
           <Link
-            to="/engine/projects/$projectId/milestones/$milestoneId"
+            to="/engine/projects/$projectId/milestones/$milestoneId/brief"
             params={{ projectId, milestoneId: m.id }}
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-2.5 py-1.5 text-xs text-ink hover:border-ink/40"
           >
@@ -1088,7 +1088,7 @@ function QaHandoffCard({
         {view.qa_handoffs.map((q) => (
           <li key={q.milestone_id}>
             <Link
-              to="/engine/projects/$projectId/milestones/$milestoneId"
+              to="/engine/projects/$projectId/milestones/$milestoneId/qa"
               params={{ projectId, milestoneId: q.milestone_id }}
               className="text-sm text-ink hover:underline"
             >

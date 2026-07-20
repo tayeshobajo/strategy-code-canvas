@@ -343,6 +343,7 @@ function DeepLink({ signal, projectId }: { signal: DriftSignalRow; projectId: st
       <Link
         to="/engine/projects/$projectId/work"
         params={{ projectId }}
+        search={{ view: "milestones" }}
         className="text-[#3E68B2] hover:underline"
       >
         Open in Work →
