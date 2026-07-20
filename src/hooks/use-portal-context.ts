@@ -18,35 +18,36 @@ const UNLOCK_STATUSES = new Set([
  * approved roadmap, billing preview). Used by every /portal/* page so the
  * project id + package name only round-trip once per session.
  *
+ * The portal layout's beforeLoad already gated auth, so this hook does NOT
+ * block on a serialized `getSession()` roundtrip before enabling the query —
+ * it kicks off the fetch immediately and just watches auth state changes.
+ *
  * While the client is still waiting on their approved Roadmap handoff, we
- * poll every 20s and refetch on window focus so the sidebar auto-unlocks the
- * moment Tai publishes the delivery — without requiring a manual refresh.
- * Once the roadmap is approved (or the project reaches an unlocked status),
- * polling stops and we fall back to the standard 60s stale window.
+ * poll every 20s so the sidebar auto-unlocks the moment Tai publishes it.
+ * Once approved (or the project reaches an unlocked status), polling stops
+ * and we hold the result with a long stale window so tab switches don't
+ * refetch and re-render.
  */
 export function usePortalContext({ enabled: enabledProp = true }: { enabled?: boolean } = {}) {
-  const [hasSession, setHasSession] = useState<boolean | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
   useEffect(() => {
-    let cancelled = false;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled) setHasSession(!!data.session);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setHasSession(!!session);
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      setSignedOut(event === "SIGNED_OUT");
     });
     return () => {
-      cancelled = true;
       sub.subscription.unsubscribe();
     };
   }, []);
-  const enabled = enabledProp && hasSession === true;
+  const enabled = enabledProp && !signedOut;
   const fetchCtx = useServerFn(getPortalContext);
   return useQuery({
     queryKey: ["portal", "context"],
     queryFn: () => fetchCtx({}),
     enabled,
-    staleTime: 30_000,
-    refetchOnWindowFocus: enabled,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     refetchInterval: (query) => {
       if (!enabled) return false;
       const data = query.state.data as
