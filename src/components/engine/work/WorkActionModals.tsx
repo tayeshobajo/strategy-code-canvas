@@ -738,8 +738,8 @@ export function WorkEvidenceModal({
         <DialogHeader>
           <DialogTitle>Evidence — {taskName}</DialogTitle>
           <DialogDescription>
-            Attach proof before this task can complete. Reviewers must be a different admin than
-            the submitter (no self-approval).
+            Attach proof before this task can complete.
+
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
