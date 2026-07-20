@@ -264,6 +264,17 @@ function ProjectSpine() {
     return () => window.removeEventListener("spine:export-roadmap", handler);
   }, []);
 
+  const exportSearch = Route.useSearch({ select: (s) => s.export });
+  const navigate = Route.useNavigate();
+  useEffect(() => {
+    if (exportSearch !== 1) return;
+    const t = window.setTimeout(() => {
+      exportHandlerRef.current?.();
+      navigate({ search: (prev) => ({ ...prev, export: undefined }), replace: true });
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [exportSearch, navigate]);
+
 
 
   const approveMut = useMutation({
