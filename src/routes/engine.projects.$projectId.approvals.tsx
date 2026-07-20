@@ -106,6 +106,7 @@ function ProjectApprovalsRoom() {
     },
     onError: (e: unknown) => {
       toast.error(e instanceof Error ? e.message : "Action failed");
+      invalidate();
     },
   });
 
