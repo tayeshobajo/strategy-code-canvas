@@ -38,17 +38,46 @@ export function StudioInspector({
   projectId,
   selection,
   onClose,
+  collapsed,
+  onToggle,
 }: {
   projectId: string;
   selection: Selection;
   onClose: () => void;
+  collapsed?: boolean;
+  onToggle?: () => void;
 }) {
+  if (collapsed) {
+    return (
+      <aside className="flex h-full w-[36px] shrink-0 flex-col items-center border-l border-rule bg-white py-2" aria-label="Inspector (collapsed)">
+        <button
+          type="button"
+          onClick={onToggle}
+          title="Expand inspector"
+          aria-label="Expand inspector"
+          className="rounded-md border border-rule bg-white p-1.5 text-ink/70 hover:text-ink"
+        >
+          <PanelRightOpen className="h-3.5 w-3.5" />
+        </button>
+      </aside>
+    );
+  }
   return (
     <aside
-      className="flex h-full w-[340px] shrink-0 flex-col border-l border-rule bg-white"
+      className="relative flex h-full w-[340px] shrink-0 flex-col border-l border-rule bg-white"
       data-qa-panel="studio-inspector"
       aria-label="Inspector"
     >
+      <button
+        type="button"
+        onClick={onToggle}
+        title="Collapse inspector"
+        aria-label="Collapse inspector"
+        className="absolute right-2 top-2 z-10 rounded p-1 text-ink/50 hover:text-ink"
+      >
+        <PanelRightClose className="h-3.5 w-3.5" />
+      </button>
+
       {selection.kind === "none" && (
         <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/45">Inspector</div>
