@@ -14,8 +14,8 @@
  * `engine_spine_field_truth` with `spine = 'world-entry'`. Gate reader
  * (`roadmap-synthesis/gates.ts`) already reads both sources.
  *
- * Human approval rule: the person who approves a version MUST NOT be
- * the person who drafted the latest version (second-reviewer check).
+ * Approval rule: any admin or operator may approve, including the person
+ * who drafted the latest version (self-approval is permitted).
  */
 
 import { createServerFn } from "@tanstack/react-start";
