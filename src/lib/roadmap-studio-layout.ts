@@ -9,19 +9,25 @@
 
 import type { RoadmapPhase, RoadmapMilestoneView } from "@/lib/roadmap-view";
 
-export const STUDIO_LAYOUT = {
+export const STUDIO_LAYOUT: {
+  cardW: number; cardH: number; cardGapY: number;
+  colGapX: number; colW: number;
+  laneTop: number; laneHeaderH: number;
+  pointW: number; pointH: number;
+  originX: number; originY: number;
+} = {
   cardW: 220,
   cardH: 130,
   cardGapY: 18,
   colGapX: 40,
-  colW: 244, // cardW + colGapX*.6
+  colW: 244,
   laneTop: 220,
   laneHeaderH: 70,
   pointW: 190,
   pointH: 170,
   originX: 40,
   originY: 60,
-} as const;
+};
 
 export type StudioNodeKind = "pointA" | "pointB" | "phaseHeader" | "milestone";
 
