@@ -1,5 +1,5 @@
 import { MiniMap } from "@xyflow/react";
-import { Square, Circle, Diamond, GitBranch, StickyNote, Layers, Users, Milestone, ChevronDown, ChevronUp } from "lucide-react";
+import { Square, Circle, Diamond, GitBranch, StickyNote, Layers, Users, Milestone, ChevronDown, ChevronUp, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useState } from "react";
 
 const PRIMITIVES = [
