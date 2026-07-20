@@ -126,10 +126,6 @@ function PortalLayout() {
       setEmail("");
       return;
     }
-    const session = supabase.auth.getSession
-      ? undefined
-      : undefined;
-    void session;
     supabase.auth.getSession().then(({ data }) => {
       setEmail(data.session?.user?.email ?? "");
     });
