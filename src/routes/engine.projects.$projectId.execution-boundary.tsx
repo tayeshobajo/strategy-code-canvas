@@ -44,7 +44,7 @@ function fromState(s: ExecutionBoundaryState | undefined): Draft {
 function ExecutionBoundaryPage() {
   const { projectId } = Route.useParams();
   const qc = useQueryClient();
-  const [me, setMe] = useState<string>("");
+  const [, setMe] = useState<string>("");
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMe((data.user?.email ?? "").toLowerCase()));
   }, []);
@@ -78,7 +78,6 @@ function ExecutionBoundaryPage() {
 
   const state = stateQuery.data;
   const current = state?.current ?? null;
-  const isProposer = !!current && me && current.proposed_by_email.toLowerCase() === me;
   const canApprove = current?.status === "proposed";
 
   const proposeMut = useMutation({

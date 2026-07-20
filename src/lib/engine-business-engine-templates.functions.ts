@@ -422,12 +422,8 @@ export const approveEngineFromTemplate = createServerFn({ method: "POST" })
     if (eErr) throw new Error(eErr.message);
     if (!engine) throw new Error("Engine not found");
     if (engine.status === "active") throw new Error("Engine already active.");
-    const creator = (engine.created_by ?? "").toLowerCase();
-    if (creator && creator === approver) {
-      throw new Error(
-        "Self-approval forbidden: template cloner cannot activate their own engine.",
-      );
-    }
+    // Self-approval allowed: template cloner may activate an engine they created.
+
 
     const { error: actErr } = await sb.rpc("activate_business_engine", {
       _engine_id: data.engineId,

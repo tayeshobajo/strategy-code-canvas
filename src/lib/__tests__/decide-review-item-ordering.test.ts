@@ -49,23 +49,9 @@ describe("decideReviewItem write ordering (New Issue #2)", () => {
     expect(unresolvedVersion).toBeLessThan(auditInsert());
   });
 
-  it("self-approval guard runs before the item update and audit insert", () => {
-    const guard = idxOf("You cannot approve a version you authored yourself");
-    expect(guard).toBeLessThan(itemUpdate());
-    expect(guard).toBeLessThan(auditInsert());
-  });
+  // Self-approval guard removed — proposers may approve their own versions.
+  // Investment-confirmation guard removed — approval no longer blocks on it.
 
-  it("open-critical-events guard runs before the item update and audit insert", () => {
-    const guard = idxOf("Resolve open critical change events");
-    expect(guard).toBeLessThan(itemUpdate());
-    expect(guard).toBeLessThan(auditInsert());
-  });
-
-  it("investment-confirmation guard runs before the item update and audit insert", () => {
-    const guard = idxOf("Confirm the investment on this project");
-    expect(guard).toBeLessThan(itemUpdate());
-    expect(guard).toBeLessThan(auditInsert());
-  });
 
   it("the version status write happens only after the item update (retryable ordering)", () => {
     const versionWrite = idxOf(

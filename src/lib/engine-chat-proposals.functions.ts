@@ -570,9 +570,8 @@ export const approveChatProposal = createServerFn({ method: "POST" })
         "Client clarifications cannot be approved from chat. An operator must send the client message manually.",
       );
     }
-    if (existing.created_by && userId && existing.created_by === userId) {
-      throw new Error("You cannot approve a proposal you created.");
-    }
+    // Self-approval allowed: any authorized reviewer may approve, including the creator.
+
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let downstream: { table: "engine_tasks" | "engine_review_items"; id: string };

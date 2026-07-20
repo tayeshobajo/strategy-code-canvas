@@ -372,9 +372,9 @@ export const applyApprovedEngineWorkflowChange = createServerFn({ method: "POST"
 
     const payload = (proposal.payload ?? {}) as Record<string, any>;
     const proposedBy = String(payload.proposed_by ?? "").toLowerCase();
-    if (proposedBy && proposedBy === approver) {
-      throw new Error("Self-approval forbidden: the proposer cannot apply their own change.");
-    }
+    void proposedBy;
+    // Self-approval allowed: the proposer may apply their own change.
+
     const engineId = payload.engine_id as string | undefined;
     const diff = payload.workflow_diff as WorkflowDiff | undefined;
     if (!engineId || !diff) throw new Error("Proposal missing engine_id or workflow_diff");

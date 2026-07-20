@@ -317,10 +317,9 @@ export const approveEnginePromotion = createServerFn({ method: "POST" })
     if (!engine.milestone_id) {
       throw new Error("Engine is not linked to a milestone — not a promotion flow.");
     }
-    const creator = (engine.created_by ?? "").toLowerCase();
-    if (creator && creator === approver) {
-      throw new Error("Self-approval forbidden: promoter cannot activate their own engine.");
-    }
+    // Self-approval allowed: promoter may activate an engine they created.
+
+
 
     // activate_business_engine RPC records approved_by/at + flips status to active
     // and is gated by engine_business_engines_no_self_approve at the DB layer.
