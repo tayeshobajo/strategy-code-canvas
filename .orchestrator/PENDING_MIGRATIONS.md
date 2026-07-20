@@ -5248,3 +5248,58 @@ and its `fallbackRows()` path becomes cold code. The boundary functions
 in `src/lib/engine-execution-boundary.functions.ts` migrate off the
 `spirit_first_analysis.execution_boundary_workspace` sidecar and mirror
 approvals into `engine_spine_field_truth` with `spine = 'execution-boundary'`.
+
+
+## Roadmap Studio — canvas position persistence (Studio Sprint 1)
+
+**Rule (per CLAUDE.md):** written here, not applied autonomously.
+
+The Roadmap Studio (`/engine/projects/$id/roadmap/studio`) currently renders
+positions computed from `sequence` + `phase_id` and holds drag state in
+memory. Applying this migration unlocks: persisted node positions per
+project, saved viewport, freeform/structured layout mode, and Studio-added
+notes/groups/decisions.
+
+```sql
+CREATE TABLE public.engine_project_roadmap_canvas (
+  project_id            uuid NOT NULL REFERENCES public.engine_projects(id) ON DELETE CASCADE,
+  version_id            uuid NULL REFERENCES public.engine_roadmap_versions(id) ON DELETE SET NULL,
+  layout_mode           text NOT NULL DEFAULT 'structured'
+                        CHECK (layout_mode IN ('structured','freeform')),
+  viewport              jsonb NOT NULL DEFAULT '{"x":0,"y":0,"zoom":1}'::jsonb,
+  node_positions        jsonb NOT NULL DEFAULT '{}'::jsonb,
+  notes                 jsonb NOT NULL DEFAULT '[]'::jsonb,
+  groups                jsonb NOT NULL DEFAULT '[]'::jsonb,
+  decisions             jsonb NOT NULL DEFAULT '[]'::jsonb,
+  current_position_node text NULL,
+  updated_at            timestamptz NOT NULL DEFAULT now(),
+  updated_by_email      text NULL,
+  PRIMARY KEY (project_id, COALESCE(version_id, '00000000-0000-0000-0000-000000000000'::uuid))
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.engine_project_roadmap_canvas TO authenticated;
+GRANT ALL ON public.engine_project_roadmap_canvas TO service_role;
+
+ALTER TABLE public.engine_project_roadmap_canvas ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "studio_canvas_admin_operator_all"
+  ON public.engine_project_roadmap_canvas FOR ALL TO authenticated
+  USING (public.has_role_email(auth.jwt() ->> 'email', 'admin')
+      OR public.has_role_email(auth.jwt() ->> 'email', 'operator'))
+  WITH CHECK (public.has_role_email(auth.jwt() ->> 'email', 'admin')
+           OR public.has_role_email(auth.jwt() ->> 'email', 'operator'));
+
+CREATE OR REPLACE FUNCTION public.tg_studio_canvas_touch()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at := now(); RETURN NEW; END $$;
+
+CREATE TRIGGER trg_studio_canvas_touch
+  BEFORE UPDATE ON public.engine_project_roadmap_canvas
+  FOR EACH ROW EXECUTE FUNCTION public.tg_studio_canvas_touch();
+```
+
+After apply, add `saveRoadmapCanvasLayout` server fn writing to this table
+and swap the Studio's in-memory position state to persisted reads. Material
+milestone moves (cross-phase / dependency-breaking) continue to route
+through `admin_edit_milestone_governed` and the amendment flow — this table
+holds *presentation* state only.
