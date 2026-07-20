@@ -54,7 +54,7 @@ const searchSchema = z.object({
 });
 type RoadmapSearch = z.infer<typeof searchSchema>;
 
-export const Route = createFileRoute("/engine/projects/$projectId/roadmap")({
+export const Route = createFileRoute("/engine/projects/$projectId/roadmap/")({
   validateSearch: (raw) => searchSchema.parse(raw ?? {}),
   component: RoadmapTab,
 });
