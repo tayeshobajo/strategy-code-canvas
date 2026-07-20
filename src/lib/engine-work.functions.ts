@@ -78,7 +78,7 @@ export const getProjectWork = createServerFn({ method: "GET" })
         `getProjectSpine returned no result: ${JSON.stringify(spineExec)}`,
       );
     }
-    const spine = spineExec.result as Awaited<ReturnType<typeof getProjectSpine>>;
+    const spine = spineExec.result as ProjectSpinePayload;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
