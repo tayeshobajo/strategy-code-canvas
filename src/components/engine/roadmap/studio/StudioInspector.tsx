@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, CheckCircle2, GitBranch, User2, Calendar, Activity } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, GitBranch, User2, Calendar, Activity, PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { RoadmapMilestoneView, RoadmapPhase } from "@/lib/roadmap-view";
 import { phasePalette } from "@/lib/roadmap-studio-layout";
 
