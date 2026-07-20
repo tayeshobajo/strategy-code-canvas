@@ -4,9 +4,8 @@
  *
  * Two LLM judges (World fit + Wow fit) grade a milestone against the
  * approved World Entry, Execution Boundary, and Strategic Thesis. A
- * human approver (second-reviewer) then marks the milestone as
- * `qualified` or `rejected` with a note. The ceremony log is
- * append-only.
+ * human approver then marks the milestone as `qualified` or `rejected`
+ * with a note. The ceremony log is append-only.
  *
  * Storage (sidecar until the RT-4 tables in PENDING_MIGRATIONS land):
  *   engine_projects.spirit_first_analysis.milestone_qualifications = {
@@ -18,9 +17,8 @@
  *     }
  *   }
  *
- * Second-Reviewer Rule: the human that authored the milestone brief
- * cannot mark it qualified. `engine_milestones.approved_by_email`
- * counts as authorship for this check.
+ * Approval rule: any admin or operator may qualify a milestone, including
+ * the author of the milestone brief (self-approval is permitted).
  */
 
 import { createServerFn } from "@tanstack/react-start";
@@ -360,7 +358,7 @@ export const runMilestoneJudges = createServerFn({ method: "POST" })
 
     // Fan out to the operator bell so witnesses/approvers know a
     // milestone has entered the qualification ceremony and needs a
-    // second-reviewer decision.
+    // decision.
     await notifyOperators(sb, {
       projectId: data.projectId,
       kind: "milestone_qualification.entered",

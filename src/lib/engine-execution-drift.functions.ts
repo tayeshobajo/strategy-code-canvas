@@ -6,9 +6,9 @@
  * delivery items) and the approved strategic anchors (thesis, milestone
  * rationale, execution boundary, capability registry).
  *
- * All writes require the second-reviewer rule: a signal authored by AI
- * cannot be resolved/dismissed by the same actor (enforced at the DB via
- * `enforce_no_ai_self_resolve_drift`).
+ * AI-authored signals may still be resolved/dismissed by an AI actor only
+ * where the DB trigger `enforce_no_ai_self_resolve_drift` permits it; human
+ * proposers may resolve their own signals (no second-reviewer requirement).
  */
 
 import { createServerFn } from "@tanstack/react-start";
