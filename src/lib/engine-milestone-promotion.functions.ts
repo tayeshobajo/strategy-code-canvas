@@ -8,8 +8,8 @@
 //      linked to the source milestone, plus an engine_review_items entry and
 //      audit trail. Nothing running yet.
 //   2. approveEnginePromotion() activates via activate_business_engine() RPC.
-//      The activator's email is enforced ≠ proposer email (no self-approval),
-//      and the existing engine_business_engines_no_self_approve trigger
+//      Self-approval is permitted; the activator may be the same person as
+//      the proposer.
 //      double-checks at the DB layer.
 //
 // Eligibility:
