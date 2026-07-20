@@ -106,21 +106,32 @@ export const draftMilestoneAcceptanceCriteria = createServerFn({ method: "POST" 
           ? m.brief_md
           : `Draft for review: ${m.name} sequences the work needed to move from Point A to Point B for ${project.name}. Confirm scope and owners before starting.`;
 
-      const patch: Record<string, unknown> = {
-        brief_md: baselineBrief,
-        acceptance_criteria: baselineAcc,
-      };
+      // Governed body fields (brief_md, acceptance_criteria) are locked by
+      // the `engine_milestones_require_proposal` trigger. Route those through
+      // the SECURITY DEFINER RPC that toggles the `engine.proposal_apply`
+      // GUC. Non-governed fields (approval_status/by/at) keep going through
+      // the regular UPDATE so RLS remains the primary gate.
+      const { error: gErr } = await sb.rpc("admin_edit_milestone_governed", {
+        _id: m.id,
+        _patch: { brief_md: baselineBrief, acceptance_criteria: baselineAcc },
+      });
+      if (gErr) {
+        throw new Error(`Governed milestone edit failed for ${m.name}: ${gErr.message}`);
+      }
       const needsApproval = (m.approval_status ?? "") !== "approved";
       if (needsApproval) {
-        patch.approval_status = "approved";
-        patch.approved_by_email = actorEmail;
-        patch.approved_at = now;
+        const { error } = await sb
+          .from("engine_milestones")
+          .update({
+            approval_status: "approved",
+            approved_by_email: actorEmail,
+            approved_at: now,
+          })
+          .eq("id", m.id);
+        if (error) throw new Error(`Approval update failed for ${m.name}: ${error.message}`);
+        approved++;
       }
-      const { error } = await sb.from("engine_milestones").update(patch).eq("id", m.id);
-      if (!error) {
-        drafted++;
-        if (needsApproval) approved++;
-      }
+      drafted++;
     }
 
     await sb.from("engine_activity").insert({
@@ -245,7 +256,10 @@ ${JSON.stringify(asked).slice(0, 25_000)}`,
         if (brief.length >= 20) patch.brief_md = brief;
         if (acc.length >= 3) patch.acceptance_criteria = acc;
         if (Object.keys(patch).length === 0) continue;
-        const { error } = await sb.from("engine_milestones").update(patch).eq("id", row.id);
+        const { error } = await sb.rpc("admin_edit_milestone_governed", {
+          _id: row.id,
+          _patch: patch,
+        });
         if (!error) enriched++;
       }
     } catch {
