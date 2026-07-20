@@ -358,7 +358,7 @@ export const runMilestoneJudges = createServerFn({ method: "POST" })
 
     // Fan out to the operator bell so witnesses/approvers know a
     // milestone has entered the qualification ceremony and needs a
-    // second-reviewer decision.
+    // decision.
     await notifyOperators(sb, {
       projectId: data.projectId,
       kind: "milestone_qualification.entered",
