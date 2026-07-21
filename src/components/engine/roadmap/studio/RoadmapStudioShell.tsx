@@ -20,7 +20,6 @@ import type { RoadmapView } from "@/lib/roadmap-view";
 import { STUDIO_LAYOUT, computeStudioLayout, phasePalette } from "@/lib/roadmap-studio-layout";
 import { STUDIO_NODE_TYPES } from "./nodes";
 import { StudioTopBar } from "./StudioTopBar";
-import { StudioLeftRail } from "./StudioLeftRail";
 import { StudioInspector, type StudioSelection } from "./StudioInspector";
 import { BottomOverviewStrip } from "./BottomOverviewStrip";
 
@@ -160,7 +159,6 @@ function StudioInner({ projectId, view }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selection, setSelection] = useState<StudioSelection>({ kind: "none" });
-  const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [stripCollapsed, setStripCollapsed] = useState(false);
 
@@ -293,7 +291,6 @@ function StudioInner({ projectId, view }: Props) {
         canRedo={future.current.length > 0}
       />
       <div className="flex min-h-0 flex-1">
-        <StudioLeftRail collapsed={leftCollapsed} onToggle={() => setLeftCollapsed((v) => !v)} />
         <div className="relative min-w-0 flex-1">
           <ReactFlow
             nodes={nodes}
