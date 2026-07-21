@@ -11,7 +11,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
-import { getProjectSpine } from "@/lib/engine.functions";
+import { getProjectSpineReadModel } from "@/lib/engine-spine-read-model.server";
 import { isApprovedTruth } from "@/lib/spine-truth-status";
 import { deriveRoadmapView, type RoadmapView } from "@/lib/roadmap-view";
 import { insertEngineActivity } from "@/lib/engine-activity";
@@ -78,9 +78,9 @@ export const getProjectRoadmap = createServerFn({ method: "GET" })
   .handler(async ({ context, data }): Promise<ProjectRoadmapPayload> => {
     const { email, isAdmin } = await assertOperator(context);
 
-    // Reuse the Spine payload — it already gathers milestones, gates, portal
-    // publish, sources, truth statuses, etc.
-    const spine = await getProjectSpine({ data: { id: data.id } });
+    // Reuse the shared Spine read model — it already gathers milestones,
+    // gates, portal publish, sources, truth statuses, etc.
+    const spine = await getProjectSpineReadModel(context, data.id);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
