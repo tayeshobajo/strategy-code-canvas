@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -36,11 +36,18 @@ function WorkspaceLayout() {
   useRoomScrollRestoration(`project:${projectId}`);
   const fn = useServerFn(getProjectWorkspace);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isStudio = pathname.endsWith("/roadmap/studio");
 
   const { data, error, isError, isPending } = useQuery(
     workspaceQueryOptions(projectId, fn as unknown as (i: { data: { id: string } }) => Promise<unknown>),
   );
   const workspace = data as { project: import("@/lib/engine-workspace").WorkspaceProject };
+
+  if (isStudio) {
+    return <Outlet />;
+  }
+
 
   if (isPending) {
     return (
