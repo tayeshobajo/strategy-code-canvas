@@ -11,7 +11,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasRoleForEmail } from "@/lib/ops/access";
-import { getProjectSpine, type ProjectSpinePayload } from "@/lib/engine.functions";
+import { getProjectSpineReadModel } from "@/lib/engine-spine-read-model.server";
 import {
   deriveProjectWork,
   type ProjectWorkReadModel,
@@ -63,21 +63,7 @@ export const getProjectWork = createServerFn({ method: "GET" })
   .handler(async ({ context, data }): Promise<ProjectWorkPayload> => {
     const { isAdmin } = await assertOperator(context);
 
-    // Invoke sibling server fn's handler directly (SSR RPC lookup fails
-    // when calling a server fn from inside another server fn handler).
-    const spineExec = await (
-      getProjectSpine as unknown as {
-        __executeServer: (opts: {
-          data: { id: string };
-        }) => Promise<ProjectSpinePayload>;
-      }
-    ).__executeServer({ data: { id: data.id } });
-    if (!spineExec || typeof spineExec !== "object" || !("project" in spineExec)) {
-      throw new Error(
-        `getProjectSpine returned unexpected shape: ${JSON.stringify(spineExec)}`,
-      );
-    }
-    const spine = spineExec as ProjectSpinePayload;
+    const spine = await getProjectSpineReadModel(context, data.id);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
