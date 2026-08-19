@@ -116,12 +116,26 @@ function transcript(answers: VerbatimAnswer[], limit = 12): string {
     .join("\n\n");
 }
 
+/** Stock assistant phrasing that gives the conversation an AI cadence. */
+const BANNED_PHRASES =
+  /(what i'?m hearing|it sounds like|^got it\b|^understood\b|that'?s a great|i can hear|let'?s unpack|let'?s dive in|thanks for sharing|based on what you'?ve shared|i appreciate you sharing)/i;
+
+/** Strip typographic dashes from visitor-facing wording. */
+function deDash(text: string): string {
+  return text
+    .replace(/\s*[\u2014\u2013]\s*/g, ", ")
+    .replace(/\s*,\s*,/g, ",")
+    .replace(/\s+([.,;:?!])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 /** Reject anything that breaks the contract. */
 function sanitize(raw: unknown, fallback: TurnPlan): { plan: TurnPlan; used: boolean } {
   if (!raw || typeof raw !== "object") return { plan: fallback, used: false };
   const r = raw as Record<string, unknown>;
-  const ack = typeof r.acknowledgement === "string" ? r.acknowledgement.trim() : "";
-  const question = typeof r.next_question === "string" ? r.next_question.trim() : "";
+  const ack = typeof r.acknowledgement === "string" ? deDash(r.acknowledgement) : "";
+  const question = typeof r.next_question === "string" ? deDash(r.next_question) : "";
 
   // At most one question, ever.
   if ((question.match(/\?/g) ?? []).length > 1) return { plan: fallback, used: false };
@@ -131,6 +145,11 @@ function sanitize(raw: unknown, fallback: TurnPlan): { plan: TurnPlan; used: boo
   if (/\b(as an ai|language model|i'm an assistant|as a bot)\b/i.test(`${ack} ${question}`)) {
     return { plan: fallback, used: false };
   }
+  // Stock assistant cadence falls back to the deterministic plan.
+  if (BANNED_PHRASES.test(ack.trim()) || BANNED_PHRASES.test(question.trim())) {
+    return { plan: fallback, used: false };
+  }
+
 
   const objective =
     typeof r.objective === "string" && (OBJECTIVE_KEYS as string[]).includes(r.objective)
