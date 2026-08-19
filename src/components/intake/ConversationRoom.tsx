@@ -493,7 +493,7 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
   }
 
   return (
-    <div className="shrink-0 border-t border-ink/10 bg-paper/95 px-5 py-4 backdrop-blur sm:px-10 sm:py-5">
+    <div className="shrink-0 border-t border-ink/10 bg-paper/95 px-5 py-5 backdrop-blur sm:px-10 sm:py-7">
       <div className="mx-auto max-w-2xl">
         {c.saveState === "error" && (
           <p className="mb-3 rounded-xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink/70">
