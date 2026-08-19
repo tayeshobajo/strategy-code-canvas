@@ -161,7 +161,7 @@ export function IntakeLanding(props: {
 
               <p className="mt-6 inline-flex items-center gap-2 text-sm text-ink/50">
                 <Lock className="h-3.5 w-3.5" />
-                About 7–12 minutes. You can stop anytime.
+                About 7 to 12 minutes. You can stop anytime.
               </p>
             </Reveal>
           </div>
