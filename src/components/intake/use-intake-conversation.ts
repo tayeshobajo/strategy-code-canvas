@@ -14,6 +14,7 @@ import {
   saveIntakeProgress,
   startIntakeSession,
   transcribeIntakeVoiceAnswer,
+  interpretIntakeTurn,
 } from "@/lib/website-intake.functions";
 import { readAttribution } from "@/lib/website-intake/attribution";
 import { trackEvent } from "@/lib/website-intake/track";
@@ -25,10 +26,12 @@ import {
   objectiveCoverage,
   type ConversationState,
 } from "@/lib/website-intake/adaptive";
+import { classifyPosture, NON_SUBSTANTIVE } from "@/lib/website-intake/posture";
 import { buildReflection, type ReflectionStatement } from "@/lib/website-intake/reflection";
 import { logPacing } from "@/lib/website-intake/pacing";
 import type { FollowUpKey, IntakeObjectiveKey } from "@/lib/website-intake/questions";
 import type { VerbatimAnswer } from "@/lib/website-intake/types";
+import type { TurnResult } from "@/lib/website-intake/conversation.server";
 
 export const RESUME_KEY = "tt_intake_resume_v1";
 
@@ -53,6 +56,7 @@ export function useIntakeConversation() {
   const save = useServerFn(saveIntakeProgress);
   const transcribe = useServerFn(transcribeIntakeVoiceAnswer);
   const complete = useServerFn(completeIntakeSession);
+  const interpret = useServerFn(interpretIntakeTurn);
 
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
   const [answers, setAnswers] = React.useState<VerbatimAnswer[]>([]);
@@ -67,10 +71,14 @@ export function useIntakeConversation() {
   const [reflection, setReflection] = React.useState<ReflectionStatement[]>([]);
   const [reflectionConfirmed, setReflectionConfirmed] = React.useState(false);
   const [delivered, setDelivered] = React.useState<boolean | null>(null);
+  /** The governed turn Tai is currently on. Null before the first answer. */
+  const [turn, setTurn] = React.useState<TurnResult | null>(null);
+  /** Ground the posture layer judged already covered by the founder's words. */
+  const [supported, setSupported] = React.useState<IntakeObjectiveKey[]>([]);
 
   const state: ConversationState = React.useMemo(
-    () => ({ answers, skipped, followUpsAsked }),
-    [answers, skipped, followUpsAsked],
+    () => ({ answers, skipped, followUpsAsked, supported }),
+    [answers, skipped, followUpsAsked, supported],
   );
   const step = React.useMemo(() => nextStep(state), [state]);
   const coverage = React.useMemo(() => objectiveCoverage(state), [state]);
@@ -153,21 +161,44 @@ export function useIntakeConversation() {
     [ensureSession, save],
   );
 
-  const currentPrompt = step.kind === "contact" ? CONTACT_PROMPT : step.prompt;
+  /**
+   * What Tai says next. Once the conversation is live this is the governed
+   * turn — an answer to what the founder actually said, then at most one
+   * question. Before the first answer it is the opening question.
+   */
+  const currentPrompt = turn ? turn.message : step.kind === "contact" ? CONTACT_PROMPT : step.prompt;
   /** A short human bridge when the topic changes. Never shown on the first ask. */
   const currentTransition =
-    step.kind === "question" && answers.length > 0 ? (step.transition ?? null) : null;
+    !turn && step.kind === "question" && answers.length > 0 ? (step.transition ?? null) : null;
 
   const submitAnswer = React.useCallback(
     async (text: string, modality: "text" | "voice", mediaRef?: string | null) => {
       const trimmed = text.trim();
-      if (!trimmed || step.kind === "contact") return;
+      if (!trimmed || (!turn && step.kind === "contact")) return;
       setBusy(true);
       setThinking(true);
-      const key =
-        step.kind === "followup"
+
+      // Which ground this answer speaks to. A social turn is real conversation
+      // but answers no objective, so it is recorded as an aside.
+      // Even the very first message can be a greeting rather than an answer.
+      const openingPosture = turn ? null : classifyPosture(trimmed);
+      const objective = turn
+        ? turn.objective
+        : openingPosture && NON_SUBSTANTIVE.includes(openingPosture)
+          ? null
+        : step.kind === "followup"
+          ? step.forKey
+          : step.kind === "question"
+            ? step.key
+            : null;
+      const key: VerbatimAnswer["key"] = turn || objective === null
+        ? objective
+          ? (objective as VerbatimAnswer["key"])
+          : (`aside__${answers.length}` as VerbatimAnswer["key"])
+        : step.kind === "followup"
           ? (`${step.forKey}__followup_${step.key}` as VerbatimAnswer["key"])
-          : step.key;
+          : ((step.kind === "question" ? step.key : "anything_missed") as VerbatimAnswer["key"]);
+
       const answer: VerbatimAnswer = {
         key,
         question: currentPrompt,
@@ -178,7 +209,7 @@ export function useIntakeConversation() {
       };
       const nextAnswers = [...answers, answer];
       const nextFollowUps =
-        step.kind === "followup" ? [...followUpsAsked, step.key] : followUpsAsked;
+        !turn && step.kind === "followup" ? [...followUpsAsked, step.key] : followUpsAsked;
       setAnswers(nextAnswers);
       setFollowUpsAsked(nextFollowUps);
       setKeepTalking(false);
@@ -191,13 +222,38 @@ export function useIntakeConversation() {
         });
       } catch {
         /* surfaced through saveState */
+      }
+
+      // The reasoning turn is best-effort: if it fails, the deterministic
+      // question the room already knows about stays on screen.
+      try {
+        const result = (await interpret({
+          data: {
+            latest: trimmed,
+            verbatim: nextAnswers,
+            skipped,
+            followUpsAsked: nextFollowUps,
+            supported,
+            currentObjective: objective ?? null,
+            isFirstTurn: answers.length === 0,
+          },
+        })) as TurnResult;
+        setTurn(result);
+        if (result.newly_supported_objectives?.length) {
+          setSupported((prev) =>
+            Array.from(new Set([...prev, ...result.newly_supported_objectives])),
+          );
+        }
+      } catch {
+        setTurn(null);
       } finally {
         setBusy(false);
         setThinking(false);
       }
     },
-    [answers, currentPrompt, followUpsAsked, persist, skipped, step],
+    [answers, currentPrompt, followUpsAsked, interpret, persist, skipped, step, supported, turn],
   );
+
 
   const skipCurrent = React.useCallback(async () => {
     if (step.kind === "contact") return;
@@ -324,6 +380,7 @@ export function useIntakeConversation() {
   return {
     answers,
     step,
+    turn,
     currentPrompt,
     currentTransition,
     coverage,

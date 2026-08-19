@@ -4,7 +4,11 @@ export type AnswerModality = "text" | "voice";
 
 /** Layer A — exactly what the person said. Authoritative, never overwritten. */
 export type VerbatimAnswer = {
-  key: IntakeObjectiveKey | `${IntakeObjectiveKey}__followup_${FollowUpKey}`;
+  key:
+    | IntakeObjectiveKey
+    | `${IntakeObjectiveKey}__followup_${FollowUpKey}`
+    /** A social or relational turn. Kept verbatim, consumes no objective. */
+    | `aside__${string}`;
   question: string;
   /** The person's own words. For voice, the transcript of their recording. */
   answer: string;

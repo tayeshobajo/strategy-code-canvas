@@ -50,6 +50,8 @@ const ASSET_PATTERNS =
 
 export type ConversationState = {
   answers: VerbatimAnswer[];
+  /** Objectives the posture layer judged already covered by the person's words. */
+  supported?: IntakeObjectiveKey[];
   /** Objective keys the person chose to skip. */
   skipped: IntakeObjectiveKey[];
   /** Follow-ups already asked, so we never repeat one. */
@@ -73,11 +75,19 @@ function isFollowUp(a: VerbatimAnswer) {
   return String(a.key).includes("__followup_");
 }
 
+/**
+ * A social or relational turn ("hey", "how are you?"). Real conversation, but
+ * never an answer to a business objective, so it must not consume one.
+ */
+export function isAside(a: VerbatimAnswer) {
+  return String(a.key).startsWith("aside__");
+}
+
 /** Objectives explicitly answered with something usable. */
 export function answeredObjectives(state: ConversationState): Set<IntakeObjectiveKey> {
   const out = new Set<IntakeObjectiveKey>();
   for (const a of state.answers) {
-    if (a.skipped) continue;
+    if (a.skipped || isAside(a)) continue;
     if (textOf(a).length > 0) out.add(baseKey(a.key));
   }
   return out;
@@ -89,7 +99,8 @@ export function answeredObjectives(state: ConversationState): Set<IntakeObjectiv
  */
 export function coveredObjectives(state: ConversationState): Set<IntakeObjectiveKey> {
   const covered = answeredObjectives(state);
-  const spoken = state.answers.filter((a) => !a.skipped && textOf(a).length > 0);
+  for (const k of state.supported ?? []) covered.add(k);
+  const spoken = state.answers.filter((a) => !a.skipped && !isAside(a) && textOf(a).length > 0);
   if (spoken.length === 0) return covered;
 
   const richText = spoken
@@ -132,7 +143,9 @@ export function completeness(state: ConversationState): number {
 /** How many real questions this person has been put through. */
 export function questionsAsked(state: ConversationState): number {
   const answered = new Set(
-    state.answers.filter((a) => !isFollowUp(a)).map((a) => baseKey(a.key) as string),
+    state.answers
+      .filter((a) => !isFollowUp(a) && !isAside(a))
+      .map((a) => baseKey(a.key) as string),
   );
   for (const k of state.skipped) answered.add(k);
   return answered.size;
@@ -140,7 +153,9 @@ export function questionsAsked(state: ConversationState): number {
 
 /** Someone answering in a few words at a time. Respect it: ask less, follow up never. */
 export function isBriefAnswerer(state: ConversationState): boolean {
-  const spoken = state.answers.filter((a) => !a.skipped && !isFollowUp(a) && textOf(a).length > 0);
+  const spoken = state.answers.filter(
+    (a) => !a.skipped && !isFollowUp(a) && !isAside(a) && textOf(a).length > 0,
+  );
   if (spoken.length < 3) return false;
   const thin = spoken.filter((a) => textOf(a).length < ANSWER_CHARS).length;
   return thin / spoken.length >= 0.6;
@@ -154,7 +169,9 @@ export function pendingFollowUp(
   if (state.followUpsAsked.length >= MAX_FOLLOW_UPS) return null;
   if (isBriefAnswerer(state)) return null;
 
-  const last = [...state.answers].reverse().find((a) => baseKey(a.key) === lastKey && !a.skipped);
+  const last = [...state.answers]
+    .reverse()
+    .find((a) => !isAside(a) && baseKey(a.key) === lastKey && !a.skipped);
   if (!last) return null;
   const text = textOf(last);
   if (!text) return null;
@@ -197,7 +214,7 @@ export function essentialsSettled(state: ConversationState): boolean {
 /** Whether we already have a strong enough picture to offer wrapping up. */
 export function canOfferEarlyExit(state: ConversationState): boolean {
   const substantive = state.answers.filter(
-    (a) => !a.skipped && textOf(a).length >= ANSWER_CHARS,
+    (a) => !a.skipped && !isAside(a) && textOf(a).length >= ANSWER_CHARS,
   ).length;
   if (essentialsSettled(state)) return true;
   return questionsAsked(state) >= 7 && substantive >= 4;
@@ -208,7 +225,7 @@ export const EARLY_EXIT_PROMPT =
 
 /** The single next thing to ask. Contact details always come last. */
 export function nextStep(state: ConversationState): NextStep {
-  const lastAnswer = [...state.answers].reverse().find((a) => !isFollowUp(a));
+  const lastAnswer = [...state.answers].reverse().find((a) => !isFollowUp(a) && !isAside(a));
   if (lastAnswer) {
     const fu = pendingFollowUp(state, baseKey(lastAnswer.key));
     if (fu) {
