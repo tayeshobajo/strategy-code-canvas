@@ -35,6 +35,7 @@ import {
 } from "@/lib/website-intake/reflection";
 import { EARLY_EXIT_PROMPT } from "@/lib/website-intake/adaptive";
 import { trackEvent } from "@/lib/website-intake/track";
+import taiHeadshot from "@/assets/tai-headshot.png.asset.json";
 
 const OPENING_LINE = "Let's start with your world.";
 const OPENING_SUPPORT = "There's no perfect answer. Start wherever feels natural.";
@@ -109,7 +110,7 @@ export function ConversationRoom(props: {
 
       <div
         ref={panelRef}
-        className={`relative flex h-full w-full flex-col overflow-hidden border-ink/10 bg-paper shadow-[0_30px_90px_-60px_rgba(1,5,27,0.55)] sm:h-auto sm:max-h-[88vh] sm:w-full sm:max-w-[1040px] sm:rounded-3xl sm:border xl:max-w-[1180px] ${
+        className={`relative flex h-full w-full flex-col overflow-hidden border-ink/10 bg-paper shadow-[0_30px_90px_-60px_rgba(1,5,27,0.55)] sm:h-[86vh] sm:max-h-[92vh] sm:min-h-[640px] sm:w-full sm:max-w-[1040px] sm:rounded-3xl sm:border xl:max-w-[1180px] ${
           reduced ? "" : "motion-safe:animate-in motion-safe:fade-in-0"
         }`}
       >
@@ -190,6 +191,11 @@ function TopBar(props: { phase: string; progress: number; onClose: () => void })
         <TrustTaiLogo className="h-6 w-auto" />
         <span className="hidden h-5 w-px bg-ink/15 sm:block" />
         <p className="hidden text-sm text-ink/70 sm:block">Build My Roadmap</p>
+        <span className="hidden h-5 w-px bg-ink/15 lg:block" />
+        <span className="hidden items-center gap-2 lg:inline-flex">
+          <TaiAvatar className="h-7 w-7" alt="Tai" />
+          <span className="text-sm text-ink/55">You're talking with Tai</span>
+        </span>
         <p className="ml-auto font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
           {props.phase}
         </p>
@@ -255,8 +261,11 @@ function ConversationBody(props: {
 
   return (
     <>
-      <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-8 sm:px-10">
-        <div className="mx-auto max-w-2xl space-y-8">
+      <div
+        ref={scrollerRef}
+        className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto px-5 py-10 sm:px-10 sm:py-14"
+      >
+        <div className="mx-auto w-full max-w-2xl space-y-10">
           <div>
             <TaiBlock>
               <p className="font-display text-2xl leading-snug text-ink sm:text-[1.75rem]">
@@ -338,10 +347,29 @@ function ConversationBody(props: {
   );
 }
 
-function TaiBlock(props: { children: React.ReactNode }) {
+function TaiAvatar(props: { className?: string; alt?: string }) {
   return (
-    <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%]">
-      {props.children}
+    <img
+      src={taiHeadshot.url}
+      alt={props.alt ?? "Tai"}
+      className={`shrink-0 rounded-full object-cover ring-1 ring-ink/10 ${
+        props.className ?? "h-9 w-9"
+      }`}
+    />
+  );
+}
+
+function TaiBlock(props: { children: React.ReactNode; hideAvatar?: boolean }) {
+  return (
+    <div className="flex items-start gap-3 sm:gap-4">
+      {props.hideAvatar ? (
+        <span className="h-9 w-9 shrink-0" aria-hidden />
+      ) : (
+        <TaiAvatar />
+      )}
+      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%]">
+        {props.children}
+      </div>
     </div>
   );
 }
@@ -369,17 +397,20 @@ function FounderBlock(props: {
 
 function Thinking() {
   return (
-    <div className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-4">
-      <span className="flex items-center gap-1.5" aria-hidden>
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="h-1.5 w-1.5 rounded-full bg-royal/60 motion-safe:animate-pulse"
-            style={{ animationDelay: `${i * 160}ms` }}
-          />
-        ))}
-      </span>
-      <span className="text-sm text-ink/60">Thinking through what you shared…</span>
+    <div className="flex items-start gap-3 sm:gap-4">
+      <TaiAvatar />
+      <div className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-4">
+        <span className="flex items-center gap-1.5" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="h-1.5 w-1.5 rounded-full bg-royal/60 motion-safe:animate-pulse"
+              style={{ animationDelay: `${i * 160}ms` }}
+            />
+          ))}
+        </span>
+        <span className="text-sm text-ink/60">Thinking through what you shared…</span>
+      </div>
     </div>
   );
 }
@@ -462,7 +493,7 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
   }
 
   return (
-    <div className="shrink-0 border-t border-ink/10 bg-paper/95 px-5 py-4 backdrop-blur sm:px-10 sm:py-5">
+    <div className="shrink-0 border-t border-ink/10 bg-paper/95 px-5 py-5 backdrop-blur sm:px-10 sm:py-7">
       <div className="mx-auto max-w-2xl">
         {c.saveState === "error" && (
           <p className="mb-3 rounded-xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink/70">
