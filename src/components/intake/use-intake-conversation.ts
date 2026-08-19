@@ -339,6 +339,7 @@ export function useIntakeConversation() {
     submitAnswer,
     skipCurrent,
     transcribeVoice,
+    ensureAttachmentSession: ensureSession,
     openReflection,
     regenerateReflection,
     confirmReflection,
