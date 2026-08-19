@@ -315,6 +315,16 @@ function ConversationBody(props: {
             </div>
           )}
 
+          {!nearingEnd && !c.thinking && c.answeredCount >= 5 && (
+            <button
+              type="button"
+              onClick={c.openReflection}
+              className="text-sm text-ink/45 underline-offset-4 transition hover:text-royal hover:underline"
+            >
+              That's the picture — show me what you heard
+            </button>
+          )}
+
           <div ref={bottomRef} />
         </div>
       </div>
