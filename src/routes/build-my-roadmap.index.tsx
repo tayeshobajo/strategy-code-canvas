@@ -308,39 +308,13 @@ function BuildMyRoadmap() {
 
       <main>
         {phase === "intro" && (
-          <section className="mx-auto max-w-3xl px-6 pb-24 pt-16 md:pt-24">
-            <Reveal>
-              <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-                Build my roadmap
-              </p>
-              <h1 className="mt-4 font-display text-4xl leading-[1.1] md:text-6xl">
-                Tell me about your business.
-              </h1>
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink/75">
-                This is a conversation, not a form. One question at a time, in plain
-                language. Type or speak — whichever is easier. Skip anything you'd
-                rather not answer. It takes about fifteen minutes, and you can stop
-                and come back.
-              </p>
-              <button
-                type="button"
-                disabled={resuming}
-                onClick={() => setPhase("conversation")}
-                className="mt-10 inline-flex items-center gap-2 rounded-full bg-ink px-7 py-4 text-sm uppercase tracking-[0.18em] text-cream transition hover:bg-royal disabled:opacity-60"
-              >
-                {answeredCount > 0 ? "Pick up where we left off" : "Start the conversation"}
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </Reveal>
-            <img
-              src={heroMountain.url}
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
-              className="mt-16 w-full rounded-lg opacity-90"
-            />
-          </section>
+          <IntakeLanding
+            resuming={resuming}
+            resumed={answeredCount > 0}
+            onStart={() => setPhase("conversation")}
+          />
         )}
+
 
         {phase === "conversation" && (
           <section className="mx-auto max-w-3xl px-6 pb-24 pt-12 md:pt-16">
