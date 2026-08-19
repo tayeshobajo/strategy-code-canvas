@@ -38,6 +38,11 @@ import {
 import { EARLY_EXIT_PROMPT } from "@/lib/website-intake/adaptive";
 import { trackEvent } from "@/lib/website-intake/track";
 import taiHeadshot from "@/assets/tai-headshot.png.asset.json";
+import {
+  MessageActions,
+  useMessageReactions,
+  type Reaction,
+} from "@/components/intake/MessageActions";
 
 const OPENING_LINE = "Let's start with your world.";
 const OPENING_SUPPORT = "There's no perfect answer. Start wherever feels natural.";
@@ -248,6 +253,8 @@ function ConversationBody(props: {
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = React.useState(true);
+  const [seenCount, setSeenCount] = React.useState(0);
+  const { reactions, react } = useMessageReactions(c.resumeToken);
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
     bottomRef.current?.scrollIntoView({ block: "end", behavior });
@@ -281,6 +288,13 @@ function ConversationBody(props: {
 
   const visible = c.answers.filter((a) => a.key !== ("founder_confirmed_reflection" as never));
   const nearingEnd = c.offerExit;
+  const messageCount = visible.length * 2 + (c.currentPrompt ? 1 : 0);
+
+  React.useEffect(() => {
+    if (atBottom) setSeenCount(messageCount);
+  }, [atBottom, messageCount]);
+
+  const unread = Math.max(0, messageCount - seenCount);
 
   return (
     <>
@@ -292,7 +306,12 @@ function ConversationBody(props: {
         <div className="mx-auto w-full max-w-2xl space-y-11">
 
           <div>
-            <TaiBlock>
+            <TaiBlock
+              messageId="tai-opening"
+              copyText={`${OPENING_LINE}\n\nTell me about the business the way you would tell a friend over coffee. What do you do, and who do you do it for?`}
+              reaction={reactions["tai-opening"]}
+              onReact={react}
+            >
               <p className="font-display text-2xl leading-snug text-ink sm:text-[1.75rem]">
                 {OPENING_LINE}
               </p>
@@ -307,20 +326,34 @@ function ConversationBody(props: {
           {visible.map((a, i) => (
             <div key={`${a.key}-${i}`} className="space-y-6">
               {i > 0 && (
-                <TaiBlock>
+                <TaiBlock
+                  messageId={`tai-${a.key}-${i}`}
+                  copyText={a.question}
+                  reaction={reactions[`tai-${a.key}-${i}`]}
+                  onReact={react}
+                >
                   <p className="whitespace-pre-line text-base leading-relaxed text-ink/85">
                     {a.question}
                   </p>
                 </TaiBlock>
               )}
-              <FounderBlock modality={a.modality} at={a.answered_at}>
+              <FounderBlock
+                modality={a.modality}
+                at={a.answered_at}
+                messageId={`founder-${a.key}-${i}`}
+              >
                 {a.answer}
               </FounderBlock>
             </div>
           ))}
 
           {visible.length > 0 && !c.thinking && (
-            <TaiBlock>
+            <TaiBlock
+              messageId={`tai-current-${visible.length}`}
+              copyText={`${c.currentTransition ? `${c.currentTransition}\n\n` : ""}${c.currentPrompt}`}
+              reaction={reactions[`tai-current-${visible.length}`]}
+              onReact={react}
+            >
               {c.currentTransition && (
                 <p className="mb-2 text-base leading-relaxed text-ink/55">{c.currentTransition}</p>
               )}
@@ -381,6 +414,11 @@ function ConversationBody(props: {
             className="absolute bottom-4 left-1/2 z-10 inline-flex min-h-9 -translate-x-1/2 items-center gap-2 rounded-full border border-ink/10 bg-white/95 px-4 text-sm text-ink/70 shadow-[0_10px_30px_-18px_rgba(1,5,27,0.6)] backdrop-blur transition hover:text-ink"
           >
             <ChevronDown className="h-4 w-4" /> Jump to latest
+            {unread > 0 && (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-royal px-1.5 font-mono text-[10px] text-paper">
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
           </button>
         )}
       </div>
@@ -412,9 +450,16 @@ function TaiAvatar(props: { className?: string; alt?: string }) {
   );
 }
 
-function TaiBlock(props: { children: React.ReactNode; hideAvatar?: boolean }) {
+function TaiBlock(props: {
+  children: React.ReactNode;
+  hideAvatar?: boolean;
+  messageId?: string;
+  copyText?: string;
+  reaction?: Reaction;
+  onReact?: (messageId: string, value: Reaction) => void;
+}) {
   return (
-    <div className="flex items-start gap-3 sm:gap-4">
+    <div className="group flex items-start gap-3 sm:gap-4">
       {props.hideAvatar ? (
         <span className={`${AVATAR_SIZE} shrink-0`} aria-hidden />
       ) : (
@@ -422,6 +467,14 @@ function TaiBlock(props: { children: React.ReactNode; hideAvatar?: boolean }) {
       )}
       <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%] sm:px-6 sm:py-5">
         {props.children}
+        {props.messageId && (
+          <MessageActions
+            messageId={props.messageId}
+            text={props.copyText ?? ""}
+            reaction={props.reaction}
+            onReact={props.onReact}
+          />
+        )}
       </div>
     </div>
   );
@@ -432,10 +485,11 @@ function FounderBlock(props: {
   children: React.ReactNode;
   modality: "text" | "voice";
   at: string;
+  messageId?: string;
 }) {
   const time = new Date(props.at);
   return (
-    <div className="flex justify-end">
+    <div className="group flex justify-end">
       <div className="max-w-[92%] rounded-2xl border border-royal/15 bg-royal/[0.05] px-5 py-4 sm:max-w-[85%] sm:px-6 sm:py-5">
         <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">{props.children}</p>
         <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/35">
@@ -444,6 +498,13 @@ function FounderBlock(props: {
             ? ""
             : time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
         </p>
+        {props.messageId && (
+          <MessageActions
+            messageId={props.messageId}
+            text={typeof props.children === "string" ? props.children : ""}
+            align="end"
+          />
+        )}
       </div>
     </div>
   );
