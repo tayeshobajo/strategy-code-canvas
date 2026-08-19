@@ -26,6 +26,7 @@ import {
   objectiveCoverage,
   type ConversationState,
 } from "@/lib/website-intake/adaptive";
+import { classifyPosture, NON_SUBSTANTIVE } from "@/lib/website-intake/posture";
 import { buildReflection, type ReflectionStatement } from "@/lib/website-intake/reflection";
 import { logPacing } from "@/lib/website-intake/pacing";
 import type { FollowUpKey, IntakeObjectiveKey } from "@/lib/website-intake/questions";
@@ -179,14 +180,18 @@ export function useIntakeConversation() {
 
       // Which ground this answer speaks to. A social turn is real conversation
       // but answers no objective, so it is recorded as an aside.
+      // Even the very first message can be a greeting rather than an answer.
+      const openingPosture = turn ? null : classifyPosture(trimmed);
       const objective = turn
         ? turn.objective
+        : openingPosture && NON_SUBSTANTIVE.includes(openingPosture)
+          ? null
         : step.kind === "followup"
           ? step.forKey
           : step.kind === "question"
             ? step.key
             : null;
-      const key: VerbatimAnswer["key"] = turn
+      const key: VerbatimAnswer["key"] = turn || objective === null
         ? objective
           ? (objective as VerbatimAnswer["key"])
           : (`aside__${answers.length}` as VerbatimAnswer["key"])
