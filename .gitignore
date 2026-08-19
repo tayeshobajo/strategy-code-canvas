@@ -31,3 +31,8 @@ supabase/.temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Local secret overrides (the committed .env holds public VITE_* config only)
+.env.local
+.env.*.local
+*.secrets
