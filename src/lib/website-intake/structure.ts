@@ -47,25 +47,37 @@ const FRAME_HINTS: Array<{ frame: IntakeFrame; patterns: RegExp }> = [
   { frame: "project.ai_assistant", patterns: /\b(assistant|answer questions|chat|agent)\b/i },
 ];
 
-/** A light frame read used only as a routing hint for Scout. */
+/**
+ * A light frame read used only as a routing hint for Scout.
+ *
+ * Deliberately conservative: a single incidental word ("product", "content")
+ * must never decide the frame, because a wrong hint is worse than none.
+ */
 export function deriveFrame(answers: VerbatimAnswer[]): { frame: IntakeFrame; confidence: number } {
   const text = answers
     .filter((a) => !a.skipped)
     .map((a) => a.answer ?? "")
     .join(" \n ");
   if (text.trim().length < 40) return { frame: "roadmap", confidence: 0.2 };
-  let best: { frame: IntakeFrame; hits: number } = { frame: "roadmap", hits: 0 };
-  for (const h of FRAME_HINTS) {
-    const hits = (text.match(new RegExp(h.patterns.source, "gi")) ?? []).length;
-    if (hits > best.hits) best = { frame: h.frame, hits };
+
+  const scored = FRAME_HINTS.map((h) => ({
+    frame: h.frame,
+    hits: (text.match(new RegExp(h.patterns.source, "gi")) ?? []).length,
+  })).sort((a, b) => b.hits - a.hits);
+
+  const best = scored[0];
+  const runnerUp = scored[1]?.hits ?? 0;
+  // Needs real weight and a clear lead over the next reading.
+  if (!best || best.hits < 2 || best.hits - runnerUp < 2) {
+    return { frame: "roadmap", confidence: 0.4 };
   }
-  if (best.hits === 0) return { frame: "roadmap", confidence: 0.5 };
   const known = Object.prototype.hasOwnProperty.call(FRAME_DEFINITIONS, best.frame);
   return {
     frame: known ? best.frame : "roadmap",
     confidence: Math.min(0.9, 0.4 + best.hits * 0.1),
   };
 }
+
 
 export function buildSignals(
   answers: VerbatimAnswer[],
