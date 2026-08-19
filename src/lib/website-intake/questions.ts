@@ -143,7 +143,7 @@ export const INTAKE_QUESTIONS: IntakeQuestion[] = [
     key: "cost_of_standing_still",
     prompt: "If nothing changed for the next twelve months, what would that mean for you or the business?",
     label: "Cost of standing still",
-    essential: false,
+    essential: true,
     signals: ["burn out", "burnout", "lose", "stuck", "plateau", "can't grow", "sell up", "shelve it"],
     bucket: "pains",
   },
@@ -167,7 +167,7 @@ export const INTAKE_QUESTIONS: IntakeQuestion[] = [
     key: "existing_assets",
     prompt: "What have you already built or collected that might be more valuable than you're treating it?",
     label: "What you already have",
-    essential: false,
+    essential: true,
     signals: [
       "email list",
       "waiting list",
