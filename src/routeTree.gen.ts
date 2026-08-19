@@ -14,167 +14,28 @@ import { Route as WalksRouteImport } from './routes/walks'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PortalRouteImport } from './routes/portal'
-import { Route as McpRouteImport } from './routes/mcp'
 import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as EngineRouteImport } from './routes/engine'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
-import { Route as OpsRouteRouteImport } from './routes/ops/route'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PortalIndexRouteImport } from './routes/portal.index'
-import { Route as OpsIndexRouteImport } from './routes/ops/index'
-import { Route as EngineIndexRouteImport } from './routes/engine.index'
 import { Route as BuildMyRoadmapIndexRouteImport } from './routes/build-my-roadmap.index'
-import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
-import { Route as PortalRoadmapMockupRouteImport } from './routes/portal.roadmap-mockup'
-import { Route as PortalRoadmapRouteImport } from './routes/portal.roadmap'
-import { Route as PortalOnboardingRouteImport } from './routes/portal.onboarding'
-import { Route as PortalMessagesRouteImport } from './routes/portal.messages'
-import { Route as PortalLoginRouteImport } from './routes/portal.login'
-import { Route as PortalHomeRouteImport } from './routes/portal.home'
-import { Route as PortalFilesRouteImport } from './routes/portal.files'
-import { Route as PortalFamilyRouteImport } from './routes/portal.family'
-import { Route as PortalBillingRouteImport } from './routes/portal.billing'
-import { Route as PortalActivityRouteImport } from './routes/portal.activity'
-import { Route as PortalAccountRouteImport } from './routes/portal.account'
-import { Route as PortalAccessDeniedRouteImport } from './routes/portal.access-denied'
-import { Route as OpsQueueRouteImport } from './routes/ops/queue'
-import { Route as OpsPortalsRouteImport } from './routes/ops/portals'
-import { Route as OpsNotificationsRouteImport } from './routes/ops/notifications'
-import { Route as OpsInsightsRouteImport } from './routes/ops/insights'
-import { Route as OpsHistoryRouteImport } from './routes/ops/history'
-import { Route as OpsEmailsRouteImport } from './routes/ops/emails'
-import { Route as OpsAccessEventsRouteImport } from './routes/ops/access-events'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
-import { Route as EngineTemplatesRouteImport } from './routes/engine.templates'
-import { Route as EngineStrategicSalesRouteImport } from './routes/engine.strategic-sales'
-import { Route as EngineSettingsRouteImport } from './routes/engine.settings'
-import { Route as EngineReviewRouteImport } from './routes/engine.review'
-import { Route as EngineOperationsRouteImport } from './routes/engine.operations'
-import { Route as EngineIntelligenceRouteImport } from './routes/engine.intelligence'
-import { Route as EngineExecutionRouteImport } from './routes/engine.execution'
-import { Route as EngineDeliveryRouteImport } from './routes/engine.delivery'
-import { Route as EngineApprovalsRouteImport } from './routes/engine.approvals'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as ClientsSpartanRouteImport } from './routes/clients.spartan'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as BuildMyRoadmapWriteRouteImport } from './routes/build-my-roadmap.write'
-import { Route as AdminStageTransitionsRouteImport } from './routes/admin.stage-transitions'
-import { Route as AdminRolesRouteImport } from './routes/admin.roles'
-import { Route as AdminRoadmapIntelligenceRouteImport } from './routes/admin.roadmap-intelligence'
-import { Route as AdminProjectIntegrityRouteImport } from './routes/admin.project-integrity'
-import { Route as AdminPostDeliveryLearningRouteImport } from './routes/admin.post-delivery-learning'
-import { Route as AdminPlatformConfigRouteImport } from './routes/admin.platform-config'
-import { Route as AdminPlanDepthRouteImport } from './routes/admin.plan-depth'
-import { Route as AdminOutcomeSchedulerRouteImport } from './routes/admin.outcome-scheduler'
-import { Route as AdminOutcomeFeedbackRouteImport } from './routes/admin.outcome-feedback'
-import { Route as AdminMilestoneChangesRouteImport } from './routes/admin.milestone-changes'
-import { Route as AdminIntakeAlertsRouteImport } from './routes/admin.intake-alerts'
-import { Route as AdminHealthExplainerRouteImport } from './routes/admin.health-explainer'
-import { Route as AdminFamilyImpactRouteImport } from './routes/admin.family-impact'
-import { Route as AdminExceptionManagementRouteImport } from './routes/admin.exception-management'
-import { Route as AdminEvidenceEnforcementRouteImport } from './routes/admin.evidence-enforcement'
-import { Route as AdminEngineTemplatesRouteImport } from './routes/admin.engine-templates'
-import { Route as AdminEnginePromotionRouteImport } from './routes/admin.engine-promotion'
-import { Route as AdminEngineLearningRouteImport } from './routes/admin.engine-learning'
-import { Route as AdminDriftDetectionRouteImport } from './routes/admin.drift-detection'
-import { Route as AdminDeliveryReadinessGateRouteImport } from './routes/admin.delivery-readiness-gate'
-import { Route as AdminDecisionLogRouteImport } from './routes/admin.decision-log'
-import { Route as AdminCostGuardRouteImport } from './routes/admin.cost-guard'
-import { Route as AdminConfigRouteImport } from './routes/admin.config'
-import { Route as AdminCommandCenterRouteImport } from './routes/admin.command-center'
-import { Route as AdminClientPortalsRouteImport } from './routes/admin.client-portals'
-import { Route as AdminCapabilityRegistryRouteImport } from './routes/admin.capability-registry'
-import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as EngineProjectsIndexRouteImport } from './routes/engine.projects.index'
-import { Route as OpsSubmissionsIdRouteImport } from './routes/ops/submissions.$id'
-import { Route as OpsEditorIdRouteImport } from './routes/ops/editor.$id'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
-import { Route as EngineProjectsNewRouteImport } from './routes/engine.projects.new'
-import { Route as EngineProjectsProjectIdRouteImport } from './routes/engine.projects.$projectId'
 import { Route as CheckoutWalkPaceRouteImport } from './routes/checkout.walk.$pace'
-import { Route as ApiPublicSeedQaAccountRouteImport } from './routes/api/public/seed-qa-account'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
-import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
-import { Route as EngineProjectsProjectIdIndexRouteImport } from './routes/engine.projects.$projectId.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as EngineProjectsProjectIdWorldEntryRouteImport } from './routes/engine.projects.$projectId.world-entry'
-import { Route as EngineProjectsProjectIdWorkRouteImport } from './routes/engine.projects.$projectId.work'
-import { Route as EngineProjectsProjectIdUnderstandingRoomRouteImport } from './routes/engine.projects.$projectId.understanding-room'
-import { Route as EngineProjectsProjectIdStrategicThesisRouteImport } from './routes/engine.projects.$projectId.strategic-thesis'
-import { Route as EngineProjectsProjectIdSpiritFirstRouteImport } from './routes/engine.projects.$projectId.spirit-first'
-import { Route as EngineProjectsProjectIdSpineRouteImport } from './routes/engine.projects.$projectId.spine'
-import { Route as EngineProjectsProjectIdSourcesRouteImport } from './routes/engine.projects.$projectId.sources'
-import { Route as EngineProjectsProjectIdSolutionsRouteImport } from './routes/engine.projects.$projectId.solutions'
-import { Route as EngineProjectsProjectIdSignalRoomRouteImport } from './routes/engine.projects.$projectId.signal-room'
-import { Route as EngineProjectsProjectIdSequencingRouteImport } from './routes/engine.projects.$projectId.sequencing'
-import { Route as EngineProjectsProjectIdRoadmapRouteImport } from './routes/engine.projects.$projectId.roadmap'
-import { Route as EngineProjectsProjectIdQaFactoryRouteImport } from './routes/engine.projects.$projectId.qa-factory'
-import { Route as EngineProjectsProjectIdQaDeliveryRouteImport } from './routes/engine.projects.$projectId.qa-delivery'
-import { Route as EngineProjectsProjectIdPublishHistoryRouteImport } from './routes/engine.projects.$projectId.publish-history'
-import { Route as EngineProjectsProjectIdPreviewRouteImport } from './routes/engine.projects.$projectId.preview'
-import { Route as EngineProjectsProjectIdPointBRouteImport } from './routes/engine.projects.$projectId.point-b'
-import { Route as EngineProjectsProjectIdPointARouteImport } from './routes/engine.projects.$projectId.point-a'
-import { Route as EngineProjectsProjectIdPlansRouteImport } from './routes/engine.projects.$projectId.plans'
-import { Route as EngineProjectsProjectIdOverviewRouteImport } from './routes/engine.projects.$projectId.overview'
-import { Route as EngineProjectsProjectIdMockupBuilderRouteImport } from './routes/engine.projects.$projectId.mockup-builder'
-import { Route as EngineProjectsProjectIdInvestmentRouteImport } from './routes/engine.projects.$projectId.investment'
-import { Route as EngineProjectsProjectIdIntelligenceLayerRouteImport } from './routes/engine.projects.$projectId.intelligence-layer'
-import { Route as EngineProjectsProjectIdIntelligenceRouteImport } from './routes/engine.projects.$projectId.intelligence'
-import { Route as EngineProjectsProjectIdIntakeRouteImport } from './routes/engine.projects.$projectId.intake'
-import { Route as EngineProjectsProjectIdImplementationPlanRouteImport } from './routes/engine.projects.$projectId.implementation-plan'
-import { Route as EngineProjectsProjectIdHiddenAssetsRouteImport } from './routes/engine.projects.$projectId.hidden-assets'
-import { Route as EngineProjectsProjectIdGapMapRouteImport } from './routes/engine.projects.$projectId.gap-map'
-import { Route as EngineProjectsProjectIdFrameBuilderRouteImport } from './routes/engine.projects.$projectId.frame-builder'
-import { Route as EngineProjectsProjectIdFamilyRouteImport } from './routes/engine.projects.$projectId.family'
-import { Route as EngineProjectsProjectIdExtractionRouteImport } from './routes/engine.projects.$projectId.extraction'
-import { Route as EngineProjectsProjectIdExecutionBoundaryRouteImport } from './routes/engine.projects.$projectId.execution-boundary'
-import { Route as EngineProjectsProjectIdEvidenceRouteImport } from './routes/engine.projects.$projectId.evidence'
-import { Route as EngineProjectsProjectIdEnginesRouteImport } from './routes/engine.projects.$projectId.engines'
-import { Route as EngineProjectsProjectIdDriftRouteImport } from './routes/engine.projects.$projectId.drift'
-import { Route as EngineProjectsProjectIdDeliveryRouteImport } from './routes/engine.projects.$projectId.delivery'
-import { Route as EngineProjectsProjectIdDeadlinesRouteImport } from './routes/engine.projects.$projectId.deadlines'
-import { Route as EngineProjectsProjectIdClientViewRouteImport } from './routes/engine.projects.$projectId.client-view'
-import { Route as EngineProjectsProjectIdChatRouteImport } from './routes/engine.projects.$projectId.chat'
-import { Route as EngineProjectsProjectIdBuilderRouteImport } from './routes/engine.projects.$projectId.builder'
-import { Route as EngineProjectsProjectIdBuildExecutionRouteImport } from './routes/engine.projects.$projectId.build-execution'
-import { Route as EngineProjectsProjectIdBlueprintRouteImport } from './routes/engine.projects.$projectId.blueprint'
-import { Route as EngineProjectsProjectIdBackendBuilderRouteImport } from './routes/engine.projects.$projectId.backend-builder'
-import { Route as EngineProjectsProjectIdApprovalsRouteImport } from './routes/engine.projects.$projectId.approvals'
-import { Route as EngineProjectsProjectIdAmendmentsRouteImport } from './routes/engine.projects.$projectId.amendments'
-import { Route as EngineProjectsProjectIdAiWorkspaceRouteImport } from './routes/engine.projects.$projectId.ai-workspace'
-import { Route as EngineProjectsProjectIdAgentRouteImport } from './routes/engine.projects.$projectId.agent'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
-import { Route as ApiPublicHooksRunPipelineQueueRouteImport } from './routes/api/public/hooks/run-pipeline-queue'
-import { Route as ApiPublicHooksOutcomeCheckinsRouteImport } from './routes/api/public/hooks/outcome-checkins'
-import { Route as ApiPublicHooksEngineTickRouteImport } from './routes/api/public/hooks/engine-tick'
-import { Route as ApiPublicHooksCostAutopauseRouteImport } from './routes/api/public/hooks/cost-autopause'
-import { Route as ApiPublicHooksBuildRoadmapContactRouteImport } from './routes/api/public/hooks/build-roadmap-contact'
-import { Route as EngineProjectsProjectIdRoadmapIndexRouteImport } from './routes/engine.projects.$projectId.roadmap.index'
-import { Route as EngineProjectsProjectIdVersionsCompareRouteImport } from './routes/engine.projects.$projectId.versions.compare'
-import { Route as EngineProjectsProjectIdRoadmapStudioRouteImport } from './routes/engine.projects.$projectId.roadmap.studio'
-import { Route as EngineProjectsProjectIdAgentTasksRouteImport } from './routes/engine.projects.$projectId.agent.tasks'
-import { Route as EngineProjectsProjectIdAgentPermissionsRouteImport } from './routes/engine.projects.$projectId.agent.permissions'
-import { Route as EngineProjectsProjectIdAgentCostsRouteImport } from './routes/engine.projects.$projectId.agent.costs'
-import { Route as EngineProjectsProjectIdMilestonesMilestoneIdQualifyRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.qualify'
-import { Route as EngineProjectsProjectIdMilestonesMilestoneIdQaRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.qa'
-import { Route as EngineProjectsProjectIdMilestonesMilestoneIdMockupsRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.mockups'
-import { Route as EngineProjectsProjectIdMilestonesMilestoneIdBuildRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.build'
-import { Route as EngineProjectsProjectIdMilestonesMilestoneIdBriefRouteImport } from './routes/engine.projects.$projectId.milestones.$milestoneId.brief'
-import { Route as EngineProjectsProjectIdEnginesRunsRunIdRouteImport } from './routes/engine.projects.$projectId.engines.runs.$runId'
 
 const WhatWeBuildRoute = WhatWeBuildRouteImport.update({
   id: '/what-we-build',
@@ -201,16 +62,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PortalRoute = PortalRouteImport.update({
-  id: '/portal',
-  path: '/portal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const InvestmentRoute = InvestmentRouteImport.update({
   id: '/investment',
   path: '/investment',
@@ -226,19 +77,9 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EngineRoute = EngineRouteImport.update({
-  id: '/engine',
-  path: '/engine',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -246,194 +87,25 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OpsRouteRoute = OpsRouteRouteImport.update({
-  id: '/ops',
-  path: '/ops',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const PortalIndexRoute = PortalIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PortalRoute,
-} as any)
-const OpsIndexRoute = OpsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OpsRouteRoute,
-} as any)
-const EngineIndexRoute = EngineIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => EngineRoute,
 } as any)
 const BuildMyRoadmapIndexRoute = BuildMyRoadmapIndexRouteImport.update({
   id: '/build-my-roadmap/',
   path: '/build-my-roadmap/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
 const WalksSlugRoute = WalksSlugRouteImport.update({
   id: '/walks_/$slug',
   path: '/walks/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PortalRoadmapMockupRoute = PortalRoadmapMockupRouteImport.update({
-  id: '/roadmap-mockup',
-  path: '/roadmap-mockup',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalRoadmapRoute = PortalRoadmapRouteImport.update({
-  id: '/roadmap',
-  path: '/roadmap',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalOnboardingRoute = PortalOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalMessagesRoute = PortalMessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalLoginRoute = PortalLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalHomeRoute = PortalHomeRouteImport.update({
-  id: '/home',
-  path: '/home',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalFilesRoute = PortalFilesRouteImport.update({
-  id: '/files',
-  path: '/files',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalFamilyRoute = PortalFamilyRouteImport.update({
-  id: '/family',
-  path: '/family',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalBillingRoute = PortalBillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalActivityRoute = PortalActivityRouteImport.update({
-  id: '/activity',
-  path: '/activity',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalAccountRoute = PortalAccountRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalAccessDeniedRoute = PortalAccessDeniedRouteImport.update({
-  id: '/access-denied',
-  path: '/access-denied',
-  getParentRoute: () => PortalRoute,
-} as any)
-const OpsQueueRoute = OpsQueueRouteImport.update({
-  id: '/queue',
-  path: '/queue',
-  getParentRoute: () => OpsRouteRoute,
-} as any)
-const OpsPortalsRoute = OpsPortalsRouteImport.update({
-  id: '/portals',
-  path: '/portals',
-  getParentRoute: () => OpsRouteRoute,
-} as any)
-const OpsNotificationsRoute = OpsNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => OpsRouteRoute,
-} as any)
-const OpsInsightsRoute = OpsInsightsRouteImport.update({
-  id: '/insights',
-  path: '/insights',
-  getParentRoute: () => OpsRouteRoute,
-} as any)
-const OpsHistoryRoute = OpsHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => OpsRouteRoute,
-} as any)
-const OpsEmailsRoute = OpsEmailsRouteImport.update({
-  id: '/emails',
-  path: '/emails',
-  getParentRoute: () => OpsRouteRoute,
-} as any)
-const OpsAccessEventsRoute = OpsAccessEventsRouteImport.update({
-  id: '/access-events',
-  path: '/access-events',
-  getParentRoute: () => OpsRouteRoute,
-} as any)
 const InsightsSlugRoute = InsightsSlugRouteImport.update({
   id: '/insights_/$slug',
   path: '/insights/$slug',
   getParentRoute: () => rootRouteImport,
-} as any)
-const EngineTemplatesRoute = EngineTemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
-  getParentRoute: () => EngineRoute,
-} as any)
-const EngineStrategicSalesRoute = EngineStrategicSalesRouteImport.update({
-  id: '/strategic-sales',
-  path: '/strategic-sales',
-  getParentRoute: () => EngineRoute,
-} as any)
-const EngineSettingsRoute = EngineSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => EngineRoute,
-} as any)
-const EngineReviewRoute = EngineReviewRouteImport.update({
-  id: '/review',
-  path: '/review',
-  getParentRoute: () => EngineRoute,
-} as any)
-const EngineOperationsRoute = EngineOperationsRouteImport.update({
-  id: '/operations',
-  path: '/operations',
-  getParentRoute: () => EngineRoute,
-} as any)
-const EngineIntelligenceRoute = EngineIntelligenceRouteImport.update({
-  id: '/intelligence',
-  path: '/intelligence',
-  getParentRoute: () => EngineRoute,
-} as any)
-const EngineExecutionRoute = EngineExecutionRouteImport.update({
-  id: '/execution',
-  path: '/execution',
-  getParentRoute: () => EngineRoute,
-} as any)
-const EngineDeliveryRoute = EngineDeliveryRouteImport.update({
-  id: '/delivery',
-  path: '/delivery',
-  getParentRoute: () => EngineRoute,
-} as any)
-const EngineApprovalsRoute = EngineApprovalsRouteImport.update({
-  id: '/approvals',
-  path: '/approvals',
-  getParentRoute: () => EngineRoute,
 } as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
@@ -460,215 +132,16 @@ const BuildMyRoadmapWriteRoute = BuildMyRoadmapWriteRouteImport.update({
   path: '/build-my-roadmap/write',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminStageTransitionsRoute = AdminStageTransitionsRouteImport.update({
-  id: '/stage-transitions',
-  path: '/stage-transitions',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminRolesRoute = AdminRolesRouteImport.update({
-  id: '/roles',
-  path: '/roles',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminRoadmapIntelligenceRoute =
-  AdminRoadmapIntelligenceRouteImport.update({
-    id: '/roadmap-intelligence',
-    path: '/roadmap-intelligence',
-    getParentRoute: () => AdminRoute,
-  } as any)
-const AdminProjectIntegrityRoute = AdminProjectIntegrityRouteImport.update({
-  id: '/project-integrity',
-  path: '/project-integrity',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPostDeliveryLearningRoute =
-  AdminPostDeliveryLearningRouteImport.update({
-    id: '/post-delivery-learning',
-    path: '/post-delivery-learning',
-    getParentRoute: () => AdminRoute,
-  } as any)
-const AdminPlatformConfigRoute = AdminPlatformConfigRouteImport.update({
-  id: '/platform-config',
-  path: '/platform-config',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPlanDepthRoute = AdminPlanDepthRouteImport.update({
-  id: '/plan-depth',
-  path: '/plan-depth',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminOutcomeSchedulerRoute = AdminOutcomeSchedulerRouteImport.update({
-  id: '/outcome-scheduler',
-  path: '/outcome-scheduler',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminOutcomeFeedbackRoute = AdminOutcomeFeedbackRouteImport.update({
-  id: '/outcome-feedback',
-  path: '/outcome-feedback',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminMilestoneChangesRoute = AdminMilestoneChangesRouteImport.update({
-  id: '/milestone-changes',
-  path: '/milestone-changes',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminIntakeAlertsRoute = AdminIntakeAlertsRouteImport.update({
-  id: '/intake-alerts',
-  path: '/intake-alerts',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminHealthExplainerRoute = AdminHealthExplainerRouteImport.update({
-  id: '/health-explainer',
-  path: '/health-explainer',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminFamilyImpactRoute = AdminFamilyImpactRouteImport.update({
-  id: '/family-impact',
-  path: '/family-impact',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminExceptionManagementRoute =
-  AdminExceptionManagementRouteImport.update({
-    id: '/exception-management',
-    path: '/exception-management',
-    getParentRoute: () => AdminRoute,
-  } as any)
-const AdminEvidenceEnforcementRoute =
-  AdminEvidenceEnforcementRouteImport.update({
-    id: '/evidence-enforcement',
-    path: '/evidence-enforcement',
-    getParentRoute: () => AdminRoute,
-  } as any)
-const AdminEngineTemplatesRoute = AdminEngineTemplatesRouteImport.update({
-  id: '/engine-templates',
-  path: '/engine-templates',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminEnginePromotionRoute = AdminEnginePromotionRouteImport.update({
-  id: '/engine-promotion',
-  path: '/engine-promotion',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminEngineLearningRoute = AdminEngineLearningRouteImport.update({
-  id: '/engine-learning',
-  path: '/engine-learning',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminDriftDetectionRoute = AdminDriftDetectionRouteImport.update({
-  id: '/drift-detection',
-  path: '/drift-detection',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminDeliveryReadinessGateRoute =
-  AdminDeliveryReadinessGateRouteImport.update({
-    id: '/delivery-readiness-gate',
-    path: '/delivery-readiness-gate',
-    getParentRoute: () => AdminRoute,
-  } as any)
-const AdminDecisionLogRoute = AdminDecisionLogRouteImport.update({
-  id: '/decision-log',
-  path: '/decision-log',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCostGuardRoute = AdminCostGuardRouteImport.update({
-  id: '/cost-guard',
-  path: '/cost-guard',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminConfigRoute = AdminConfigRouteImport.update({
-  id: '/config',
-  path: '/config',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCommandCenterRoute = AdminCommandCenterRouteImport.update({
-  id: '/command-center',
-  path: '/command-center',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminClientPortalsRoute = AdminClientPortalsRouteImport.update({
-  id: '/client-portals',
-  path: '/client-portals',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCapabilityRegistryRoute = AdminCapabilityRegistryRouteImport.update({
-  id: '/capability-registry',
-  path: '/capability-registry',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AuthenticatedPortalRoute = AuthenticatedPortalRouteImport.update({
-  id: '/portal',
-  path: '/portal',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const EngineProjectsIndexRoute = EngineProjectsIndexRouteImport.update({
-  id: '/projects/',
-  path: '/projects/',
-  getParentRoute: () => EngineRoute,
-} as any)
-const OpsSubmissionsIdRoute = OpsSubmissionsIdRouteImport.update({
-  id: '/submissions/$id',
-  path: '/submissions/$id',
-  getParentRoute: () => OpsRouteRoute,
-} as any)
-const OpsEditorIdRoute = OpsEditorIdRouteImport.update({
-  id: '/editor/$id',
-  path: '/editor/$id',
-  getParentRoute: () => OpsRouteRoute,
-} as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
-} as any)
-const EngineProjectsNewRoute = EngineProjectsNewRouteImport.update({
-  id: '/projects/new',
-  path: '/projects/new',
-  getParentRoute: () => EngineRoute,
-} as any)
-const EngineProjectsProjectIdRoute = EngineProjectsProjectIdRouteImport.update({
-  id: '/projects/$projectId',
-  path: '/projects/$projectId',
-  getParentRoute: () => EngineRoute,
 } as any)
 const CheckoutWalkPaceRoute = CheckoutWalkPaceRouteImport.update({
   id: '/checkout/walk/$pace',
   path: '/checkout/walk/$pace',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicSeedQaAccountRoute = ApiPublicSeedQaAccountRouteImport.update({
-  id: '/api/public/seed-qa-account',
-  path: '/api/public/seed-qa-account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Char91DotmcpChar93InvokeToolToolRoute =
-  Char91DotmcpChar93InvokeToolToolRouteImport.update({
-    id: '/.mcp/invoke-tool/$tool',
-    path: '/.mcp/invoke-tool/$tool',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EngineProjectsProjectIdIndexRoute =
-  EngineProjectsProjectIdIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -697,556 +170,41 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EngineProjectsProjectIdWorldEntryRoute =
-  EngineProjectsProjectIdWorldEntryRouteImport.update({
-    id: '/world-entry',
-    path: '/world-entry',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdWorkRoute =
-  EngineProjectsProjectIdWorkRouteImport.update({
-    id: '/work',
-    path: '/work',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdUnderstandingRoomRoute =
-  EngineProjectsProjectIdUnderstandingRoomRouteImport.update({
-    id: '/understanding-room',
-    path: '/understanding-room',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdStrategicThesisRoute =
-  EngineProjectsProjectIdStrategicThesisRouteImport.update({
-    id: '/strategic-thesis',
-    path: '/strategic-thesis',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdSpiritFirstRoute =
-  EngineProjectsProjectIdSpiritFirstRouteImport.update({
-    id: '/spirit-first',
-    path: '/spirit-first',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdSpineRoute =
-  EngineProjectsProjectIdSpineRouteImport.update({
-    id: '/spine',
-    path: '/spine',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdSourcesRoute =
-  EngineProjectsProjectIdSourcesRouteImport.update({
-    id: '/sources',
-    path: '/sources',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdSolutionsRoute =
-  EngineProjectsProjectIdSolutionsRouteImport.update({
-    id: '/solutions',
-    path: '/solutions',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdSignalRoomRoute =
-  EngineProjectsProjectIdSignalRoomRouteImport.update({
-    id: '/signal-room',
-    path: '/signal-room',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdSequencingRoute =
-  EngineProjectsProjectIdSequencingRouteImport.update({
-    id: '/sequencing',
-    path: '/sequencing',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdRoadmapRoute =
-  EngineProjectsProjectIdRoadmapRouteImport.update({
-    id: '/roadmap',
-    path: '/roadmap',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdQaFactoryRoute =
-  EngineProjectsProjectIdQaFactoryRouteImport.update({
-    id: '/qa-factory',
-    path: '/qa-factory',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdQaDeliveryRoute =
-  EngineProjectsProjectIdQaDeliveryRouteImport.update({
-    id: '/qa-delivery',
-    path: '/qa-delivery',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdPublishHistoryRoute =
-  EngineProjectsProjectIdPublishHistoryRouteImport.update({
-    id: '/publish-history',
-    path: '/publish-history',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdPreviewRoute =
-  EngineProjectsProjectIdPreviewRouteImport.update({
-    id: '/preview',
-    path: '/preview',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdPointBRoute =
-  EngineProjectsProjectIdPointBRouteImport.update({
-    id: '/point-b',
-    path: '/point-b',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdPointARoute =
-  EngineProjectsProjectIdPointARouteImport.update({
-    id: '/point-a',
-    path: '/point-a',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdPlansRoute =
-  EngineProjectsProjectIdPlansRouteImport.update({
-    id: '/plans',
-    path: '/plans',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdOverviewRoute =
-  EngineProjectsProjectIdOverviewRouteImport.update({
-    id: '/overview',
-    path: '/overview',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdMockupBuilderRoute =
-  EngineProjectsProjectIdMockupBuilderRouteImport.update({
-    id: '/mockup-builder',
-    path: '/mockup-builder',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdInvestmentRoute =
-  EngineProjectsProjectIdInvestmentRouteImport.update({
-    id: '/investment',
-    path: '/investment',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdIntelligenceLayerRoute =
-  EngineProjectsProjectIdIntelligenceLayerRouteImport.update({
-    id: '/intelligence-layer',
-    path: '/intelligence-layer',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdIntelligenceRoute =
-  EngineProjectsProjectIdIntelligenceRouteImport.update({
-    id: '/intelligence',
-    path: '/intelligence',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdIntakeRoute =
-  EngineProjectsProjectIdIntakeRouteImport.update({
-    id: '/intake',
-    path: '/intake',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdImplementationPlanRoute =
-  EngineProjectsProjectIdImplementationPlanRouteImport.update({
-    id: '/implementation-plan',
-    path: '/implementation-plan',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdHiddenAssetsRoute =
-  EngineProjectsProjectIdHiddenAssetsRouteImport.update({
-    id: '/hidden-assets',
-    path: '/hidden-assets',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdGapMapRoute =
-  EngineProjectsProjectIdGapMapRouteImport.update({
-    id: '/gap-map',
-    path: '/gap-map',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdFrameBuilderRoute =
-  EngineProjectsProjectIdFrameBuilderRouteImport.update({
-    id: '/frame-builder',
-    path: '/frame-builder',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdFamilyRoute =
-  EngineProjectsProjectIdFamilyRouteImport.update({
-    id: '/family',
-    path: '/family',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdExtractionRoute =
-  EngineProjectsProjectIdExtractionRouteImport.update({
-    id: '/extraction',
-    path: '/extraction',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdExecutionBoundaryRoute =
-  EngineProjectsProjectIdExecutionBoundaryRouteImport.update({
-    id: '/execution-boundary',
-    path: '/execution-boundary',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdEvidenceRoute =
-  EngineProjectsProjectIdEvidenceRouteImport.update({
-    id: '/evidence',
-    path: '/evidence',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdEnginesRoute =
-  EngineProjectsProjectIdEnginesRouteImport.update({
-    id: '/engines',
-    path: '/engines',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdDriftRoute =
-  EngineProjectsProjectIdDriftRouteImport.update({
-    id: '/drift',
-    path: '/drift',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdDeliveryRoute =
-  EngineProjectsProjectIdDeliveryRouteImport.update({
-    id: '/delivery',
-    path: '/delivery',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdDeadlinesRoute =
-  EngineProjectsProjectIdDeadlinesRouteImport.update({
-    id: '/deadlines',
-    path: '/deadlines',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdClientViewRoute =
-  EngineProjectsProjectIdClientViewRouteImport.update({
-    id: '/client-view',
-    path: '/client-view',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdChatRoute =
-  EngineProjectsProjectIdChatRouteImport.update({
-    id: '/chat',
-    path: '/chat',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdBuilderRoute =
-  EngineProjectsProjectIdBuilderRouteImport.update({
-    id: '/builder',
-    path: '/builder',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdBuildExecutionRoute =
-  EngineProjectsProjectIdBuildExecutionRouteImport.update({
-    id: '/build-execution',
-    path: '/build-execution',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdBlueprintRoute =
-  EngineProjectsProjectIdBlueprintRouteImport.update({
-    id: '/blueprint',
-    path: '/blueprint',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdBackendBuilderRoute =
-  EngineProjectsProjectIdBackendBuilderRouteImport.update({
-    id: '/backend-builder',
-    path: '/backend-builder',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdApprovalsRoute =
-  EngineProjectsProjectIdApprovalsRouteImport.update({
-    id: '/approvals',
-    path: '/approvals',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdAmendmentsRoute =
-  EngineProjectsProjectIdAmendmentsRouteImport.update({
-    id: '/amendments',
-    path: '/amendments',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdAiWorkspaceRoute =
-  EngineProjectsProjectIdAiWorkspaceRouteImport.update({
-    id: '/ai-workspace',
-    path: '/ai-workspace',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdAgentRoute =
-  EngineProjectsProjectIdAgentRouteImport.update({
-    id: '/agent',
-    path: '/agent',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksRunPipelineQueueRoute =
-  ApiPublicHooksRunPipelineQueueRouteImport.update({
-    id: '/api/public/hooks/run-pipeline-queue',
-    path: '/api/public/hooks/run-pipeline-queue',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksOutcomeCheckinsRoute =
-  ApiPublicHooksOutcomeCheckinsRouteImport.update({
-    id: '/api/public/hooks/outcome-checkins',
-    path: '/api/public/hooks/outcome-checkins',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksEngineTickRoute =
-  ApiPublicHooksEngineTickRouteImport.update({
-    id: '/api/public/hooks/engine-tick',
-    path: '/api/public/hooks/engine-tick',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksCostAutopauseRoute =
-  ApiPublicHooksCostAutopauseRouteImport.update({
-    id: '/api/public/hooks/cost-autopause',
-    path: '/api/public/hooks/cost-autopause',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksBuildRoadmapContactRoute =
-  ApiPublicHooksBuildRoadmapContactRouteImport.update({
-    id: '/api/public/hooks/build-roadmap-contact',
-    path: '/api/public/hooks/build-roadmap-contact',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const EngineProjectsProjectIdRoadmapIndexRoute =
-  EngineProjectsProjectIdRoadmapIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => EngineProjectsProjectIdRoadmapRoute,
-  } as any)
-const EngineProjectsProjectIdVersionsCompareRoute =
-  EngineProjectsProjectIdVersionsCompareRouteImport.update({
-    id: '/versions/compare',
-    path: '/versions/compare',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdRoadmapStudioRoute =
-  EngineProjectsProjectIdRoadmapStudioRouteImport.update({
-    id: '/studio',
-    path: '/studio',
-    getParentRoute: () => EngineProjectsProjectIdRoadmapRoute,
-  } as any)
-const EngineProjectsProjectIdAgentTasksRoute =
-  EngineProjectsProjectIdAgentTasksRouteImport.update({
-    id: '/tasks',
-    path: '/tasks',
-    getParentRoute: () => EngineProjectsProjectIdAgentRoute,
-  } as any)
-const EngineProjectsProjectIdAgentPermissionsRoute =
-  EngineProjectsProjectIdAgentPermissionsRouteImport.update({
-    id: '/permissions',
-    path: '/permissions',
-    getParentRoute: () => EngineProjectsProjectIdAgentRoute,
-  } as any)
-const EngineProjectsProjectIdAgentCostsRoute =
-  EngineProjectsProjectIdAgentCostsRouteImport.update({
-    id: '/costs',
-    path: '/costs',
-    getParentRoute: () => EngineProjectsProjectIdAgentRoute,
-  } as any)
-const EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute =
-  EngineProjectsProjectIdMilestonesMilestoneIdQualifyRouteImport.update({
-    id: '/milestones/$milestoneId/qualify',
-    path: '/milestones/$milestoneId/qualify',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdMilestonesMilestoneIdQaRoute =
-  EngineProjectsProjectIdMilestonesMilestoneIdQaRouteImport.update({
-    id: '/milestones/$milestoneId/qa',
-    path: '/milestones/$milestoneId/qa',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute =
-  EngineProjectsProjectIdMilestonesMilestoneIdMockupsRouteImport.update({
-    id: '/milestones/$milestoneId/mockups',
-    path: '/milestones/$milestoneId/mockups',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute =
-  EngineProjectsProjectIdMilestonesMilestoneIdBuildRouteImport.update({
-    id: '/milestones/$milestoneId/build',
-    path: '/milestones/$milestoneId/build',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute =
-  EngineProjectsProjectIdMilestonesMilestoneIdBriefRouteImport.update({
-    id: '/milestones/$milestoneId/brief',
-    path: '/milestones/$milestoneId/brief',
-    getParentRoute: () => EngineProjectsProjectIdRoute,
-  } as any)
-const EngineProjectsProjectIdEnginesRunsRunIdRoute =
-  EngineProjectsProjectIdEnginesRunsRunIdRouteImport.update({
-    id: '/runs/$runId',
-    path: '/runs/$runId',
-    getParentRoute: () => EngineProjectsProjectIdEnginesRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/ops': typeof OpsRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
-  '/engine': typeof EngineRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
-  '/mcp': typeof McpRoute
-  '/portal': typeof AuthenticatedPortalRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/admin/capability-registry': typeof AdminCapabilityRegistryRoute
-  '/admin/client-portals': typeof AdminClientPortalsRoute
-  '/admin/command-center': typeof AdminCommandCenterRoute
-  '/admin/config': typeof AdminConfigRoute
-  '/admin/cost-guard': typeof AdminCostGuardRoute
-  '/admin/decision-log': typeof AdminDecisionLogRoute
-  '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
-  '/admin/drift-detection': typeof AdminDriftDetectionRoute
-  '/admin/engine-learning': typeof AdminEngineLearningRoute
-  '/admin/engine-promotion': typeof AdminEnginePromotionRoute
-  '/admin/engine-templates': typeof AdminEngineTemplatesRoute
-  '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
-  '/admin/exception-management': typeof AdminExceptionManagementRoute
-  '/admin/family-impact': typeof AdminFamilyImpactRoute
-  '/admin/health-explainer': typeof AdminHealthExplainerRoute
-  '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
-  '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
-  '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
-  '/admin/outcome-scheduler': typeof AdminOutcomeSchedulerRoute
-  '/admin/plan-depth': typeof AdminPlanDepthRoute
-  '/admin/platform-config': typeof AdminPlatformConfigRoute
-  '/admin/post-delivery-learning': typeof AdminPostDeliveryLearningRoute
-  '/admin/project-integrity': typeof AdminProjectIntegrityRoute
-  '/admin/roadmap-intelligence': typeof AdminRoadmapIntelligenceRoute
-  '/admin/roles': typeof AdminRolesRoute
-  '/admin/stage-transitions': typeof AdminStageTransitionsRoute
   '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/engine/approvals': typeof EngineApprovalsRoute
-  '/engine/delivery': typeof EngineDeliveryRoute
-  '/engine/execution': typeof EngineExecutionRoute
-  '/engine/intelligence': typeof EngineIntelligenceRoute
-  '/engine/operations': typeof EngineOperationsRoute
-  '/engine/review': typeof EngineReviewRoute
-  '/engine/settings': typeof EngineSettingsRoute
-  '/engine/strategic-sales': typeof EngineStrategicSalesRoute
-  '/engine/templates': typeof EngineTemplatesRoute
   '/insights/$slug': typeof InsightsSlugRoute
-  '/ops/access-events': typeof OpsAccessEventsRoute
-  '/ops/emails': typeof OpsEmailsRoute
-  '/ops/history': typeof OpsHistoryRoute
-  '/ops/insights': typeof OpsInsightsRoute
-  '/ops/notifications': typeof OpsNotificationsRoute
-  '/ops/portals': typeof OpsPortalsRoute
-  '/ops/queue': typeof OpsQueueRoute
-  '/portal/access-denied': typeof PortalAccessDeniedRoute
-  '/portal/account': typeof PortalAccountRoute
-  '/portal/activity': typeof PortalActivityRoute
-  '/portal/billing': typeof PortalBillingRoute
-  '/portal/family': typeof PortalFamilyRoute
-  '/portal/files': typeof PortalFilesRoute
-  '/portal/home': typeof PortalHomeRoute
-  '/portal/login': typeof PortalLoginRoute
-  '/portal/messages': typeof PortalMessagesRoute
-  '/portal/onboarding': typeof PortalOnboardingRoute
-  '/portal/roadmap': typeof PortalRoadmapRoute
-  '/portal/roadmap-mockup': typeof PortalRoadmapMockupRoute
   '/walks/$slug': typeof WalksSlugRoute
-  '/admin/': typeof AdminIndexRoute
   '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
-  '/engine/': typeof EngineIndexRoute
-  '/ops/': typeof OpsIndexRoute
-  '/portal/': typeof PortalIndexRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/api/public/seed-qa-account': typeof ApiPublicSeedQaAccountRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
-  '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
-  '/engine/projects/new': typeof EngineProjectsNewRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
-  '/ops/editor/$id': typeof OpsEditorIdRoute
-  '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
-  '/engine/projects/': typeof EngineProjectsIndexRoute
-  '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
-  '/api/public/hooks/cost-autopause': typeof ApiPublicHooksCostAutopauseRoute
-  '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
-  '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
-  '/api/public/hooks/run-pipeline-queue': typeof ApiPublicHooksRunPipelineQueueRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
-  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
-  '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
-  '/engine/projects/$projectId/amendments': typeof EngineProjectsProjectIdAmendmentsRoute
-  '/engine/projects/$projectId/approvals': typeof EngineProjectsProjectIdApprovalsRoute
-  '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
-  '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
-  '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
-  '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
-  '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
-  '/engine/projects/$projectId/client-view': typeof EngineProjectsProjectIdClientViewRoute
-  '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
-  '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
-  '/engine/projects/$projectId/drift': typeof EngineProjectsProjectIdDriftRoute
-  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
-  '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
-  '/engine/projects/$projectId/execution-boundary': typeof EngineProjectsProjectIdExecutionBoundaryRoute
-  '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
-  '/engine/projects/$projectId/family': typeof EngineProjectsProjectIdFamilyRoute
-  '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
-  '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
-  '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
-  '/engine/projects/$projectId/implementation-plan': typeof EngineProjectsProjectIdImplementationPlanRoute
-  '/engine/projects/$projectId/intake': typeof EngineProjectsProjectIdIntakeRoute
-  '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
-  '/engine/projects/$projectId/intelligence-layer': typeof EngineProjectsProjectIdIntelligenceLayerRoute
-  '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
-  '/engine/projects/$projectId/mockup-builder': typeof EngineProjectsProjectIdMockupBuilderRoute
-  '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
-  '/engine/projects/$projectId/plans': typeof EngineProjectsProjectIdPlansRoute
-  '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
-  '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
-  '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
-  '/engine/projects/$projectId/publish-history': typeof EngineProjectsProjectIdPublishHistoryRoute
-  '/engine/projects/$projectId/qa-delivery': typeof EngineProjectsProjectIdQaDeliveryRoute
-  '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
-  '/engine/projects/$projectId/roadmap': typeof EngineProjectsProjectIdRoadmapRouteWithChildren
-  '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
-  '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
-  '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
-  '/engine/projects/$projectId/sources': typeof EngineProjectsProjectIdSourcesRoute
-  '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
-  '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
-  '/engine/projects/$projectId/strategic-thesis': typeof EngineProjectsProjectIdStrategicThesisRoute
-  '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
-  '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
-  '/engine/projects/$projectId/world-entry': typeof EngineProjectsProjectIdWorldEntryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
-  '/engine/projects/$projectId/': typeof EngineProjectsProjectIdIndexRoute
-  '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
-  '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
-  '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
-  '/engine/projects/$projectId/roadmap/studio': typeof EngineProjectsProjectIdRoadmapStudioRoute
-  '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
-  '/engine/projects/$projectId/roadmap/': typeof EngineProjectsProjectIdRoadmapIndexRoute
-  '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/mockups': typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/qa': typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/qualify': typeof EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1255,495 +213,88 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
-  '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/portal': typeof PortalIndexRoute
-  '/admin/capability-registry': typeof AdminCapabilityRegistryRoute
-  '/admin/client-portals': typeof AdminClientPortalsRoute
-  '/admin/command-center': typeof AdminCommandCenterRoute
-  '/admin/config': typeof AdminConfigRoute
-  '/admin/cost-guard': typeof AdminCostGuardRoute
-  '/admin/decision-log': typeof AdminDecisionLogRoute
-  '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
-  '/admin/drift-detection': typeof AdminDriftDetectionRoute
-  '/admin/engine-learning': typeof AdminEngineLearningRoute
-  '/admin/engine-promotion': typeof AdminEnginePromotionRoute
-  '/admin/engine-templates': typeof AdminEngineTemplatesRoute
-  '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
-  '/admin/exception-management': typeof AdminExceptionManagementRoute
-  '/admin/family-impact': typeof AdminFamilyImpactRoute
-  '/admin/health-explainer': typeof AdminHealthExplainerRoute
-  '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
-  '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
-  '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
-  '/admin/outcome-scheduler': typeof AdminOutcomeSchedulerRoute
-  '/admin/plan-depth': typeof AdminPlanDepthRoute
-  '/admin/platform-config': typeof AdminPlatformConfigRoute
-  '/admin/post-delivery-learning': typeof AdminPostDeliveryLearningRoute
-  '/admin/project-integrity': typeof AdminProjectIntegrityRoute
-  '/admin/roadmap-intelligence': typeof AdminRoadmapIntelligenceRoute
-  '/admin/roles': typeof AdminRolesRoute
-  '/admin/stage-transitions': typeof AdminStageTransitionsRoute
   '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/engine/approvals': typeof EngineApprovalsRoute
-  '/engine/delivery': typeof EngineDeliveryRoute
-  '/engine/execution': typeof EngineExecutionRoute
-  '/engine/intelligence': typeof EngineIntelligenceRoute
-  '/engine/operations': typeof EngineOperationsRoute
-  '/engine/review': typeof EngineReviewRoute
-  '/engine/settings': typeof EngineSettingsRoute
-  '/engine/strategic-sales': typeof EngineStrategicSalesRoute
-  '/engine/templates': typeof EngineTemplatesRoute
   '/insights/$slug': typeof InsightsSlugRoute
-  '/ops/access-events': typeof OpsAccessEventsRoute
-  '/ops/emails': typeof OpsEmailsRoute
-  '/ops/history': typeof OpsHistoryRoute
-  '/ops/insights': typeof OpsInsightsRoute
-  '/ops/notifications': typeof OpsNotificationsRoute
-  '/ops/portals': typeof OpsPortalsRoute
-  '/ops/queue': typeof OpsQueueRoute
-  '/portal/access-denied': typeof PortalAccessDeniedRoute
-  '/portal/account': typeof PortalAccountRoute
-  '/portal/activity': typeof PortalActivityRoute
-  '/portal/billing': typeof PortalBillingRoute
-  '/portal/family': typeof PortalFamilyRoute
-  '/portal/files': typeof PortalFilesRoute
-  '/portal/home': typeof PortalHomeRoute
-  '/portal/login': typeof PortalLoginRoute
-  '/portal/messages': typeof PortalMessagesRoute
-  '/portal/onboarding': typeof PortalOnboardingRoute
-  '/portal/roadmap': typeof PortalRoadmapRoute
-  '/portal/roadmap-mockup': typeof PortalRoadmapMockupRoute
   '/walks/$slug': typeof WalksSlugRoute
-  '/admin': typeof AdminIndexRoute
   '/build-my-roadmap': typeof BuildMyRoadmapIndexRoute
-  '/engine': typeof EngineIndexRoute
-  '/ops': typeof OpsIndexRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/api/public/seed-qa-account': typeof ApiPublicSeedQaAccountRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
-  '/engine/projects/new': typeof EngineProjectsNewRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
-  '/ops/editor/$id': typeof OpsEditorIdRoute
-  '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
-  '/engine/projects': typeof EngineProjectsIndexRoute
-  '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
-  '/api/public/hooks/cost-autopause': typeof ApiPublicHooksCostAutopauseRoute
-  '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
-  '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
-  '/api/public/hooks/run-pipeline-queue': typeof ApiPublicHooksRunPipelineQueueRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
-  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
-  '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
-  '/engine/projects/$projectId/amendments': typeof EngineProjectsProjectIdAmendmentsRoute
-  '/engine/projects/$projectId/approvals': typeof EngineProjectsProjectIdApprovalsRoute
-  '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
-  '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
-  '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
-  '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
-  '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
-  '/engine/projects/$projectId/client-view': typeof EngineProjectsProjectIdClientViewRoute
-  '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
-  '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
-  '/engine/projects/$projectId/drift': typeof EngineProjectsProjectIdDriftRoute
-  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
-  '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
-  '/engine/projects/$projectId/execution-boundary': typeof EngineProjectsProjectIdExecutionBoundaryRoute
-  '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
-  '/engine/projects/$projectId/family': typeof EngineProjectsProjectIdFamilyRoute
-  '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
-  '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
-  '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
-  '/engine/projects/$projectId/implementation-plan': typeof EngineProjectsProjectIdImplementationPlanRoute
-  '/engine/projects/$projectId/intake': typeof EngineProjectsProjectIdIntakeRoute
-  '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
-  '/engine/projects/$projectId/intelligence-layer': typeof EngineProjectsProjectIdIntelligenceLayerRoute
-  '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
-  '/engine/projects/$projectId/mockup-builder': typeof EngineProjectsProjectIdMockupBuilderRoute
-  '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
-  '/engine/projects/$projectId/plans': typeof EngineProjectsProjectIdPlansRoute
-  '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
-  '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
-  '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
-  '/engine/projects/$projectId/publish-history': typeof EngineProjectsProjectIdPublishHistoryRoute
-  '/engine/projects/$projectId/qa-delivery': typeof EngineProjectsProjectIdQaDeliveryRoute
-  '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
-  '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
-  '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
-  '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
-  '/engine/projects/$projectId/sources': typeof EngineProjectsProjectIdSourcesRoute
-  '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
-  '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
-  '/engine/projects/$projectId/strategic-thesis': typeof EngineProjectsProjectIdStrategicThesisRoute
-  '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
-  '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
-  '/engine/projects/$projectId/world-entry': typeof EngineProjectsProjectIdWorldEntryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
-  '/engine/projects/$projectId': typeof EngineProjectsProjectIdIndexRoute
-  '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
-  '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
-  '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
-  '/engine/projects/$projectId/roadmap/studio': typeof EngineProjectsProjectIdRoadmapStudioRoute
-  '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
-  '/engine/projects/$projectId/roadmap': typeof EngineProjectsProjectIdRoadmapIndexRoute
-  '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/mockups': typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/qa': typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/qualify': typeof EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/ops': typeof OpsRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
-  '/engine': typeof EngineRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
-  '/mcp': typeof McpRoute
-  '/portal': typeof PortalRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/_authenticated/portal': typeof AuthenticatedPortalRoute
-  '/admin/capability-registry': typeof AdminCapabilityRegistryRoute
-  '/admin/client-portals': typeof AdminClientPortalsRoute
-  '/admin/command-center': typeof AdminCommandCenterRoute
-  '/admin/config': typeof AdminConfigRoute
-  '/admin/cost-guard': typeof AdminCostGuardRoute
-  '/admin/decision-log': typeof AdminDecisionLogRoute
-  '/admin/delivery-readiness-gate': typeof AdminDeliveryReadinessGateRoute
-  '/admin/drift-detection': typeof AdminDriftDetectionRoute
-  '/admin/engine-learning': typeof AdminEngineLearningRoute
-  '/admin/engine-promotion': typeof AdminEnginePromotionRoute
-  '/admin/engine-templates': typeof AdminEngineTemplatesRoute
-  '/admin/evidence-enforcement': typeof AdminEvidenceEnforcementRoute
-  '/admin/exception-management': typeof AdminExceptionManagementRoute
-  '/admin/family-impact': typeof AdminFamilyImpactRoute
-  '/admin/health-explainer': typeof AdminHealthExplainerRoute
-  '/admin/intake-alerts': typeof AdminIntakeAlertsRoute
-  '/admin/milestone-changes': typeof AdminMilestoneChangesRoute
-  '/admin/outcome-feedback': typeof AdminOutcomeFeedbackRoute
-  '/admin/outcome-scheduler': typeof AdminOutcomeSchedulerRoute
-  '/admin/plan-depth': typeof AdminPlanDepthRoute
-  '/admin/platform-config': typeof AdminPlatformConfigRoute
-  '/admin/post-delivery-learning': typeof AdminPostDeliveryLearningRoute
-  '/admin/project-integrity': typeof AdminProjectIntegrityRoute
-  '/admin/roadmap-intelligence': typeof AdminRoadmapIntelligenceRoute
-  '/admin/roles': typeof AdminRolesRoute
-  '/admin/stage-transitions': typeof AdminStageTransitionsRoute
   '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/engine/approvals': typeof EngineApprovalsRoute
-  '/engine/delivery': typeof EngineDeliveryRoute
-  '/engine/execution': typeof EngineExecutionRoute
-  '/engine/intelligence': typeof EngineIntelligenceRoute
-  '/engine/operations': typeof EngineOperationsRoute
-  '/engine/review': typeof EngineReviewRoute
-  '/engine/settings': typeof EngineSettingsRoute
-  '/engine/strategic-sales': typeof EngineStrategicSalesRoute
-  '/engine/templates': typeof EngineTemplatesRoute
   '/insights_/$slug': typeof InsightsSlugRoute
-  '/ops/access-events': typeof OpsAccessEventsRoute
-  '/ops/emails': typeof OpsEmailsRoute
-  '/ops/history': typeof OpsHistoryRoute
-  '/ops/insights': typeof OpsInsightsRoute
-  '/ops/notifications': typeof OpsNotificationsRoute
-  '/ops/portals': typeof OpsPortalsRoute
-  '/ops/queue': typeof OpsQueueRoute
-  '/portal/access-denied': typeof PortalAccessDeniedRoute
-  '/portal/account': typeof PortalAccountRoute
-  '/portal/activity': typeof PortalActivityRoute
-  '/portal/billing': typeof PortalBillingRoute
-  '/portal/family': typeof PortalFamilyRoute
-  '/portal/files': typeof PortalFilesRoute
-  '/portal/home': typeof PortalHomeRoute
-  '/portal/login': typeof PortalLoginRoute
-  '/portal/messages': typeof PortalMessagesRoute
-  '/portal/onboarding': typeof PortalOnboardingRoute
-  '/portal/roadmap': typeof PortalRoadmapRoute
-  '/portal/roadmap-mockup': typeof PortalRoadmapMockupRoute
   '/walks_/$slug': typeof WalksSlugRoute
-  '/admin/': typeof AdminIndexRoute
   '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
-  '/engine/': typeof EngineIndexRoute
-  '/ops/': typeof OpsIndexRoute
-  '/portal/': typeof PortalIndexRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/api/public/seed-qa-account': typeof ApiPublicSeedQaAccountRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
-  '/engine/projects/$projectId': typeof EngineProjectsProjectIdRouteWithChildren
-  '/engine/projects/new': typeof EngineProjectsNewRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
-  '/ops/editor/$id': typeof OpsEditorIdRoute
-  '/ops/submissions/$id': typeof OpsSubmissionsIdRoute
-  '/engine/projects/': typeof EngineProjectsIndexRoute
-  '/api/public/hooks/build-roadmap-contact': typeof ApiPublicHooksBuildRoadmapContactRoute
-  '/api/public/hooks/cost-autopause': typeof ApiPublicHooksCostAutopauseRoute
-  '/api/public/hooks/engine-tick': typeof ApiPublicHooksEngineTickRoute
-  '/api/public/hooks/outcome-checkins': typeof ApiPublicHooksOutcomeCheckinsRoute
-  '/api/public/hooks/run-pipeline-queue': typeof ApiPublicHooksRunPipelineQueueRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
-  '/engine/projects/$projectId/agent': typeof EngineProjectsProjectIdAgentRouteWithChildren
-  '/engine/projects/$projectId/ai-workspace': typeof EngineProjectsProjectIdAiWorkspaceRoute
-  '/engine/projects/$projectId/amendments': typeof EngineProjectsProjectIdAmendmentsRoute
-  '/engine/projects/$projectId/approvals': typeof EngineProjectsProjectIdApprovalsRoute
-  '/engine/projects/$projectId/backend-builder': typeof EngineProjectsProjectIdBackendBuilderRoute
-  '/engine/projects/$projectId/blueprint': typeof EngineProjectsProjectIdBlueprintRoute
-  '/engine/projects/$projectId/build-execution': typeof EngineProjectsProjectIdBuildExecutionRoute
-  '/engine/projects/$projectId/builder': typeof EngineProjectsProjectIdBuilderRoute
-  '/engine/projects/$projectId/chat': typeof EngineProjectsProjectIdChatRoute
-  '/engine/projects/$projectId/client-view': typeof EngineProjectsProjectIdClientViewRoute
-  '/engine/projects/$projectId/deadlines': typeof EngineProjectsProjectIdDeadlinesRoute
-  '/engine/projects/$projectId/delivery': typeof EngineProjectsProjectIdDeliveryRoute
-  '/engine/projects/$projectId/drift': typeof EngineProjectsProjectIdDriftRoute
-  '/engine/projects/$projectId/engines': typeof EngineProjectsProjectIdEnginesRouteWithChildren
-  '/engine/projects/$projectId/evidence': typeof EngineProjectsProjectIdEvidenceRoute
-  '/engine/projects/$projectId/execution-boundary': typeof EngineProjectsProjectIdExecutionBoundaryRoute
-  '/engine/projects/$projectId/extraction': typeof EngineProjectsProjectIdExtractionRoute
-  '/engine/projects/$projectId/family': typeof EngineProjectsProjectIdFamilyRoute
-  '/engine/projects/$projectId/frame-builder': typeof EngineProjectsProjectIdFrameBuilderRoute
-  '/engine/projects/$projectId/gap-map': typeof EngineProjectsProjectIdGapMapRoute
-  '/engine/projects/$projectId/hidden-assets': typeof EngineProjectsProjectIdHiddenAssetsRoute
-  '/engine/projects/$projectId/implementation-plan': typeof EngineProjectsProjectIdImplementationPlanRoute
-  '/engine/projects/$projectId/intake': typeof EngineProjectsProjectIdIntakeRoute
-  '/engine/projects/$projectId/intelligence': typeof EngineProjectsProjectIdIntelligenceRoute
-  '/engine/projects/$projectId/intelligence-layer': typeof EngineProjectsProjectIdIntelligenceLayerRoute
-  '/engine/projects/$projectId/investment': typeof EngineProjectsProjectIdInvestmentRoute
-  '/engine/projects/$projectId/mockup-builder': typeof EngineProjectsProjectIdMockupBuilderRoute
-  '/engine/projects/$projectId/overview': typeof EngineProjectsProjectIdOverviewRoute
-  '/engine/projects/$projectId/plans': typeof EngineProjectsProjectIdPlansRoute
-  '/engine/projects/$projectId/point-a': typeof EngineProjectsProjectIdPointARoute
-  '/engine/projects/$projectId/point-b': typeof EngineProjectsProjectIdPointBRoute
-  '/engine/projects/$projectId/preview': typeof EngineProjectsProjectIdPreviewRoute
-  '/engine/projects/$projectId/publish-history': typeof EngineProjectsProjectIdPublishHistoryRoute
-  '/engine/projects/$projectId/qa-delivery': typeof EngineProjectsProjectIdQaDeliveryRoute
-  '/engine/projects/$projectId/qa-factory': typeof EngineProjectsProjectIdQaFactoryRoute
-  '/engine/projects/$projectId/roadmap': typeof EngineProjectsProjectIdRoadmapRouteWithChildren
-  '/engine/projects/$projectId/sequencing': typeof EngineProjectsProjectIdSequencingRoute
-  '/engine/projects/$projectId/signal-room': typeof EngineProjectsProjectIdSignalRoomRoute
-  '/engine/projects/$projectId/solutions': typeof EngineProjectsProjectIdSolutionsRoute
-  '/engine/projects/$projectId/sources': typeof EngineProjectsProjectIdSourcesRoute
-  '/engine/projects/$projectId/spine': typeof EngineProjectsProjectIdSpineRoute
-  '/engine/projects/$projectId/spirit-first': typeof EngineProjectsProjectIdSpiritFirstRoute
-  '/engine/projects/$projectId/strategic-thesis': typeof EngineProjectsProjectIdStrategicThesisRoute
-  '/engine/projects/$projectId/understanding-room': typeof EngineProjectsProjectIdUnderstandingRoomRoute
-  '/engine/projects/$projectId/work': typeof EngineProjectsProjectIdWorkRoute
-  '/engine/projects/$projectId/world-entry': typeof EngineProjectsProjectIdWorldEntryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
-  '/engine/projects/$projectId/': typeof EngineProjectsProjectIdIndexRoute
-  '/engine/projects/$projectId/agent/costs': typeof EngineProjectsProjectIdAgentCostsRoute
-  '/engine/projects/$projectId/agent/permissions': typeof EngineProjectsProjectIdAgentPermissionsRoute
-  '/engine/projects/$projectId/agent/tasks': typeof EngineProjectsProjectIdAgentTasksRoute
-  '/engine/projects/$projectId/roadmap/studio': typeof EngineProjectsProjectIdRoadmapStudioRoute
-  '/engine/projects/$projectId/versions/compare': typeof EngineProjectsProjectIdVersionsCompareRoute
-  '/engine/projects/$projectId/roadmap/': typeof EngineProjectsProjectIdRoadmapIndexRoute
-  '/engine/projects/$projectId/engines/runs/$runId': typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/brief': typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/build': typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/mockups': typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/qa': typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
-  '/engine/projects/$projectId/milestones/$milestoneId/qualify': typeof EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/ops'
     | '/about'
-    | '/admin'
     | '/auth'
-    | '/engine'
     | '/forgot-password'
     | '/insights'
     | '/investment'
-    | '/mcp'
-    | '/portal'
     | '/reset-password'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
-    | '/admin/capability-registry'
-    | '/admin/client-portals'
-    | '/admin/command-center'
-    | '/admin/config'
-    | '/admin/cost-guard'
-    | '/admin/decision-log'
-    | '/admin/delivery-readiness-gate'
-    | '/admin/drift-detection'
-    | '/admin/engine-learning'
-    | '/admin/engine-promotion'
-    | '/admin/engine-templates'
-    | '/admin/evidence-enforcement'
-    | '/admin/exception-management'
-    | '/admin/family-impact'
-    | '/admin/health-explainer'
-    | '/admin/intake-alerts'
-    | '/admin/milestone-changes'
-    | '/admin/outcome-feedback'
-    | '/admin/outcome-scheduler'
-    | '/admin/plan-depth'
-    | '/admin/platform-config'
-    | '/admin/post-delivery-learning'
-    | '/admin/project-integrity'
-    | '/admin/roadmap-intelligence'
-    | '/admin/roles'
-    | '/admin/stage-transitions'
     | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/clients/spartan'
     | '/email/unsubscribe'
-    | '/engine/approvals'
-    | '/engine/delivery'
-    | '/engine/execution'
-    | '/engine/intelligence'
-    | '/engine/operations'
-    | '/engine/review'
-    | '/engine/settings'
-    | '/engine/strategic-sales'
-    | '/engine/templates'
     | '/insights/$slug'
-    | '/ops/access-events'
-    | '/ops/emails'
-    | '/ops/history'
-    | '/ops/insights'
-    | '/ops/notifications'
-    | '/ops/portals'
-    | '/ops/queue'
-    | '/portal/access-denied'
-    | '/portal/account'
-    | '/portal/activity'
-    | '/portal/billing'
-    | '/portal/family'
-    | '/portal/files'
-    | '/portal/home'
-    | '/portal/login'
-    | '/portal/messages'
-    | '/portal/onboarding'
-    | '/portal/roadmap'
-    | '/portal/roadmap-mockup'
     | '/walks/$slug'
-    | '/admin/'
     | '/build-my-roadmap/'
-    | '/engine/'
-    | '/ops/'
-    | '/portal/'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
-    | '/api/public/seed-qa-account'
     | '/checkout/walk/$pace'
-    | '/engine/projects/$projectId'
-    | '/engine/projects/new'
     | '/lovable/email/suppression'
-    | '/ops/editor/$id'
-    | '/ops/submissions/$id'
-    | '/engine/projects/'
-    | '/api/public/hooks/build-roadmap-contact'
-    | '/api/public/hooks/cost-autopause'
-    | '/api/public/hooks/engine-tick'
-    | '/api/public/hooks/outcome-checkins'
-    | '/api/public/hooks/run-pipeline-queue'
     | '/api/public/payments/webhook'
-    | '/engine/projects/$projectId/agent'
-    | '/engine/projects/$projectId/ai-workspace'
-    | '/engine/projects/$projectId/amendments'
-    | '/engine/projects/$projectId/approvals'
-    | '/engine/projects/$projectId/backend-builder'
-    | '/engine/projects/$projectId/blueprint'
-    | '/engine/projects/$projectId/build-execution'
-    | '/engine/projects/$projectId/builder'
-    | '/engine/projects/$projectId/chat'
-    | '/engine/projects/$projectId/client-view'
-    | '/engine/projects/$projectId/deadlines'
-    | '/engine/projects/$projectId/delivery'
-    | '/engine/projects/$projectId/drift'
-    | '/engine/projects/$projectId/engines'
-    | '/engine/projects/$projectId/evidence'
-    | '/engine/projects/$projectId/execution-boundary'
-    | '/engine/projects/$projectId/extraction'
-    | '/engine/projects/$projectId/family'
-    | '/engine/projects/$projectId/frame-builder'
-    | '/engine/projects/$projectId/gap-map'
-    | '/engine/projects/$projectId/hidden-assets'
-    | '/engine/projects/$projectId/implementation-plan'
-    | '/engine/projects/$projectId/intake'
-    | '/engine/projects/$projectId/intelligence'
-    | '/engine/projects/$projectId/intelligence-layer'
-    | '/engine/projects/$projectId/investment'
-    | '/engine/projects/$projectId/mockup-builder'
-    | '/engine/projects/$projectId/overview'
-    | '/engine/projects/$projectId/plans'
-    | '/engine/projects/$projectId/point-a'
-    | '/engine/projects/$projectId/point-b'
-    | '/engine/projects/$projectId/preview'
-    | '/engine/projects/$projectId/publish-history'
-    | '/engine/projects/$projectId/qa-delivery'
-    | '/engine/projects/$projectId/qa-factory'
-    | '/engine/projects/$projectId/roadmap'
-    | '/engine/projects/$projectId/sequencing'
-    | '/engine/projects/$projectId/signal-room'
-    | '/engine/projects/$projectId/solutions'
-    | '/engine/projects/$projectId/sources'
-    | '/engine/projects/$projectId/spine'
-    | '/engine/projects/$projectId/spirit-first'
-    | '/engine/projects/$projectId/strategic-thesis'
-    | '/engine/projects/$projectId/understanding-room'
-    | '/engine/projects/$projectId/work'
-    | '/engine/projects/$projectId/world-entry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
-    | '/engine/projects/$projectId/'
-    | '/engine/projects/$projectId/agent/costs'
-    | '/engine/projects/$projectId/agent/permissions'
-    | '/engine/projects/$projectId/agent/tasks'
-    | '/engine/projects/$projectId/roadmap/studio'
-    | '/engine/projects/$projectId/versions/compare'
-    | '/engine/projects/$projectId/roadmap/'
-    | '/engine/projects/$projectId/engines/runs/$runId'
-    | '/engine/projects/$projectId/milestones/$milestoneId/brief'
-    | '/engine/projects/$projectId/milestones/$milestoneId/build'
-    | '/engine/projects/$projectId/milestones/$milestoneId/mockups'
-    | '/engine/projects/$projectId/milestones/$milestoneId/qa'
-    | '/engine/projects/$projectId/milestones/$milestoneId/qualify'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1752,348 +303,70 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/insights'
     | '/investment'
-    | '/mcp'
     | '/reset-password'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
-    | '/portal'
-    | '/admin/capability-registry'
-    | '/admin/client-portals'
-    | '/admin/command-center'
-    | '/admin/config'
-    | '/admin/cost-guard'
-    | '/admin/decision-log'
-    | '/admin/delivery-readiness-gate'
-    | '/admin/drift-detection'
-    | '/admin/engine-learning'
-    | '/admin/engine-promotion'
-    | '/admin/engine-templates'
-    | '/admin/evidence-enforcement'
-    | '/admin/exception-management'
-    | '/admin/family-impact'
-    | '/admin/health-explainer'
-    | '/admin/intake-alerts'
-    | '/admin/milestone-changes'
-    | '/admin/outcome-feedback'
-    | '/admin/outcome-scheduler'
-    | '/admin/plan-depth'
-    | '/admin/platform-config'
-    | '/admin/post-delivery-learning'
-    | '/admin/project-integrity'
-    | '/admin/roadmap-intelligence'
-    | '/admin/roles'
-    | '/admin/stage-transitions'
     | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/clients/spartan'
     | '/email/unsubscribe'
-    | '/engine/approvals'
-    | '/engine/delivery'
-    | '/engine/execution'
-    | '/engine/intelligence'
-    | '/engine/operations'
-    | '/engine/review'
-    | '/engine/settings'
-    | '/engine/strategic-sales'
-    | '/engine/templates'
     | '/insights/$slug'
-    | '/ops/access-events'
-    | '/ops/emails'
-    | '/ops/history'
-    | '/ops/insights'
-    | '/ops/notifications'
-    | '/ops/portals'
-    | '/ops/queue'
-    | '/portal/access-denied'
-    | '/portal/account'
-    | '/portal/activity'
-    | '/portal/billing'
-    | '/portal/family'
-    | '/portal/files'
-    | '/portal/home'
-    | '/portal/login'
-    | '/portal/messages'
-    | '/portal/onboarding'
-    | '/portal/roadmap'
-    | '/portal/roadmap-mockup'
     | '/walks/$slug'
-    | '/admin'
     | '/build-my-roadmap'
-    | '/engine'
-    | '/ops'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
-    | '/api/public/seed-qa-account'
     | '/checkout/walk/$pace'
-    | '/engine/projects/new'
     | '/lovable/email/suppression'
-    | '/ops/editor/$id'
-    | '/ops/submissions/$id'
-    | '/engine/projects'
-    | '/api/public/hooks/build-roadmap-contact'
-    | '/api/public/hooks/cost-autopause'
-    | '/api/public/hooks/engine-tick'
-    | '/api/public/hooks/outcome-checkins'
-    | '/api/public/hooks/run-pipeline-queue'
     | '/api/public/payments/webhook'
-    | '/engine/projects/$projectId/agent'
-    | '/engine/projects/$projectId/ai-workspace'
-    | '/engine/projects/$projectId/amendments'
-    | '/engine/projects/$projectId/approvals'
-    | '/engine/projects/$projectId/backend-builder'
-    | '/engine/projects/$projectId/blueprint'
-    | '/engine/projects/$projectId/build-execution'
-    | '/engine/projects/$projectId/builder'
-    | '/engine/projects/$projectId/chat'
-    | '/engine/projects/$projectId/client-view'
-    | '/engine/projects/$projectId/deadlines'
-    | '/engine/projects/$projectId/delivery'
-    | '/engine/projects/$projectId/drift'
-    | '/engine/projects/$projectId/engines'
-    | '/engine/projects/$projectId/evidence'
-    | '/engine/projects/$projectId/execution-boundary'
-    | '/engine/projects/$projectId/extraction'
-    | '/engine/projects/$projectId/family'
-    | '/engine/projects/$projectId/frame-builder'
-    | '/engine/projects/$projectId/gap-map'
-    | '/engine/projects/$projectId/hidden-assets'
-    | '/engine/projects/$projectId/implementation-plan'
-    | '/engine/projects/$projectId/intake'
-    | '/engine/projects/$projectId/intelligence'
-    | '/engine/projects/$projectId/intelligence-layer'
-    | '/engine/projects/$projectId/investment'
-    | '/engine/projects/$projectId/mockup-builder'
-    | '/engine/projects/$projectId/overview'
-    | '/engine/projects/$projectId/plans'
-    | '/engine/projects/$projectId/point-a'
-    | '/engine/projects/$projectId/point-b'
-    | '/engine/projects/$projectId/preview'
-    | '/engine/projects/$projectId/publish-history'
-    | '/engine/projects/$projectId/qa-delivery'
-    | '/engine/projects/$projectId/qa-factory'
-    | '/engine/projects/$projectId/sequencing'
-    | '/engine/projects/$projectId/signal-room'
-    | '/engine/projects/$projectId/solutions'
-    | '/engine/projects/$projectId/sources'
-    | '/engine/projects/$projectId/spine'
-    | '/engine/projects/$projectId/spirit-first'
-    | '/engine/projects/$projectId/strategic-thesis'
-    | '/engine/projects/$projectId/understanding-room'
-    | '/engine/projects/$projectId/work'
-    | '/engine/projects/$projectId/world-entry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
-    | '/engine/projects/$projectId'
-    | '/engine/projects/$projectId/agent/costs'
-    | '/engine/projects/$projectId/agent/permissions'
-    | '/engine/projects/$projectId/agent/tasks'
-    | '/engine/projects/$projectId/roadmap/studio'
-    | '/engine/projects/$projectId/versions/compare'
-    | '/engine/projects/$projectId/roadmap'
-    | '/engine/projects/$projectId/engines/runs/$runId'
-    | '/engine/projects/$projectId/milestones/$milestoneId/brief'
-    | '/engine/projects/$projectId/milestones/$milestoneId/build'
-    | '/engine/projects/$projectId/milestones/$milestoneId/mockups'
-    | '/engine/projects/$projectId/milestones/$milestoneId/qa'
-    | '/engine/projects/$projectId/milestones/$milestoneId/qualify'
   id:
     | '__root__'
     | '/'
-    | '/_authenticated'
-    | '/ops'
     | '/about'
-    | '/admin'
     | '/auth'
-    | '/engine'
     | '/forgot-password'
     | '/insights'
     | '/investment'
-    | '/mcp'
-    | '/portal'
     | '/reset-password'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
-    | '/_authenticated/portal'
-    | '/admin/capability-registry'
-    | '/admin/client-portals'
-    | '/admin/command-center'
-    | '/admin/config'
-    | '/admin/cost-guard'
-    | '/admin/decision-log'
-    | '/admin/delivery-readiness-gate'
-    | '/admin/drift-detection'
-    | '/admin/engine-learning'
-    | '/admin/engine-promotion'
-    | '/admin/engine-templates'
-    | '/admin/evidence-enforcement'
-    | '/admin/exception-management'
-    | '/admin/family-impact'
-    | '/admin/health-explainer'
-    | '/admin/intake-alerts'
-    | '/admin/milestone-changes'
-    | '/admin/outcome-feedback'
-    | '/admin/outcome-scheduler'
-    | '/admin/plan-depth'
-    | '/admin/platform-config'
-    | '/admin/post-delivery-learning'
-    | '/admin/project-integrity'
-    | '/admin/roadmap-intelligence'
-    | '/admin/roles'
-    | '/admin/stage-transitions'
     | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/clients/spartan'
     | '/email/unsubscribe'
-    | '/engine/approvals'
-    | '/engine/delivery'
-    | '/engine/execution'
-    | '/engine/intelligence'
-    | '/engine/operations'
-    | '/engine/review'
-    | '/engine/settings'
-    | '/engine/strategic-sales'
-    | '/engine/templates'
     | '/insights_/$slug'
-    | '/ops/access-events'
-    | '/ops/emails'
-    | '/ops/history'
-    | '/ops/insights'
-    | '/ops/notifications'
-    | '/ops/portals'
-    | '/ops/queue'
-    | '/portal/access-denied'
-    | '/portal/account'
-    | '/portal/activity'
-    | '/portal/billing'
-    | '/portal/family'
-    | '/portal/files'
-    | '/portal/home'
-    | '/portal/login'
-    | '/portal/messages'
-    | '/portal/onboarding'
-    | '/portal/roadmap'
-    | '/portal/roadmap-mockup'
     | '/walks_/$slug'
-    | '/admin/'
     | '/build-my-roadmap/'
-    | '/engine/'
-    | '/ops/'
-    | '/portal/'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
-    | '/api/public/seed-qa-account'
     | '/checkout/walk/$pace'
-    | '/engine/projects/$projectId'
-    | '/engine/projects/new'
     | '/lovable/email/suppression'
-    | '/ops/editor/$id'
-    | '/ops/submissions/$id'
-    | '/engine/projects/'
-    | '/api/public/hooks/build-roadmap-contact'
-    | '/api/public/hooks/cost-autopause'
-    | '/api/public/hooks/engine-tick'
-    | '/api/public/hooks/outcome-checkins'
-    | '/api/public/hooks/run-pipeline-queue'
     | '/api/public/payments/webhook'
-    | '/engine/projects/$projectId/agent'
-    | '/engine/projects/$projectId/ai-workspace'
-    | '/engine/projects/$projectId/amendments'
-    | '/engine/projects/$projectId/approvals'
-    | '/engine/projects/$projectId/backend-builder'
-    | '/engine/projects/$projectId/blueprint'
-    | '/engine/projects/$projectId/build-execution'
-    | '/engine/projects/$projectId/builder'
-    | '/engine/projects/$projectId/chat'
-    | '/engine/projects/$projectId/client-view'
-    | '/engine/projects/$projectId/deadlines'
-    | '/engine/projects/$projectId/delivery'
-    | '/engine/projects/$projectId/drift'
-    | '/engine/projects/$projectId/engines'
-    | '/engine/projects/$projectId/evidence'
-    | '/engine/projects/$projectId/execution-boundary'
-    | '/engine/projects/$projectId/extraction'
-    | '/engine/projects/$projectId/family'
-    | '/engine/projects/$projectId/frame-builder'
-    | '/engine/projects/$projectId/gap-map'
-    | '/engine/projects/$projectId/hidden-assets'
-    | '/engine/projects/$projectId/implementation-plan'
-    | '/engine/projects/$projectId/intake'
-    | '/engine/projects/$projectId/intelligence'
-    | '/engine/projects/$projectId/intelligence-layer'
-    | '/engine/projects/$projectId/investment'
-    | '/engine/projects/$projectId/mockup-builder'
-    | '/engine/projects/$projectId/overview'
-    | '/engine/projects/$projectId/plans'
-    | '/engine/projects/$projectId/point-a'
-    | '/engine/projects/$projectId/point-b'
-    | '/engine/projects/$projectId/preview'
-    | '/engine/projects/$projectId/publish-history'
-    | '/engine/projects/$projectId/qa-delivery'
-    | '/engine/projects/$projectId/qa-factory'
-    | '/engine/projects/$projectId/roadmap'
-    | '/engine/projects/$projectId/sequencing'
-    | '/engine/projects/$projectId/signal-room'
-    | '/engine/projects/$projectId/solutions'
-    | '/engine/projects/$projectId/sources'
-    | '/engine/projects/$projectId/spine'
-    | '/engine/projects/$projectId/spirit-first'
-    | '/engine/projects/$projectId/strategic-thesis'
-    | '/engine/projects/$projectId/understanding-room'
-    | '/engine/projects/$projectId/work'
-    | '/engine/projects/$projectId/world-entry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
-    | '/engine/projects/$projectId/'
-    | '/engine/projects/$projectId/agent/costs'
-    | '/engine/projects/$projectId/agent/permissions'
-    | '/engine/projects/$projectId/agent/tasks'
-    | '/engine/projects/$projectId/roadmap/studio'
-    | '/engine/projects/$projectId/versions/compare'
-    | '/engine/projects/$projectId/roadmap/'
-    | '/engine/projects/$projectId/engines/runs/$runId'
-    | '/engine/projects/$projectId/milestones/$milestoneId/brief'
-    | '/engine/projects/$projectId/milestones/$milestoneId/build'
-    | '/engine/projects/$projectId/milestones/$milestoneId/mockups'
-    | '/engine/projects/$projectId/milestones/$milestoneId/qa'
-    | '/engine/projects/$projectId/milestones/$milestoneId/qualify'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  OpsRouteRoute: typeof OpsRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
-  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
-  EngineRoute: typeof EngineRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
-  McpRoute: typeof McpRoute
-  PortalRoute: typeof PortalRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   WalksRoute: typeof WalksRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
-  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
-  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   BuildMyRoadmapWriteRoute: typeof BuildMyRoadmapWriteRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
@@ -2102,16 +375,8 @@ export interface RootRouteChildren {
   InsightsSlugRoute: typeof InsightsSlugRoute
   WalksSlugRoute: typeof WalksSlugRoute
   BuildMyRoadmapIndexRoute: typeof BuildMyRoadmapIndexRoute
-  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
-  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
-  ApiPublicSeedQaAccountRoute: typeof ApiPublicSeedQaAccountRoute
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
-  ApiPublicHooksBuildRoadmapContactRoute: typeof ApiPublicHooksBuildRoadmapContactRoute
-  ApiPublicHooksCostAutopauseRoute: typeof ApiPublicHooksCostAutopauseRoute
-  ApiPublicHooksEngineTickRoute: typeof ApiPublicHooksEngineTickRoute
-  ApiPublicHooksOutcomeCheckinsRoute: typeof ApiPublicHooksOutcomeCheckinsRoute
-  ApiPublicHooksRunPipelineQueueRoute: typeof ApiPublicHooksRunPipelineQueueRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -2157,20 +422,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/portal': {
-      id: '/portal'
-      path: '/portal'
-      fullPath: '/portal'
-      preLoaderRoute: typeof PortalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/investment': {
       id: '/investment'
       path: '/investment'
@@ -2192,25 +443,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/engine': {
-      id: '/engine'
-      path: '/engine'
-      fullPath: '/engine'
-      preLoaderRoute: typeof EngineRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -2220,47 +457,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ops': {
-      id: '/ops'
-      path: '/ops'
-      fullPath: '/ops'
-      preLoaderRoute: typeof OpsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/portal/': {
-      id: '/portal/'
-      path: '/'
-      fullPath: '/portal/'
-      preLoaderRoute: typeof PortalIndexRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/ops/': {
-      id: '/ops/'
-      path: '/'
-      fullPath: '/ops/'
-      preLoaderRoute: typeof OpsIndexRouteImport
-      parentRoute: typeof OpsRouteRoute
-    }
-    '/engine/': {
-      id: '/engine/'
-      path: '/'
-      fullPath: '/engine/'
-      preLoaderRoute: typeof EngineIndexRouteImport
-      parentRoute: typeof EngineRoute
     }
     '/build-my-roadmap/': {
       id: '/build-my-roadmap/'
@@ -2269,13 +471,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuildMyRoadmapIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/': {
-      id: '/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/walks_/$slug': {
       id: '/walks_/$slug'
       path: '/walks/$slug'
@@ -2283,208 +478,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalksSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/portal/roadmap-mockup': {
-      id: '/portal/roadmap-mockup'
-      path: '/roadmap-mockup'
-      fullPath: '/portal/roadmap-mockup'
-      preLoaderRoute: typeof PortalRoadmapMockupRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/roadmap': {
-      id: '/portal/roadmap'
-      path: '/roadmap'
-      fullPath: '/portal/roadmap'
-      preLoaderRoute: typeof PortalRoadmapRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/onboarding': {
-      id: '/portal/onboarding'
-      path: '/onboarding'
-      fullPath: '/portal/onboarding'
-      preLoaderRoute: typeof PortalOnboardingRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/messages': {
-      id: '/portal/messages'
-      path: '/messages'
-      fullPath: '/portal/messages'
-      preLoaderRoute: typeof PortalMessagesRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/login': {
-      id: '/portal/login'
-      path: '/login'
-      fullPath: '/portal/login'
-      preLoaderRoute: typeof PortalLoginRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/home': {
-      id: '/portal/home'
-      path: '/home'
-      fullPath: '/portal/home'
-      preLoaderRoute: typeof PortalHomeRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/files': {
-      id: '/portal/files'
-      path: '/files'
-      fullPath: '/portal/files'
-      preLoaderRoute: typeof PortalFilesRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/family': {
-      id: '/portal/family'
-      path: '/family'
-      fullPath: '/portal/family'
-      preLoaderRoute: typeof PortalFamilyRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/billing': {
-      id: '/portal/billing'
-      path: '/billing'
-      fullPath: '/portal/billing'
-      preLoaderRoute: typeof PortalBillingRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/activity': {
-      id: '/portal/activity'
-      path: '/activity'
-      fullPath: '/portal/activity'
-      preLoaderRoute: typeof PortalActivityRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/account': {
-      id: '/portal/account'
-      path: '/account'
-      fullPath: '/portal/account'
-      preLoaderRoute: typeof PortalAccountRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/access-denied': {
-      id: '/portal/access-denied'
-      path: '/access-denied'
-      fullPath: '/portal/access-denied'
-      preLoaderRoute: typeof PortalAccessDeniedRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/ops/queue': {
-      id: '/ops/queue'
-      path: '/queue'
-      fullPath: '/ops/queue'
-      preLoaderRoute: typeof OpsQueueRouteImport
-      parentRoute: typeof OpsRouteRoute
-    }
-    '/ops/portals': {
-      id: '/ops/portals'
-      path: '/portals'
-      fullPath: '/ops/portals'
-      preLoaderRoute: typeof OpsPortalsRouteImport
-      parentRoute: typeof OpsRouteRoute
-    }
-    '/ops/notifications': {
-      id: '/ops/notifications'
-      path: '/notifications'
-      fullPath: '/ops/notifications'
-      preLoaderRoute: typeof OpsNotificationsRouteImport
-      parentRoute: typeof OpsRouteRoute
-    }
-    '/ops/insights': {
-      id: '/ops/insights'
-      path: '/insights'
-      fullPath: '/ops/insights'
-      preLoaderRoute: typeof OpsInsightsRouteImport
-      parentRoute: typeof OpsRouteRoute
-    }
-    '/ops/history': {
-      id: '/ops/history'
-      path: '/history'
-      fullPath: '/ops/history'
-      preLoaderRoute: typeof OpsHistoryRouteImport
-      parentRoute: typeof OpsRouteRoute
-    }
-    '/ops/emails': {
-      id: '/ops/emails'
-      path: '/emails'
-      fullPath: '/ops/emails'
-      preLoaderRoute: typeof OpsEmailsRouteImport
-      parentRoute: typeof OpsRouteRoute
-    }
-    '/ops/access-events': {
-      id: '/ops/access-events'
-      path: '/access-events'
-      fullPath: '/ops/access-events'
-      preLoaderRoute: typeof OpsAccessEventsRouteImport
-      parentRoute: typeof OpsRouteRoute
-    }
     '/insights_/$slug': {
       id: '/insights_/$slug'
       path: '/insights/$slug'
       fullPath: '/insights/$slug'
       preLoaderRoute: typeof InsightsSlugRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/engine/templates': {
-      id: '/engine/templates'
-      path: '/templates'
-      fullPath: '/engine/templates'
-      preLoaderRoute: typeof EngineTemplatesRouteImport
-      parentRoute: typeof EngineRoute
-    }
-    '/engine/strategic-sales': {
-      id: '/engine/strategic-sales'
-      path: '/strategic-sales'
-      fullPath: '/engine/strategic-sales'
-      preLoaderRoute: typeof EngineStrategicSalesRouteImport
-      parentRoute: typeof EngineRoute
-    }
-    '/engine/settings': {
-      id: '/engine/settings'
-      path: '/settings'
-      fullPath: '/engine/settings'
-      preLoaderRoute: typeof EngineSettingsRouteImport
-      parentRoute: typeof EngineRoute
-    }
-    '/engine/review': {
-      id: '/engine/review'
-      path: '/review'
-      fullPath: '/engine/review'
-      preLoaderRoute: typeof EngineReviewRouteImport
-      parentRoute: typeof EngineRoute
-    }
-    '/engine/operations': {
-      id: '/engine/operations'
-      path: '/operations'
-      fullPath: '/engine/operations'
-      preLoaderRoute: typeof EngineOperationsRouteImport
-      parentRoute: typeof EngineRoute
-    }
-    '/engine/intelligence': {
-      id: '/engine/intelligence'
-      path: '/intelligence'
-      fullPath: '/engine/intelligence'
-      preLoaderRoute: typeof EngineIntelligenceRouteImport
-      parentRoute: typeof EngineRoute
-    }
-    '/engine/execution': {
-      id: '/engine/execution'
-      path: '/execution'
-      fullPath: '/engine/execution'
-      preLoaderRoute: typeof EngineExecutionRouteImport
-      parentRoute: typeof EngineRoute
-    }
-    '/engine/delivery': {
-      id: '/engine/delivery'
-      path: '/delivery'
-      fullPath: '/engine/delivery'
-      preLoaderRoute: typeof EngineDeliveryRouteImport
-      parentRoute: typeof EngineRoute
-    }
-    '/engine/approvals': {
-      id: '/engine/approvals'
-      path: '/approvals'
-      fullPath: '/engine/approvals'
-      preLoaderRoute: typeof EngineApprovalsRouteImport
-      parentRoute: typeof EngineRoute
     }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
@@ -2521,230 +520,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuildMyRoadmapWriteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/stage-transitions': {
-      id: '/admin/stage-transitions'
-      path: '/stage-transitions'
-      fullPath: '/admin/stage-transitions'
-      preLoaderRoute: typeof AdminStageTransitionsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/roles': {
-      id: '/admin/roles'
-      path: '/roles'
-      fullPath: '/admin/roles'
-      preLoaderRoute: typeof AdminRolesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/roadmap-intelligence': {
-      id: '/admin/roadmap-intelligence'
-      path: '/roadmap-intelligence'
-      fullPath: '/admin/roadmap-intelligence'
-      preLoaderRoute: typeof AdminRoadmapIntelligenceRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/project-integrity': {
-      id: '/admin/project-integrity'
-      path: '/project-integrity'
-      fullPath: '/admin/project-integrity'
-      preLoaderRoute: typeof AdminProjectIntegrityRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/post-delivery-learning': {
-      id: '/admin/post-delivery-learning'
-      path: '/post-delivery-learning'
-      fullPath: '/admin/post-delivery-learning'
-      preLoaderRoute: typeof AdminPostDeliveryLearningRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/platform-config': {
-      id: '/admin/platform-config'
-      path: '/platform-config'
-      fullPath: '/admin/platform-config'
-      preLoaderRoute: typeof AdminPlatformConfigRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/plan-depth': {
-      id: '/admin/plan-depth'
-      path: '/plan-depth'
-      fullPath: '/admin/plan-depth'
-      preLoaderRoute: typeof AdminPlanDepthRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/outcome-scheduler': {
-      id: '/admin/outcome-scheduler'
-      path: '/outcome-scheduler'
-      fullPath: '/admin/outcome-scheduler'
-      preLoaderRoute: typeof AdminOutcomeSchedulerRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/outcome-feedback': {
-      id: '/admin/outcome-feedback'
-      path: '/outcome-feedback'
-      fullPath: '/admin/outcome-feedback'
-      preLoaderRoute: typeof AdminOutcomeFeedbackRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/milestone-changes': {
-      id: '/admin/milestone-changes'
-      path: '/milestone-changes'
-      fullPath: '/admin/milestone-changes'
-      preLoaderRoute: typeof AdminMilestoneChangesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/intake-alerts': {
-      id: '/admin/intake-alerts'
-      path: '/intake-alerts'
-      fullPath: '/admin/intake-alerts'
-      preLoaderRoute: typeof AdminIntakeAlertsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/health-explainer': {
-      id: '/admin/health-explainer'
-      path: '/health-explainer'
-      fullPath: '/admin/health-explainer'
-      preLoaderRoute: typeof AdminHealthExplainerRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/family-impact': {
-      id: '/admin/family-impact'
-      path: '/family-impact'
-      fullPath: '/admin/family-impact'
-      preLoaderRoute: typeof AdminFamilyImpactRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/exception-management': {
-      id: '/admin/exception-management'
-      path: '/exception-management'
-      fullPath: '/admin/exception-management'
-      preLoaderRoute: typeof AdminExceptionManagementRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/evidence-enforcement': {
-      id: '/admin/evidence-enforcement'
-      path: '/evidence-enforcement'
-      fullPath: '/admin/evidence-enforcement'
-      preLoaderRoute: typeof AdminEvidenceEnforcementRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/engine-templates': {
-      id: '/admin/engine-templates'
-      path: '/engine-templates'
-      fullPath: '/admin/engine-templates'
-      preLoaderRoute: typeof AdminEngineTemplatesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/engine-promotion': {
-      id: '/admin/engine-promotion'
-      path: '/engine-promotion'
-      fullPath: '/admin/engine-promotion'
-      preLoaderRoute: typeof AdminEnginePromotionRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/engine-learning': {
-      id: '/admin/engine-learning'
-      path: '/engine-learning'
-      fullPath: '/admin/engine-learning'
-      preLoaderRoute: typeof AdminEngineLearningRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/drift-detection': {
-      id: '/admin/drift-detection'
-      path: '/drift-detection'
-      fullPath: '/admin/drift-detection'
-      preLoaderRoute: typeof AdminDriftDetectionRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/delivery-readiness-gate': {
-      id: '/admin/delivery-readiness-gate'
-      path: '/delivery-readiness-gate'
-      fullPath: '/admin/delivery-readiness-gate'
-      preLoaderRoute: typeof AdminDeliveryReadinessGateRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/decision-log': {
-      id: '/admin/decision-log'
-      path: '/decision-log'
-      fullPath: '/admin/decision-log'
-      preLoaderRoute: typeof AdminDecisionLogRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/cost-guard': {
-      id: '/admin/cost-guard'
-      path: '/cost-guard'
-      fullPath: '/admin/cost-guard'
-      preLoaderRoute: typeof AdminCostGuardRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/config': {
-      id: '/admin/config'
-      path: '/config'
-      fullPath: '/admin/config'
-      preLoaderRoute: typeof AdminConfigRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/command-center': {
-      id: '/admin/command-center'
-      path: '/command-center'
-      fullPath: '/admin/command-center'
-      preLoaderRoute: typeof AdminCommandCenterRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/client-portals': {
-      id: '/admin/client-portals'
-      path: '/client-portals'
-      fullPath: '/admin/client-portals'
-      preLoaderRoute: typeof AdminClientPortalsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/capability-registry': {
-      id: '/admin/capability-registry'
-      path: '/capability-registry'
-      fullPath: '/admin/capability-registry'
-      preLoaderRoute: typeof AdminCapabilityRegistryRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/_authenticated/portal': {
-      id: '/_authenticated/portal'
-      path: '/portal'
-      fullPath: '/portal'
-      preLoaderRoute: typeof AuthenticatedPortalRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.mcp/list-tools': {
-      id: '/.mcp/list-tools'
-      path: '/.mcp/list-tools'
-      fullPath: '/.mcp/list-tools'
-      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/engine/projects/': {
-      id: '/engine/projects/'
-      path: '/projects'
-      fullPath: '/engine/projects/'
-      preLoaderRoute: typeof EngineProjectsIndexRouteImport
-      parentRoute: typeof EngineRoute
-    }
-    '/ops/submissions/$id': {
-      id: '/ops/submissions/$id'
-      path: '/submissions/$id'
-      fullPath: '/ops/submissions/$id'
-      preLoaderRoute: typeof OpsSubmissionsIdRouteImport
-      parentRoute: typeof OpsRouteRoute
-    }
-    '/ops/editor/$id': {
-      id: '/ops/editor/$id'
-      path: '/editor/$id'
-      fullPath: '/ops/editor/$id'
-      preLoaderRoute: typeof OpsEditorIdRouteImport
-      parentRoute: typeof OpsRouteRoute
-    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -2752,54 +527,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/engine/projects/new': {
-      id: '/engine/projects/new'
-      path: '/projects/new'
-      fullPath: '/engine/projects/new'
-      preLoaderRoute: typeof EngineProjectsNewRouteImport
-      parentRoute: typeof EngineRoute
-    }
-    '/engine/projects/$projectId': {
-      id: '/engine/projects/$projectId'
-      path: '/projects/$projectId'
-      fullPath: '/engine/projects/$projectId'
-      preLoaderRoute: typeof EngineProjectsProjectIdRouteImport
-      parentRoute: typeof EngineRoute
-    }
     '/checkout/walk/$pace': {
       id: '/checkout/walk/$pace'
       path: '/checkout/walk/$pace'
       fullPath: '/checkout/walk/$pace'
       preLoaderRoute: typeof CheckoutWalkPaceRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/api/public/seed-qa-account': {
-      id: '/api/public/seed-qa-account'
-      path: '/api/public/seed-qa-account'
-      fullPath: '/api/public/seed-qa-account'
-      preLoaderRoute: typeof ApiPublicSeedQaAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.lovable/oauth/consent': {
-      id: '/.lovable/oauth/consent'
-      path: '/.lovable/oauth/consent'
-      fullPath: '/.lovable/oauth/consent'
-      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/engine/projects/$projectId/': {
-      id: '/engine/projects/$projectId/'
-      path: '/'
-      fullPath: '/engine/projects/$projectId/'
-      preLoaderRoute: typeof EngineProjectsProjectIdIndexRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
     }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
@@ -2836,328 +569,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/engine/projects/$projectId/world-entry': {
-      id: '/engine/projects/$projectId/world-entry'
-      path: '/world-entry'
-      fullPath: '/engine/projects/$projectId/world-entry'
-      preLoaderRoute: typeof EngineProjectsProjectIdWorldEntryRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/work': {
-      id: '/engine/projects/$projectId/work'
-      path: '/work'
-      fullPath: '/engine/projects/$projectId/work'
-      preLoaderRoute: typeof EngineProjectsProjectIdWorkRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/understanding-room': {
-      id: '/engine/projects/$projectId/understanding-room'
-      path: '/understanding-room'
-      fullPath: '/engine/projects/$projectId/understanding-room'
-      preLoaderRoute: typeof EngineProjectsProjectIdUnderstandingRoomRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/strategic-thesis': {
-      id: '/engine/projects/$projectId/strategic-thesis'
-      path: '/strategic-thesis'
-      fullPath: '/engine/projects/$projectId/strategic-thesis'
-      preLoaderRoute: typeof EngineProjectsProjectIdStrategicThesisRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/spirit-first': {
-      id: '/engine/projects/$projectId/spirit-first'
-      path: '/spirit-first'
-      fullPath: '/engine/projects/$projectId/spirit-first'
-      preLoaderRoute: typeof EngineProjectsProjectIdSpiritFirstRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/spine': {
-      id: '/engine/projects/$projectId/spine'
-      path: '/spine'
-      fullPath: '/engine/projects/$projectId/spine'
-      preLoaderRoute: typeof EngineProjectsProjectIdSpineRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/sources': {
-      id: '/engine/projects/$projectId/sources'
-      path: '/sources'
-      fullPath: '/engine/projects/$projectId/sources'
-      preLoaderRoute: typeof EngineProjectsProjectIdSourcesRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/solutions': {
-      id: '/engine/projects/$projectId/solutions'
-      path: '/solutions'
-      fullPath: '/engine/projects/$projectId/solutions'
-      preLoaderRoute: typeof EngineProjectsProjectIdSolutionsRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/signal-room': {
-      id: '/engine/projects/$projectId/signal-room'
-      path: '/signal-room'
-      fullPath: '/engine/projects/$projectId/signal-room'
-      preLoaderRoute: typeof EngineProjectsProjectIdSignalRoomRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/sequencing': {
-      id: '/engine/projects/$projectId/sequencing'
-      path: '/sequencing'
-      fullPath: '/engine/projects/$projectId/sequencing'
-      preLoaderRoute: typeof EngineProjectsProjectIdSequencingRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/roadmap': {
-      id: '/engine/projects/$projectId/roadmap'
-      path: '/roadmap'
-      fullPath: '/engine/projects/$projectId/roadmap'
-      preLoaderRoute: typeof EngineProjectsProjectIdRoadmapRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/qa-factory': {
-      id: '/engine/projects/$projectId/qa-factory'
-      path: '/qa-factory'
-      fullPath: '/engine/projects/$projectId/qa-factory'
-      preLoaderRoute: typeof EngineProjectsProjectIdQaFactoryRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/qa-delivery': {
-      id: '/engine/projects/$projectId/qa-delivery'
-      path: '/qa-delivery'
-      fullPath: '/engine/projects/$projectId/qa-delivery'
-      preLoaderRoute: typeof EngineProjectsProjectIdQaDeliveryRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/publish-history': {
-      id: '/engine/projects/$projectId/publish-history'
-      path: '/publish-history'
-      fullPath: '/engine/projects/$projectId/publish-history'
-      preLoaderRoute: typeof EngineProjectsProjectIdPublishHistoryRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/preview': {
-      id: '/engine/projects/$projectId/preview'
-      path: '/preview'
-      fullPath: '/engine/projects/$projectId/preview'
-      preLoaderRoute: typeof EngineProjectsProjectIdPreviewRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/point-b': {
-      id: '/engine/projects/$projectId/point-b'
-      path: '/point-b'
-      fullPath: '/engine/projects/$projectId/point-b'
-      preLoaderRoute: typeof EngineProjectsProjectIdPointBRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/point-a': {
-      id: '/engine/projects/$projectId/point-a'
-      path: '/point-a'
-      fullPath: '/engine/projects/$projectId/point-a'
-      preLoaderRoute: typeof EngineProjectsProjectIdPointARouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/plans': {
-      id: '/engine/projects/$projectId/plans'
-      path: '/plans'
-      fullPath: '/engine/projects/$projectId/plans'
-      preLoaderRoute: typeof EngineProjectsProjectIdPlansRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/overview': {
-      id: '/engine/projects/$projectId/overview'
-      path: '/overview'
-      fullPath: '/engine/projects/$projectId/overview'
-      preLoaderRoute: typeof EngineProjectsProjectIdOverviewRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/mockup-builder': {
-      id: '/engine/projects/$projectId/mockup-builder'
-      path: '/mockup-builder'
-      fullPath: '/engine/projects/$projectId/mockup-builder'
-      preLoaderRoute: typeof EngineProjectsProjectIdMockupBuilderRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/investment': {
-      id: '/engine/projects/$projectId/investment'
-      path: '/investment'
-      fullPath: '/engine/projects/$projectId/investment'
-      preLoaderRoute: typeof EngineProjectsProjectIdInvestmentRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/intelligence-layer': {
-      id: '/engine/projects/$projectId/intelligence-layer'
-      path: '/intelligence-layer'
-      fullPath: '/engine/projects/$projectId/intelligence-layer'
-      preLoaderRoute: typeof EngineProjectsProjectIdIntelligenceLayerRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/intelligence': {
-      id: '/engine/projects/$projectId/intelligence'
-      path: '/intelligence'
-      fullPath: '/engine/projects/$projectId/intelligence'
-      preLoaderRoute: typeof EngineProjectsProjectIdIntelligenceRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/intake': {
-      id: '/engine/projects/$projectId/intake'
-      path: '/intake'
-      fullPath: '/engine/projects/$projectId/intake'
-      preLoaderRoute: typeof EngineProjectsProjectIdIntakeRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/implementation-plan': {
-      id: '/engine/projects/$projectId/implementation-plan'
-      path: '/implementation-plan'
-      fullPath: '/engine/projects/$projectId/implementation-plan'
-      preLoaderRoute: typeof EngineProjectsProjectIdImplementationPlanRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/hidden-assets': {
-      id: '/engine/projects/$projectId/hidden-assets'
-      path: '/hidden-assets'
-      fullPath: '/engine/projects/$projectId/hidden-assets'
-      preLoaderRoute: typeof EngineProjectsProjectIdHiddenAssetsRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/gap-map': {
-      id: '/engine/projects/$projectId/gap-map'
-      path: '/gap-map'
-      fullPath: '/engine/projects/$projectId/gap-map'
-      preLoaderRoute: typeof EngineProjectsProjectIdGapMapRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/frame-builder': {
-      id: '/engine/projects/$projectId/frame-builder'
-      path: '/frame-builder'
-      fullPath: '/engine/projects/$projectId/frame-builder'
-      preLoaderRoute: typeof EngineProjectsProjectIdFrameBuilderRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/family': {
-      id: '/engine/projects/$projectId/family'
-      path: '/family'
-      fullPath: '/engine/projects/$projectId/family'
-      preLoaderRoute: typeof EngineProjectsProjectIdFamilyRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/extraction': {
-      id: '/engine/projects/$projectId/extraction'
-      path: '/extraction'
-      fullPath: '/engine/projects/$projectId/extraction'
-      preLoaderRoute: typeof EngineProjectsProjectIdExtractionRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/execution-boundary': {
-      id: '/engine/projects/$projectId/execution-boundary'
-      path: '/execution-boundary'
-      fullPath: '/engine/projects/$projectId/execution-boundary'
-      preLoaderRoute: typeof EngineProjectsProjectIdExecutionBoundaryRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/evidence': {
-      id: '/engine/projects/$projectId/evidence'
-      path: '/evidence'
-      fullPath: '/engine/projects/$projectId/evidence'
-      preLoaderRoute: typeof EngineProjectsProjectIdEvidenceRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/engines': {
-      id: '/engine/projects/$projectId/engines'
-      path: '/engines'
-      fullPath: '/engine/projects/$projectId/engines'
-      preLoaderRoute: typeof EngineProjectsProjectIdEnginesRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/drift': {
-      id: '/engine/projects/$projectId/drift'
-      path: '/drift'
-      fullPath: '/engine/projects/$projectId/drift'
-      preLoaderRoute: typeof EngineProjectsProjectIdDriftRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/delivery': {
-      id: '/engine/projects/$projectId/delivery'
-      path: '/delivery'
-      fullPath: '/engine/projects/$projectId/delivery'
-      preLoaderRoute: typeof EngineProjectsProjectIdDeliveryRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/deadlines': {
-      id: '/engine/projects/$projectId/deadlines'
-      path: '/deadlines'
-      fullPath: '/engine/projects/$projectId/deadlines'
-      preLoaderRoute: typeof EngineProjectsProjectIdDeadlinesRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/client-view': {
-      id: '/engine/projects/$projectId/client-view'
-      path: '/client-view'
-      fullPath: '/engine/projects/$projectId/client-view'
-      preLoaderRoute: typeof EngineProjectsProjectIdClientViewRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/chat': {
-      id: '/engine/projects/$projectId/chat'
-      path: '/chat'
-      fullPath: '/engine/projects/$projectId/chat'
-      preLoaderRoute: typeof EngineProjectsProjectIdChatRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/builder': {
-      id: '/engine/projects/$projectId/builder'
-      path: '/builder'
-      fullPath: '/engine/projects/$projectId/builder'
-      preLoaderRoute: typeof EngineProjectsProjectIdBuilderRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/build-execution': {
-      id: '/engine/projects/$projectId/build-execution'
-      path: '/build-execution'
-      fullPath: '/engine/projects/$projectId/build-execution'
-      preLoaderRoute: typeof EngineProjectsProjectIdBuildExecutionRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/blueprint': {
-      id: '/engine/projects/$projectId/blueprint'
-      path: '/blueprint'
-      fullPath: '/engine/projects/$projectId/blueprint'
-      preLoaderRoute: typeof EngineProjectsProjectIdBlueprintRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/backend-builder': {
-      id: '/engine/projects/$projectId/backend-builder'
-      path: '/backend-builder'
-      fullPath: '/engine/projects/$projectId/backend-builder'
-      preLoaderRoute: typeof EngineProjectsProjectIdBackendBuilderRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/approvals': {
-      id: '/engine/projects/$projectId/approvals'
-      path: '/approvals'
-      fullPath: '/engine/projects/$projectId/approvals'
-      preLoaderRoute: typeof EngineProjectsProjectIdApprovalsRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/amendments': {
-      id: '/engine/projects/$projectId/amendments'
-      path: '/amendments'
-      fullPath: '/engine/projects/$projectId/amendments'
-      preLoaderRoute: typeof EngineProjectsProjectIdAmendmentsRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/ai-workspace': {
-      id: '/engine/projects/$projectId/ai-workspace'
-      path: '/ai-workspace'
-      fullPath: '/engine/projects/$projectId/ai-workspace'
-      preLoaderRoute: typeof EngineProjectsProjectIdAiWorkspaceRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/agent': {
-      id: '/engine/projects/$projectId/agent'
-      path: '/agent'
-      fullPath: '/engine/projects/$projectId/agent'
-      preLoaderRoute: typeof EngineProjectsProjectIdAgentRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -3165,530 +576,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/run-pipeline-queue': {
-      id: '/api/public/hooks/run-pipeline-queue'
-      path: '/api/public/hooks/run-pipeline-queue'
-      fullPath: '/api/public/hooks/run-pipeline-queue'
-      preLoaderRoute: typeof ApiPublicHooksRunPipelineQueueRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/outcome-checkins': {
-      id: '/api/public/hooks/outcome-checkins'
-      path: '/api/public/hooks/outcome-checkins'
-      fullPath: '/api/public/hooks/outcome-checkins'
-      preLoaderRoute: typeof ApiPublicHooksOutcomeCheckinsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/engine-tick': {
-      id: '/api/public/hooks/engine-tick'
-      path: '/api/public/hooks/engine-tick'
-      fullPath: '/api/public/hooks/engine-tick'
-      preLoaderRoute: typeof ApiPublicHooksEngineTickRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/cost-autopause': {
-      id: '/api/public/hooks/cost-autopause'
-      path: '/api/public/hooks/cost-autopause'
-      fullPath: '/api/public/hooks/cost-autopause'
-      preLoaderRoute: typeof ApiPublicHooksCostAutopauseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/build-roadmap-contact': {
-      id: '/api/public/hooks/build-roadmap-contact'
-      path: '/api/public/hooks/build-roadmap-contact'
-      fullPath: '/api/public/hooks/build-roadmap-contact'
-      preLoaderRoute: typeof ApiPublicHooksBuildRoadmapContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/engine/projects/$projectId/roadmap/': {
-      id: '/engine/projects/$projectId/roadmap/'
-      path: '/'
-      fullPath: '/engine/projects/$projectId/roadmap/'
-      preLoaderRoute: typeof EngineProjectsProjectIdRoadmapIndexRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoadmapRoute
-    }
-    '/engine/projects/$projectId/versions/compare': {
-      id: '/engine/projects/$projectId/versions/compare'
-      path: '/versions/compare'
-      fullPath: '/engine/projects/$projectId/versions/compare'
-      preLoaderRoute: typeof EngineProjectsProjectIdVersionsCompareRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/roadmap/studio': {
-      id: '/engine/projects/$projectId/roadmap/studio'
-      path: '/studio'
-      fullPath: '/engine/projects/$projectId/roadmap/studio'
-      preLoaderRoute: typeof EngineProjectsProjectIdRoadmapStudioRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoadmapRoute
-    }
-    '/engine/projects/$projectId/agent/tasks': {
-      id: '/engine/projects/$projectId/agent/tasks'
-      path: '/tasks'
-      fullPath: '/engine/projects/$projectId/agent/tasks'
-      preLoaderRoute: typeof EngineProjectsProjectIdAgentTasksRouteImport
-      parentRoute: typeof EngineProjectsProjectIdAgentRoute
-    }
-    '/engine/projects/$projectId/agent/permissions': {
-      id: '/engine/projects/$projectId/agent/permissions'
-      path: '/permissions'
-      fullPath: '/engine/projects/$projectId/agent/permissions'
-      preLoaderRoute: typeof EngineProjectsProjectIdAgentPermissionsRouteImport
-      parentRoute: typeof EngineProjectsProjectIdAgentRoute
-    }
-    '/engine/projects/$projectId/agent/costs': {
-      id: '/engine/projects/$projectId/agent/costs'
-      path: '/costs'
-      fullPath: '/engine/projects/$projectId/agent/costs'
-      preLoaderRoute: typeof EngineProjectsProjectIdAgentCostsRouteImport
-      parentRoute: typeof EngineProjectsProjectIdAgentRoute
-    }
-    '/engine/projects/$projectId/milestones/$milestoneId/qualify': {
-      id: '/engine/projects/$projectId/milestones/$milestoneId/qualify'
-      path: '/milestones/$milestoneId/qualify'
-      fullPath: '/engine/projects/$projectId/milestones/$milestoneId/qualify'
-      preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdQualifyRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/milestones/$milestoneId/qa': {
-      id: '/engine/projects/$projectId/milestones/$milestoneId/qa'
-      path: '/milestones/$milestoneId/qa'
-      fullPath: '/engine/projects/$projectId/milestones/$milestoneId/qa'
-      preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/milestones/$milestoneId/mockups': {
-      id: '/engine/projects/$projectId/milestones/$milestoneId/mockups'
-      path: '/milestones/$milestoneId/mockups'
-      fullPath: '/engine/projects/$projectId/milestones/$milestoneId/mockups'
-      preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/milestones/$milestoneId/build': {
-      id: '/engine/projects/$projectId/milestones/$milestoneId/build'
-      path: '/milestones/$milestoneId/build'
-      fullPath: '/engine/projects/$projectId/milestones/$milestoneId/build'
-      preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/milestones/$milestoneId/brief': {
-      id: '/engine/projects/$projectId/milestones/$milestoneId/brief'
-      path: '/milestones/$milestoneId/brief'
-      fullPath: '/engine/projects/$projectId/milestones/$milestoneId/brief'
-      preLoaderRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRouteImport
-      parentRoute: typeof EngineProjectsProjectIdRoute
-    }
-    '/engine/projects/$projectId/engines/runs/$runId': {
-      id: '/engine/projects/$projectId/engines/runs/$runId'
-      path: '/runs/$runId'
-      fullPath: '/engine/projects/$projectId/engines/runs/$runId'
-      preLoaderRoute: typeof EngineProjectsProjectIdEnginesRunsRunIdRouteImport
-      parentRoute: typeof EngineProjectsProjectIdEnginesRoute
-    }
   }
 }
-
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedPortalRoute: typeof AuthenticatedPortalRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedPortalRoute: AuthenticatedPortalRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
-
-interface OpsRouteRouteChildren {
-  OpsAccessEventsRoute: typeof OpsAccessEventsRoute
-  OpsEmailsRoute: typeof OpsEmailsRoute
-  OpsHistoryRoute: typeof OpsHistoryRoute
-  OpsInsightsRoute: typeof OpsInsightsRoute
-  OpsNotificationsRoute: typeof OpsNotificationsRoute
-  OpsPortalsRoute: typeof OpsPortalsRoute
-  OpsQueueRoute: typeof OpsQueueRoute
-  OpsIndexRoute: typeof OpsIndexRoute
-  OpsEditorIdRoute: typeof OpsEditorIdRoute
-  OpsSubmissionsIdRoute: typeof OpsSubmissionsIdRoute
-}
-
-const OpsRouteRouteChildren: OpsRouteRouteChildren = {
-  OpsAccessEventsRoute: OpsAccessEventsRoute,
-  OpsEmailsRoute: OpsEmailsRoute,
-  OpsHistoryRoute: OpsHistoryRoute,
-  OpsInsightsRoute: OpsInsightsRoute,
-  OpsNotificationsRoute: OpsNotificationsRoute,
-  OpsPortalsRoute: OpsPortalsRoute,
-  OpsQueueRoute: OpsQueueRoute,
-  OpsIndexRoute: OpsIndexRoute,
-  OpsEditorIdRoute: OpsEditorIdRoute,
-  OpsSubmissionsIdRoute: OpsSubmissionsIdRoute,
-}
-
-const OpsRouteRouteWithChildren = OpsRouteRoute._addFileChildren(
-  OpsRouteRouteChildren,
-)
-
-interface AdminRouteChildren {
-  AdminCapabilityRegistryRoute: typeof AdminCapabilityRegistryRoute
-  AdminClientPortalsRoute: typeof AdminClientPortalsRoute
-  AdminCommandCenterRoute: typeof AdminCommandCenterRoute
-  AdminConfigRoute: typeof AdminConfigRoute
-  AdminCostGuardRoute: typeof AdminCostGuardRoute
-  AdminDecisionLogRoute: typeof AdminDecisionLogRoute
-  AdminDeliveryReadinessGateRoute: typeof AdminDeliveryReadinessGateRoute
-  AdminDriftDetectionRoute: typeof AdminDriftDetectionRoute
-  AdminEngineLearningRoute: typeof AdminEngineLearningRoute
-  AdminEnginePromotionRoute: typeof AdminEnginePromotionRoute
-  AdminEngineTemplatesRoute: typeof AdminEngineTemplatesRoute
-  AdminEvidenceEnforcementRoute: typeof AdminEvidenceEnforcementRoute
-  AdminExceptionManagementRoute: typeof AdminExceptionManagementRoute
-  AdminFamilyImpactRoute: typeof AdminFamilyImpactRoute
-  AdminHealthExplainerRoute: typeof AdminHealthExplainerRoute
-  AdminIntakeAlertsRoute: typeof AdminIntakeAlertsRoute
-  AdminMilestoneChangesRoute: typeof AdminMilestoneChangesRoute
-  AdminOutcomeFeedbackRoute: typeof AdminOutcomeFeedbackRoute
-  AdminOutcomeSchedulerRoute: typeof AdminOutcomeSchedulerRoute
-  AdminPlanDepthRoute: typeof AdminPlanDepthRoute
-  AdminPlatformConfigRoute: typeof AdminPlatformConfigRoute
-  AdminPostDeliveryLearningRoute: typeof AdminPostDeliveryLearningRoute
-  AdminProjectIntegrityRoute: typeof AdminProjectIntegrityRoute
-  AdminRoadmapIntelligenceRoute: typeof AdminRoadmapIntelligenceRoute
-  AdminRolesRoute: typeof AdminRolesRoute
-  AdminStageTransitionsRoute: typeof AdminStageTransitionsRoute
-  AdminIndexRoute: typeof AdminIndexRoute
-}
-
-const AdminRouteChildren: AdminRouteChildren = {
-  AdminCapabilityRegistryRoute: AdminCapabilityRegistryRoute,
-  AdminClientPortalsRoute: AdminClientPortalsRoute,
-  AdminCommandCenterRoute: AdminCommandCenterRoute,
-  AdminConfigRoute: AdminConfigRoute,
-  AdminCostGuardRoute: AdminCostGuardRoute,
-  AdminDecisionLogRoute: AdminDecisionLogRoute,
-  AdminDeliveryReadinessGateRoute: AdminDeliveryReadinessGateRoute,
-  AdminDriftDetectionRoute: AdminDriftDetectionRoute,
-  AdminEngineLearningRoute: AdminEngineLearningRoute,
-  AdminEnginePromotionRoute: AdminEnginePromotionRoute,
-  AdminEngineTemplatesRoute: AdminEngineTemplatesRoute,
-  AdminEvidenceEnforcementRoute: AdminEvidenceEnforcementRoute,
-  AdminExceptionManagementRoute: AdminExceptionManagementRoute,
-  AdminFamilyImpactRoute: AdminFamilyImpactRoute,
-  AdminHealthExplainerRoute: AdminHealthExplainerRoute,
-  AdminIntakeAlertsRoute: AdminIntakeAlertsRoute,
-  AdminMilestoneChangesRoute: AdminMilestoneChangesRoute,
-  AdminOutcomeFeedbackRoute: AdminOutcomeFeedbackRoute,
-  AdminOutcomeSchedulerRoute: AdminOutcomeSchedulerRoute,
-  AdminPlanDepthRoute: AdminPlanDepthRoute,
-  AdminPlatformConfigRoute: AdminPlatformConfigRoute,
-  AdminPostDeliveryLearningRoute: AdminPostDeliveryLearningRoute,
-  AdminProjectIntegrityRoute: AdminProjectIntegrityRoute,
-  AdminRoadmapIntelligenceRoute: AdminRoadmapIntelligenceRoute,
-  AdminRolesRoute: AdminRolesRoute,
-  AdminStageTransitionsRoute: AdminStageTransitionsRoute,
-  AdminIndexRoute: AdminIndexRoute,
-}
-
-const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
-
-interface EngineProjectsProjectIdAgentRouteChildren {
-  EngineProjectsProjectIdAgentCostsRoute: typeof EngineProjectsProjectIdAgentCostsRoute
-  EngineProjectsProjectIdAgentPermissionsRoute: typeof EngineProjectsProjectIdAgentPermissionsRoute
-  EngineProjectsProjectIdAgentTasksRoute: typeof EngineProjectsProjectIdAgentTasksRoute
-}
-
-const EngineProjectsProjectIdAgentRouteChildren: EngineProjectsProjectIdAgentRouteChildren =
-  {
-    EngineProjectsProjectIdAgentCostsRoute:
-      EngineProjectsProjectIdAgentCostsRoute,
-    EngineProjectsProjectIdAgentPermissionsRoute:
-      EngineProjectsProjectIdAgentPermissionsRoute,
-    EngineProjectsProjectIdAgentTasksRoute:
-      EngineProjectsProjectIdAgentTasksRoute,
-  }
-
-const EngineProjectsProjectIdAgentRouteWithChildren =
-  EngineProjectsProjectIdAgentRoute._addFileChildren(
-    EngineProjectsProjectIdAgentRouteChildren,
-  )
-
-interface EngineProjectsProjectIdEnginesRouteChildren {
-  EngineProjectsProjectIdEnginesRunsRunIdRoute: typeof EngineProjectsProjectIdEnginesRunsRunIdRoute
-}
-
-const EngineProjectsProjectIdEnginesRouteChildren: EngineProjectsProjectIdEnginesRouteChildren =
-  {
-    EngineProjectsProjectIdEnginesRunsRunIdRoute:
-      EngineProjectsProjectIdEnginesRunsRunIdRoute,
-  }
-
-const EngineProjectsProjectIdEnginesRouteWithChildren =
-  EngineProjectsProjectIdEnginesRoute._addFileChildren(
-    EngineProjectsProjectIdEnginesRouteChildren,
-  )
-
-interface EngineProjectsProjectIdRoadmapRouteChildren {
-  EngineProjectsProjectIdRoadmapStudioRoute: typeof EngineProjectsProjectIdRoadmapStudioRoute
-  EngineProjectsProjectIdRoadmapIndexRoute: typeof EngineProjectsProjectIdRoadmapIndexRoute
-}
-
-const EngineProjectsProjectIdRoadmapRouteChildren: EngineProjectsProjectIdRoadmapRouteChildren =
-  {
-    EngineProjectsProjectIdRoadmapStudioRoute:
-      EngineProjectsProjectIdRoadmapStudioRoute,
-    EngineProjectsProjectIdRoadmapIndexRoute:
-      EngineProjectsProjectIdRoadmapIndexRoute,
-  }
-
-const EngineProjectsProjectIdRoadmapRouteWithChildren =
-  EngineProjectsProjectIdRoadmapRoute._addFileChildren(
-    EngineProjectsProjectIdRoadmapRouteChildren,
-  )
-
-interface EngineProjectsProjectIdRouteChildren {
-  EngineProjectsProjectIdAgentRoute: typeof EngineProjectsProjectIdAgentRouteWithChildren
-  EngineProjectsProjectIdAiWorkspaceRoute: typeof EngineProjectsProjectIdAiWorkspaceRoute
-  EngineProjectsProjectIdAmendmentsRoute: typeof EngineProjectsProjectIdAmendmentsRoute
-  EngineProjectsProjectIdApprovalsRoute: typeof EngineProjectsProjectIdApprovalsRoute
-  EngineProjectsProjectIdBackendBuilderRoute: typeof EngineProjectsProjectIdBackendBuilderRoute
-  EngineProjectsProjectIdBlueprintRoute: typeof EngineProjectsProjectIdBlueprintRoute
-  EngineProjectsProjectIdBuildExecutionRoute: typeof EngineProjectsProjectIdBuildExecutionRoute
-  EngineProjectsProjectIdBuilderRoute: typeof EngineProjectsProjectIdBuilderRoute
-  EngineProjectsProjectIdChatRoute: typeof EngineProjectsProjectIdChatRoute
-  EngineProjectsProjectIdClientViewRoute: typeof EngineProjectsProjectIdClientViewRoute
-  EngineProjectsProjectIdDeadlinesRoute: typeof EngineProjectsProjectIdDeadlinesRoute
-  EngineProjectsProjectIdDeliveryRoute: typeof EngineProjectsProjectIdDeliveryRoute
-  EngineProjectsProjectIdDriftRoute: typeof EngineProjectsProjectIdDriftRoute
-  EngineProjectsProjectIdEnginesRoute: typeof EngineProjectsProjectIdEnginesRouteWithChildren
-  EngineProjectsProjectIdEvidenceRoute: typeof EngineProjectsProjectIdEvidenceRoute
-  EngineProjectsProjectIdExecutionBoundaryRoute: typeof EngineProjectsProjectIdExecutionBoundaryRoute
-  EngineProjectsProjectIdExtractionRoute: typeof EngineProjectsProjectIdExtractionRoute
-  EngineProjectsProjectIdFamilyRoute: typeof EngineProjectsProjectIdFamilyRoute
-  EngineProjectsProjectIdFrameBuilderRoute: typeof EngineProjectsProjectIdFrameBuilderRoute
-  EngineProjectsProjectIdGapMapRoute: typeof EngineProjectsProjectIdGapMapRoute
-  EngineProjectsProjectIdHiddenAssetsRoute: typeof EngineProjectsProjectIdHiddenAssetsRoute
-  EngineProjectsProjectIdImplementationPlanRoute: typeof EngineProjectsProjectIdImplementationPlanRoute
-  EngineProjectsProjectIdIntakeRoute: typeof EngineProjectsProjectIdIntakeRoute
-  EngineProjectsProjectIdIntelligenceRoute: typeof EngineProjectsProjectIdIntelligenceRoute
-  EngineProjectsProjectIdIntelligenceLayerRoute: typeof EngineProjectsProjectIdIntelligenceLayerRoute
-  EngineProjectsProjectIdInvestmentRoute: typeof EngineProjectsProjectIdInvestmentRoute
-  EngineProjectsProjectIdMockupBuilderRoute: typeof EngineProjectsProjectIdMockupBuilderRoute
-  EngineProjectsProjectIdOverviewRoute: typeof EngineProjectsProjectIdOverviewRoute
-  EngineProjectsProjectIdPlansRoute: typeof EngineProjectsProjectIdPlansRoute
-  EngineProjectsProjectIdPointARoute: typeof EngineProjectsProjectIdPointARoute
-  EngineProjectsProjectIdPointBRoute: typeof EngineProjectsProjectIdPointBRoute
-  EngineProjectsProjectIdPreviewRoute: typeof EngineProjectsProjectIdPreviewRoute
-  EngineProjectsProjectIdPublishHistoryRoute: typeof EngineProjectsProjectIdPublishHistoryRoute
-  EngineProjectsProjectIdQaDeliveryRoute: typeof EngineProjectsProjectIdQaDeliveryRoute
-  EngineProjectsProjectIdQaFactoryRoute: typeof EngineProjectsProjectIdQaFactoryRoute
-  EngineProjectsProjectIdRoadmapRoute: typeof EngineProjectsProjectIdRoadmapRouteWithChildren
-  EngineProjectsProjectIdSequencingRoute: typeof EngineProjectsProjectIdSequencingRoute
-  EngineProjectsProjectIdSignalRoomRoute: typeof EngineProjectsProjectIdSignalRoomRoute
-  EngineProjectsProjectIdSolutionsRoute: typeof EngineProjectsProjectIdSolutionsRoute
-  EngineProjectsProjectIdSourcesRoute: typeof EngineProjectsProjectIdSourcesRoute
-  EngineProjectsProjectIdSpineRoute: typeof EngineProjectsProjectIdSpineRoute
-  EngineProjectsProjectIdSpiritFirstRoute: typeof EngineProjectsProjectIdSpiritFirstRoute
-  EngineProjectsProjectIdStrategicThesisRoute: typeof EngineProjectsProjectIdStrategicThesisRoute
-  EngineProjectsProjectIdUnderstandingRoomRoute: typeof EngineProjectsProjectIdUnderstandingRoomRoute
-  EngineProjectsProjectIdWorkRoute: typeof EngineProjectsProjectIdWorkRoute
-  EngineProjectsProjectIdWorldEntryRoute: typeof EngineProjectsProjectIdWorldEntryRoute
-  EngineProjectsProjectIdIndexRoute: typeof EngineProjectsProjectIdIndexRoute
-  EngineProjectsProjectIdVersionsCompareRoute: typeof EngineProjectsProjectIdVersionsCompareRoute
-  EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute
-  EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute
-  EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute
-  EngineProjectsProjectIdMilestonesMilestoneIdQaRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdQaRoute
-  EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute: typeof EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute
-}
-
-const EngineProjectsProjectIdRouteChildren: EngineProjectsProjectIdRouteChildren =
-  {
-    EngineProjectsProjectIdAgentRoute:
-      EngineProjectsProjectIdAgentRouteWithChildren,
-    EngineProjectsProjectIdAiWorkspaceRoute:
-      EngineProjectsProjectIdAiWorkspaceRoute,
-    EngineProjectsProjectIdAmendmentsRoute:
-      EngineProjectsProjectIdAmendmentsRoute,
-    EngineProjectsProjectIdApprovalsRoute:
-      EngineProjectsProjectIdApprovalsRoute,
-    EngineProjectsProjectIdBackendBuilderRoute:
-      EngineProjectsProjectIdBackendBuilderRoute,
-    EngineProjectsProjectIdBlueprintRoute:
-      EngineProjectsProjectIdBlueprintRoute,
-    EngineProjectsProjectIdBuildExecutionRoute:
-      EngineProjectsProjectIdBuildExecutionRoute,
-    EngineProjectsProjectIdBuilderRoute: EngineProjectsProjectIdBuilderRoute,
-    EngineProjectsProjectIdChatRoute: EngineProjectsProjectIdChatRoute,
-    EngineProjectsProjectIdClientViewRoute:
-      EngineProjectsProjectIdClientViewRoute,
-    EngineProjectsProjectIdDeadlinesRoute:
-      EngineProjectsProjectIdDeadlinesRoute,
-    EngineProjectsProjectIdDeliveryRoute: EngineProjectsProjectIdDeliveryRoute,
-    EngineProjectsProjectIdDriftRoute: EngineProjectsProjectIdDriftRoute,
-    EngineProjectsProjectIdEnginesRoute:
-      EngineProjectsProjectIdEnginesRouteWithChildren,
-    EngineProjectsProjectIdEvidenceRoute: EngineProjectsProjectIdEvidenceRoute,
-    EngineProjectsProjectIdExecutionBoundaryRoute:
-      EngineProjectsProjectIdExecutionBoundaryRoute,
-    EngineProjectsProjectIdExtractionRoute:
-      EngineProjectsProjectIdExtractionRoute,
-    EngineProjectsProjectIdFamilyRoute: EngineProjectsProjectIdFamilyRoute,
-    EngineProjectsProjectIdFrameBuilderRoute:
-      EngineProjectsProjectIdFrameBuilderRoute,
-    EngineProjectsProjectIdGapMapRoute: EngineProjectsProjectIdGapMapRoute,
-    EngineProjectsProjectIdHiddenAssetsRoute:
-      EngineProjectsProjectIdHiddenAssetsRoute,
-    EngineProjectsProjectIdImplementationPlanRoute:
-      EngineProjectsProjectIdImplementationPlanRoute,
-    EngineProjectsProjectIdIntakeRoute: EngineProjectsProjectIdIntakeRoute,
-    EngineProjectsProjectIdIntelligenceRoute:
-      EngineProjectsProjectIdIntelligenceRoute,
-    EngineProjectsProjectIdIntelligenceLayerRoute:
-      EngineProjectsProjectIdIntelligenceLayerRoute,
-    EngineProjectsProjectIdInvestmentRoute:
-      EngineProjectsProjectIdInvestmentRoute,
-    EngineProjectsProjectIdMockupBuilderRoute:
-      EngineProjectsProjectIdMockupBuilderRoute,
-    EngineProjectsProjectIdOverviewRoute: EngineProjectsProjectIdOverviewRoute,
-    EngineProjectsProjectIdPlansRoute: EngineProjectsProjectIdPlansRoute,
-    EngineProjectsProjectIdPointARoute: EngineProjectsProjectIdPointARoute,
-    EngineProjectsProjectIdPointBRoute: EngineProjectsProjectIdPointBRoute,
-    EngineProjectsProjectIdPreviewRoute: EngineProjectsProjectIdPreviewRoute,
-    EngineProjectsProjectIdPublishHistoryRoute:
-      EngineProjectsProjectIdPublishHistoryRoute,
-    EngineProjectsProjectIdQaDeliveryRoute:
-      EngineProjectsProjectIdQaDeliveryRoute,
-    EngineProjectsProjectIdQaFactoryRoute:
-      EngineProjectsProjectIdQaFactoryRoute,
-    EngineProjectsProjectIdRoadmapRoute:
-      EngineProjectsProjectIdRoadmapRouteWithChildren,
-    EngineProjectsProjectIdSequencingRoute:
-      EngineProjectsProjectIdSequencingRoute,
-    EngineProjectsProjectIdSignalRoomRoute:
-      EngineProjectsProjectIdSignalRoomRoute,
-    EngineProjectsProjectIdSolutionsRoute:
-      EngineProjectsProjectIdSolutionsRoute,
-    EngineProjectsProjectIdSourcesRoute: EngineProjectsProjectIdSourcesRoute,
-    EngineProjectsProjectIdSpineRoute: EngineProjectsProjectIdSpineRoute,
-    EngineProjectsProjectIdSpiritFirstRoute:
-      EngineProjectsProjectIdSpiritFirstRoute,
-    EngineProjectsProjectIdStrategicThesisRoute:
-      EngineProjectsProjectIdStrategicThesisRoute,
-    EngineProjectsProjectIdUnderstandingRoomRoute:
-      EngineProjectsProjectIdUnderstandingRoomRoute,
-    EngineProjectsProjectIdWorkRoute: EngineProjectsProjectIdWorkRoute,
-    EngineProjectsProjectIdWorldEntryRoute:
-      EngineProjectsProjectIdWorldEntryRoute,
-    EngineProjectsProjectIdIndexRoute: EngineProjectsProjectIdIndexRoute,
-    EngineProjectsProjectIdVersionsCompareRoute:
-      EngineProjectsProjectIdVersionsCompareRoute,
-    EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute:
-      EngineProjectsProjectIdMilestonesMilestoneIdBriefRoute,
-    EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute:
-      EngineProjectsProjectIdMilestonesMilestoneIdBuildRoute,
-    EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute:
-      EngineProjectsProjectIdMilestonesMilestoneIdMockupsRoute,
-    EngineProjectsProjectIdMilestonesMilestoneIdQaRoute:
-      EngineProjectsProjectIdMilestonesMilestoneIdQaRoute,
-    EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute:
-      EngineProjectsProjectIdMilestonesMilestoneIdQualifyRoute,
-  }
-
-const EngineProjectsProjectIdRouteWithChildren =
-  EngineProjectsProjectIdRoute._addFileChildren(
-    EngineProjectsProjectIdRouteChildren,
-  )
-
-interface EngineRouteChildren {
-  EngineApprovalsRoute: typeof EngineApprovalsRoute
-  EngineDeliveryRoute: typeof EngineDeliveryRoute
-  EngineExecutionRoute: typeof EngineExecutionRoute
-  EngineIntelligenceRoute: typeof EngineIntelligenceRoute
-  EngineOperationsRoute: typeof EngineOperationsRoute
-  EngineReviewRoute: typeof EngineReviewRoute
-  EngineSettingsRoute: typeof EngineSettingsRoute
-  EngineStrategicSalesRoute: typeof EngineStrategicSalesRoute
-  EngineTemplatesRoute: typeof EngineTemplatesRoute
-  EngineIndexRoute: typeof EngineIndexRoute
-  EngineProjectsProjectIdRoute: typeof EngineProjectsProjectIdRouteWithChildren
-  EngineProjectsNewRoute: typeof EngineProjectsNewRoute
-  EngineProjectsIndexRoute: typeof EngineProjectsIndexRoute
-}
-
-const EngineRouteChildren: EngineRouteChildren = {
-  EngineApprovalsRoute: EngineApprovalsRoute,
-  EngineDeliveryRoute: EngineDeliveryRoute,
-  EngineExecutionRoute: EngineExecutionRoute,
-  EngineIntelligenceRoute: EngineIntelligenceRoute,
-  EngineOperationsRoute: EngineOperationsRoute,
-  EngineReviewRoute: EngineReviewRoute,
-  EngineSettingsRoute: EngineSettingsRoute,
-  EngineStrategicSalesRoute: EngineStrategicSalesRoute,
-  EngineTemplatesRoute: EngineTemplatesRoute,
-  EngineIndexRoute: EngineIndexRoute,
-  EngineProjectsProjectIdRoute: EngineProjectsProjectIdRouteWithChildren,
-  EngineProjectsNewRoute: EngineProjectsNewRoute,
-  EngineProjectsIndexRoute: EngineProjectsIndexRoute,
-}
-
-const EngineRouteWithChildren =
-  EngineRoute._addFileChildren(EngineRouteChildren)
-
-interface PortalRouteChildren {
-  PortalAccessDeniedRoute: typeof PortalAccessDeniedRoute
-  PortalAccountRoute: typeof PortalAccountRoute
-  PortalActivityRoute: typeof PortalActivityRoute
-  PortalBillingRoute: typeof PortalBillingRoute
-  PortalFamilyRoute: typeof PortalFamilyRoute
-  PortalFilesRoute: typeof PortalFilesRoute
-  PortalHomeRoute: typeof PortalHomeRoute
-  PortalLoginRoute: typeof PortalLoginRoute
-  PortalMessagesRoute: typeof PortalMessagesRoute
-  PortalOnboardingRoute: typeof PortalOnboardingRoute
-  PortalRoadmapRoute: typeof PortalRoadmapRoute
-  PortalRoadmapMockupRoute: typeof PortalRoadmapMockupRoute
-  PortalIndexRoute: typeof PortalIndexRoute
-}
-
-const PortalRouteChildren: PortalRouteChildren = {
-  PortalAccessDeniedRoute: PortalAccessDeniedRoute,
-  PortalAccountRoute: PortalAccountRoute,
-  PortalActivityRoute: PortalActivityRoute,
-  PortalBillingRoute: PortalBillingRoute,
-  PortalFamilyRoute: PortalFamilyRoute,
-  PortalFilesRoute: PortalFilesRoute,
-  PortalHomeRoute: PortalHomeRoute,
-  PortalLoginRoute: PortalLoginRoute,
-  PortalMessagesRoute: PortalMessagesRoute,
-  PortalOnboardingRoute: PortalOnboardingRoute,
-  PortalRoadmapRoute: PortalRoadmapRoute,
-  PortalRoadmapMockupRoute: PortalRoadmapMockupRoute,
-  PortalIndexRoute: PortalIndexRoute,
-}
-
-const PortalRouteWithChildren =
-  PortalRoute._addFileChildren(PortalRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  OpsRouteRoute: OpsRouteRouteWithChildren,
   AboutRoute: AboutRoute,
-  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
-  EngineRoute: EngineRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
-  McpRoute: McpRoute,
-  PortalRoute: PortalRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   WalksRoute: WalksRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
-  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
-  Char91DotwellKnownChar93OauthProtectedResourceRoute:
-    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   BuildMyRoadmapWriteRoute: BuildMyRoadmapWriteRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutRoadmapRoute: CheckoutRoadmapRoute,
@@ -3697,17 +599,8 @@ const rootRouteChildren: RootRouteChildren = {
   InsightsSlugRoute: InsightsSlugRoute,
   WalksSlugRoute: WalksSlugRoute,
   BuildMyRoadmapIndexRoute: BuildMyRoadmapIndexRoute,
-  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
-  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
-  ApiPublicSeedQaAccountRoute: ApiPublicSeedQaAccountRoute,
   CheckoutWalkPaceRoute: CheckoutWalkPaceRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
-  ApiPublicHooksBuildRoadmapContactRoute:
-    ApiPublicHooksBuildRoadmapContactRoute,
-  ApiPublicHooksCostAutopauseRoute: ApiPublicHooksCostAutopauseRoute,
-  ApiPublicHooksEngineTickRoute: ApiPublicHooksEngineTickRoute,
-  ApiPublicHooksOutcomeCheckinsRoute: ApiPublicHooksOutcomeCheckinsRoute,
-  ApiPublicHooksRunPipelineQueueRoute: ApiPublicHooksRunPipelineQueueRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
