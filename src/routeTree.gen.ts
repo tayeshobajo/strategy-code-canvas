@@ -32,6 +32,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicIntakeRetryHandoffRouteImport } from './routes/api/public/intake/retry-handoff'
 
 const WhatWeBuildRoute = WhatWeBuildRouteImport.update({
   id: '/what-we-build',
@@ -152,6 +153,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntakeRetryHandoffRoute =
+  ApiPublicIntakeRetryHandoffRouteImport.update({
+    id: '/api/public/intake/retry-handoff',
+    path: '/api/public/intake/retry-handoff',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -196,6 +204,7 @@ export interface FileRoutesByTo {
   '/build-my-roadmap': typeof BuildMyRoadmapIndexRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -222,6 +231,7 @@ export interface FileRoutesById {
   '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/build-my-roadmap/'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
+    | '/api/public/intake/retry-handoff'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/build-my-roadmap'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
+    | '/api/public/intake/retry-handoff'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -299,6 +311,7 @@ export interface FileRouteTypes {
     | '/build-my-roadmap/'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
+    | '/api/public/intake/retry-handoff'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -325,6 +338,7 @@ export interface RootRouteChildren {
   BuildMyRoadmapIndexRoute: typeof BuildMyRoadmapIndexRoute
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicIntakeRetryHandoffRoute: typeof ApiPublicIntakeRetryHandoffRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -496,6 +510,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/intake/retry-handoff': {
+      id: '/api/public/intake/retry-handoff'
+      path: '/api/public/intake/retry-handoff'
+      fullPath: '/api/public/intake/retry-handoff'
+      preLoaderRoute: typeof ApiPublicIntakeRetryHandoffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -517,6 +538,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuildMyRoadmapIndexRoute: BuildMyRoadmapIndexRoute,
   CheckoutWalkPaceRoute: CheckoutWalkPaceRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicIntakeRetryHandoffRoute: ApiPublicIntakeRetryHandoffRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
