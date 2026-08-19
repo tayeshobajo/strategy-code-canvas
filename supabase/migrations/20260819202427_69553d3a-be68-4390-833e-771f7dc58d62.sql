@@ -1,0 +1,2 @@
+delete from public.website_intake_sessions where created_at > now() - interval '4 hours' and status = 'in_progress';
+delete from public.website_event_outbox where created_at > now() - interval '4 hours';
