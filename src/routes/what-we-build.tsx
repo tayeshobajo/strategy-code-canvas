@@ -258,7 +258,7 @@ const IL_DETAILS: Record<string, ILDetail> = {
   "Connected CRM": {
     signals: "Contact source, stage age, owner activity, revenue by segment.",
     insight: "Which deals stall, where ownership drops, which segment compounds.",
-    decision: "Who follows up next, what to deprioritise, where to invest time.",
+    decision: "Who follows up next, what to deprioritize, where to invest time.",
     nextAction: "Re-route the stalled deals. Lock the next outreach for the top segment.",
   },
   "Lead Capture Engine": {
