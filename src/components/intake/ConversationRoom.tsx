@@ -383,14 +383,22 @@ function ConversationBody(props: {
   );
 }
 
+const AVATAR_SIZE = "h-9 w-9 sm:h-10 sm:w-10";
+
 function TaiAvatar(props: { className?: string; alt?: string }) {
+  const [loaded, setLoaded] = React.useState(false);
   return (
     <img
       src={taiHeadshot.url}
       alt={props.alt ?? "Tai"}
-      className={`shrink-0 rounded-full object-cover ring-1 ring-ink/10 ${
-        props.className ?? "h-9 w-9"
-      }`}
+      width={80}
+      height={80}
+      loading="lazy"
+      decoding="async"
+      onLoad={() => setLoaded(true)}
+      className={`aspect-square shrink-0 rounded-full bg-ink/[0.06] object-cover object-center ring-1 ring-ink/10 transition-opacity duration-500 ${
+        loaded ? "opacity-100" : "opacity-0"
+      } ${props.className ?? AVATAR_SIZE}`}
     />
   );
 }
@@ -399,16 +407,17 @@ function TaiBlock(props: { children: React.ReactNode; hideAvatar?: boolean }) {
   return (
     <div className="flex items-start gap-3 sm:gap-4">
       {props.hideAvatar ? (
-        <span className="h-9 w-9 shrink-0" aria-hidden />
+        <span className={`${AVATAR_SIZE} shrink-0`} aria-hidden />
       ) : (
         <TaiAvatar />
       )}
-      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%]">
+      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%] sm:px-6 sm:py-5">
         {props.children}
       </div>
     </div>
   );
 }
+
 
 function FounderBlock(props: {
   children: React.ReactNode;
