@@ -406,7 +406,11 @@ function HeroConversation() {
 }
 
 
-function Bubble(props: { children: React.ReactNode; mine?: boolean }) {
+function Bubble(props: {
+  children: React.ReactNode;
+  mine?: boolean;
+  animate?: boolean;
+}) {
   return (
     <div
       className={[
@@ -414,6 +418,7 @@ function Bubble(props: { children: React.ReactNode; mine?: boolean }) {
         props.mine
           ? "ml-auto bg-royal text-white"
           : "bg-white/95 text-ink backdrop-blur",
+        props.animate ? "animate-fade-in" : "",
       ].join(" ")}
     >
       {props.children}
@@ -421,6 +426,15 @@ function Bubble(props: { children: React.ReactNode; mine?: boolean }) {
   );
 }
 
-function Dot() {
-  return <span className="h-1.5 w-1.5 rounded-full bg-ink/30" />;
+function Dot(props: { mine?: boolean; delay?: string }) {
+  return (
+    <span
+      className={[
+        "h-1.5 w-1.5 animate-pulse rounded-full",
+        props.mine ? "bg-white/70" : "bg-ink/30",
+      ].join(" ")}
+      style={props.delay ? { animationDelay: props.delay } : undefined}
+    />
+  );
 }
+
