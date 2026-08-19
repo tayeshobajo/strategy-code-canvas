@@ -77,7 +77,7 @@ export function useIntakeConversation() {
   const offerExit = React.useMemo(() => canOfferEarlyExit(state), [state]);
 
   const answeredCount = answers.filter(
-    (a) => !a.key.includes("__followup_") && a.key !== CONFIRMED_REFLECTION_KEY,
+    (a) => !a.key.includes("__followup_") && (a.key as string) !== CONFIRMED_REFLECTION_KEY,
   ).length;
   const hasProgress = answeredCount > 0;
 
@@ -261,7 +261,7 @@ export function useIntakeConversation() {
       media_ref: null,
       answered_at: new Date().toISOString(),
     };
-    const next = [...answers.filter((a) => a.key !== CONFIRMED_REFLECTION_KEY), record];
+    const next = [...answers.filter((a) => (a.key as string) !== CONFIRMED_REFLECTION_KEY), record];
     setAnswers(next);
     setReflectionConfirmed(true);
     setPhase("contact");
