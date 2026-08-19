@@ -129,7 +129,7 @@ function BuildMyRoadmap() {
         setName((session.person as { name?: string | null })?.name ?? "");
         setEmail((session.person as { email?: string | null })?.email ?? "");
         if ((session.verbatim as VerbatimAnswer[]).length > 0) setPhase("conversation");
-        trackEvent({ name: "intake_resumed", dedupe: token, submissionId: token });
+        trackEvent({ name: "intake_resumed", dedupe: "resumed" });
       } catch {
         window.localStorage.removeItem(RESUME_KEY);
       } finally {
@@ -145,7 +145,7 @@ function BuildMyRoadmap() {
       resumeToken: string;
     };
     setResumeToken(created.resumeToken);
-    trackEvent({ name: "intake_started", dedupe: created.resumeToken });
+    trackEvent({ name: "intake_started", dedupe: "started" });
     try {
       window.localStorage.setItem(RESUME_KEY, created.resumeToken);
     } catch {
@@ -291,7 +291,7 @@ function BuildMyRoadmap() {
       } catch {
         /* ignore */
       }
-      trackEvent({ name: "intake_submitted", dedupe: token, submissionId: token });
+      trackEvent({ name: "intake_submitted", dedupe: "submitted" });
       setPhase("done");
     } catch {
       toast.error("Something went wrong sending that. Try again in a moment.");
