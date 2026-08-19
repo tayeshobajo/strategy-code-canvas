@@ -35,13 +35,13 @@ describe("scout handoff", () => {
   });
 
   it("signs the request and keys it by submission id", async () => {
-    const spy = vi.fn(async () => new Response("ok", { status: 200 }));
+    const spy = vi.fn(async (_input: unknown, _init?: unknown) => new Response("ok", { status: 200 }));
     globalThis.fetch = spy as unknown as typeof fetch;
 
     const result = await deliverToScout(payload);
     expect(result.ok).toBe(true);
 
-    const init = spy.mock.calls[0]![1] as RequestInit;
+    const init = spy.mock.calls[0]![1] as unknown as RequestInit;
     const headers = init.headers as Record<string, string>;
     expect(headers["idempotency-key"]).toBe(payload.submission_id);
     expect(headers["x-trusttai-signature"]).toMatch(/^sha256=[0-9a-f]{64}$/);
