@@ -122,7 +122,7 @@ export function ConversationRoom(props: {
         <div className="flex min-h-0 flex-1">
           <div className="flex min-h-0 flex-1 flex-col">
             {c.phase === "conversation" && (
-              <ConversationBody c={c} voiceFirst={props.voiceFirst} themes={showRail ? [] : themes} />
+              <ConversationBody c={c} voiceFirst={props.voiceFirst} themes={showRail ? themes : []} />
             )}
             {c.phase === "reflection" && <ReflectionBody c={c} />}
             {c.phase === "contact" && <ContactBody c={c} />}
