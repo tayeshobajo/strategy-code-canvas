@@ -17,7 +17,7 @@ import {
 } from "../../src/lib/website-intake/adaptive";
 import { buildReflection, traceToAnswer } from "../../src/lib/website-intake/reflection";
 import { formatPacing, measurePacing } from "../../src/lib/website-intake/pacing";
-import { deriveSignals } from "../../src/lib/website-intake/structure";
+import { deriveFrame } from "../../src/lib/website-intake/structure";
 import type { IntakeObjectiveKey } from "../../src/lib/website-intake/questions";
 import type { VerbatimAnswer } from "../../src/lib/website-intake/types";
 
@@ -208,13 +208,13 @@ function run(a: Archetype) {
   const metrics = measurePacing(state, clock);
   const reflection = buildReflection(state.answers);
   const untraceable = reflection.filter((r) => traceToAnswer(r.text, state.answers) === null);
-  const signals = deriveSignals(state.answers);
+  const signals = deriveFrame(state.answers);
 
   console.log(`\n=== ${a.name} ===`);
   for (const line of transcript) console.log(line);
   console.log(`\n  PACING  ${formatPacing(metrics)}`);
   console.log(
-    `  SIGNAL  coverage ${objectiveCoverage(state).toFixed(2)} · completeness ${completeness(state).toFixed(2)} · frame ${signals.frame} (${signals.frame_confidence.toFixed(2)})`,
+    `  SIGNAL  coverage ${objectiveCoverage(state).toFixed(2)} · completeness ${completeness(state).toFixed(2)} · frame ${signals.frame} (${signals.confidence.toFixed(2)})`,
   );
   console.log("  REFLECTION");
   for (const r of reflection) console.log(`   - [${r.source}] ${r.label}: ${r.text}`);
