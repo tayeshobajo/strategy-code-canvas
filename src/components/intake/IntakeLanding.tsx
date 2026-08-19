@@ -223,7 +223,7 @@ export function IntakeLanding(props: {
               Founders building something meaningful.
             </h2>
             <p className="mt-6 text-base leading-relaxed text-ink/70">
-              Whether you're starting out, scaling up, or stuck in the middle — this is
+              Whether you're starting out, scaling up, or stuck in the middle, this is
               for you.
             </p>
             <a
@@ -289,7 +289,7 @@ export function IntakeLanding(props: {
             “Trust Tai helped us see the path we couldn't see ourselves. They brought
             clarity, focus, and real results.”
           </blockquote>
-          <p className="mt-5 text-sm text-ink/60">— J. Adams, Founder</p>
+          <p className="mt-5 text-sm text-ink/60">J. Adams, Founder</p>
         </div>
       </section>
 

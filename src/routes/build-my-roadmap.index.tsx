@@ -12,7 +12,7 @@ export const Route = createFileRoute("/build-my-roadmap/")({
   head: () => {
     const title = "Build My Roadmap | Trust Tai";
     const description =
-      "A conversation, not a form. Tell us about your business in your own words — by typing or speaking — and we'll come back with what we see.";
+      "A conversation, not a form. Tell us about your business in your own words, by typing or speaking, and we'll come back with what we see.";
     return {
       meta: [
         { title },
