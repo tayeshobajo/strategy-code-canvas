@@ -6,8 +6,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { VoiceRecorder } from "@/components/intake/VoiceRecorder";
+import { IntakeLanding } from "@/components/intake/IntakeLanding";
 import { Reveal } from "@/hooks/use-reveal";
-import heroMountain from "@/assets/roadmap-hero-mountain.png.asset.json";
+
 import {
   completeIntakeSession,
   loadIntakeSession,
