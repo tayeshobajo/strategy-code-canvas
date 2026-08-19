@@ -13,11 +13,8 @@ import { Route as WhatWeBuildRouteImport } from './routes/what-we-build'
 import { Route as WalksRouteImport } from './routes/walks'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BuildMyRoadmapIndexRouteImport } from './routes/build-my-roadmap.index'
@@ -27,7 +24,6 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as ClientsSpartanRouteImport } from './routes/clients.spartan'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
-import { Route as BuildMyRoadmapWriteRouteImport } from './routes/build-my-roadmap.write'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as CheckoutWalkPaceRouteImport } from './routes/checkout.walk.$pace'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -57,11 +53,6 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const InvestmentRoute = InvestmentRouteImport.update({
   id: '/investment',
   path: '/investment',
@@ -70,16 +61,6 @@ const InvestmentRoute = InvestmentRouteImport.update({
 const InsightsRoute = InsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -125,11 +106,6 @@ const CheckoutRoadmapRoute = CheckoutRoadmapRouteImport.update({
 const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   id: '/checkout/return',
   path: '/checkout/return',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BuildMyRoadmapWriteRoute = BuildMyRoadmapWriteRouteImport.update({
-  id: '/build-my-roadmap/write',
-  path: '/build-my-roadmap/write',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
@@ -180,16 +156,12 @@ const ApiPublicPaymentsWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/auth': typeof AuthRoute
-  '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
-  '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/clients/spartan': typeof ClientsSpartanRoute
@@ -209,16 +181,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/auth': typeof AuthRoute
-  '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
-  '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/clients/spartan': typeof ClientsSpartanRoute
@@ -239,16 +207,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/auth': typeof AuthRoute
-  '/forgot-password': typeof ForgotPasswordRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/walks': typeof WalksRoute
   '/what-we-build': typeof WhatWeBuildRoute
-  '/build-my-roadmap/write': typeof BuildMyRoadmapWriteRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
   '/clients/spartan': typeof ClientsSpartanRoute
@@ -270,16 +234,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
-    | '/auth'
-    | '/forgot-password'
     | '/insights'
     | '/investment'
-    | '/reset-password'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
-    | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/clients/spartan'
@@ -299,16 +259,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/auth'
-    | '/forgot-password'
     | '/insights'
     | '/investment'
-    | '/reset-password'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
-    | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/clients/spartan'
@@ -328,16 +284,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
-    | '/auth'
-    | '/forgot-password'
     | '/insights'
     | '/investment'
-    | '/reset-password'
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/walks'
     | '/what-we-build'
-    | '/build-my-roadmap/write'
     | '/checkout/return'
     | '/checkout/roadmap'
     | '/clients/spartan'
@@ -358,16 +310,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  AuthRoute: typeof AuthRoute
-  ForgotPasswordRoute: typeof ForgotPasswordRoute
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   WalksRoute: typeof WalksRoute
   WhatWeBuildRoute: typeof WhatWeBuildRoute
-  BuildMyRoadmapWriteRoute: typeof BuildMyRoadmapWriteRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
   ClientsSpartanRoute: typeof ClientsSpartanRoute
@@ -415,13 +363,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/investment': {
       id: '/investment'
       path: '/investment'
@@ -434,20 +375,6 @@ declare module '@tanstack/react-router' {
       path: '/insights'
       fullPath: '/insights'
       preLoaderRoute: typeof InsightsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -513,13 +440,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/build-my-roadmap/write': {
-      id: '/build-my-roadmap/write'
-      path: '/build-my-roadmap/write'
-      fullPath: '/build-my-roadmap/write'
-      preLoaderRoute: typeof BuildMyRoadmapWriteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -582,16 +502,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  AuthRoute: AuthRoute,
-  ForgotPasswordRoute: ForgotPasswordRoute,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   WalksRoute: WalksRoute,
   WhatWeBuildRoute: WhatWeBuildRoute,
-  BuildMyRoadmapWriteRoute: BuildMyRoadmapWriteRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutRoadmapRoute: CheckoutRoadmapRoute,
   ClientsSpartanRoute: ClientsSpartanRoute,
