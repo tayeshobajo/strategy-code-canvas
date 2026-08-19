@@ -15,7 +15,9 @@ import {
   Users,
   Lock,
 } from "lucide-react";
+import * as React from "react";
 import { Reveal } from "@/hooks/use-reveal";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import heroRoom from "@/assets/roadmap-intake-hero.png.asset.json";
 
 const STEPS = [
