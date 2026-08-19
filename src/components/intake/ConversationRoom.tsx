@@ -256,8 +256,11 @@ function ConversationBody(props: {
 
   return (
     <>
-      <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-8 sm:px-10">
-        <div className="mx-auto max-w-2xl space-y-8">
+      <div
+        ref={scrollerRef}
+        className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto px-5 py-10 sm:px-10 sm:py-14"
+      >
+        <div className="mx-auto w-full max-w-2xl space-y-10">
           <div>
             <TaiBlock>
               <p className="font-display text-2xl leading-snug text-ink sm:text-[1.75rem]">
