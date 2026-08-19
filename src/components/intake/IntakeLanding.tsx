@@ -109,6 +109,7 @@ export function IntakeLanding(props: {
   resuming: boolean;
   resumed: boolean;
   onStart: () => void;
+  onStartVoice?: () => void;
 }) {
   const startLabel = props.resumed ? "Pick up where we left off" : "Start the conversation";
 
@@ -148,7 +149,7 @@ export function IntakeLanding(props: {
                 <button
                   type="button"
                   disabled={props.resuming}
-                  onClick={props.onStart}
+                  onClick={props.onStartVoice ?? props.onStart}
                   className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-white px-7 py-4 text-sm text-ink transition hover:border-royal hover:text-royal disabled:opacity-60"
                 >
                   <Mic className="h-4 w-4 text-royal" />

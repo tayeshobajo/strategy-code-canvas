@@ -22,6 +22,7 @@ import type { FollowUpKey, IntakeObjectiveKey } from "./questions";
 
 const TABLE = "website_intake_sessions";
 const VOICE_BUCKET = "intake-voice";
+const ATTACHMENT_BUCKET = "intake-attachments";
 
 export type SessionRecord = {
   id: string;
@@ -140,6 +141,21 @@ export async function storeVoiceRecording(input: {
     .upload(path, input.bytes, { contentType: input.contentType, upsert: false });
   if (error) throw new Error(`voice_upload_failed: ${error.message}`);
   return `${VOICE_BUCKET}/${path}`;
+}
+
+export async function storeAttachment(input: {
+  resumeToken: string;
+  filename: string;
+  bytes: Uint8Array;
+  contentType: string;
+}) {
+  const safe = input.filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80);
+  const path = `${input.resumeToken}/${Date.now()}-${safe}`;
+  const { error } = await supabaseAdmin.storage
+    .from(ATTACHMENT_BUCKET)
+    .upload(path, input.bytes, { contentType: input.contentType, upsert: false });
+  if (error) throw new Error(`attachment_upload_failed: ${error.message}`);
+  return `${ATTACHMENT_BUCKET}/${path}`;
 }
 
 export function buildScoutPayload(row: {
