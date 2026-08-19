@@ -60,7 +60,7 @@ export function deriveFrame(answers: VerbatimAnswer[]): { frame: IntakeFrame; co
     if (hits > best.hits) best = { frame: h.frame, hits };
   }
   if (best.hits === 0) return { frame: "roadmap", confidence: 0.5 };
-  const known = FRAME_DEFINITIONS.some((f) => f.frame === best.frame);
+  const known = Object.prototype.hasOwnProperty.call(FRAME_DEFINITIONS, best.frame);
   return {
     frame: known ? best.frame : "roadmap",
     confidence: Math.min(0.9, 0.4 + best.hits * 0.1),
