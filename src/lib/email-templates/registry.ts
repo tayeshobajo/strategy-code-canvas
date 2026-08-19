@@ -1,8 +1,5 @@
 import type { ComponentType } from 'react'
-import { template as adminAccessGranted } from './admin-access-granted'
 import { template as intakeClientConfirmation } from './intake-client-confirmation'
-import { template as intakeSubmissionOperatorAlert } from './intake-submission-operator-alert'
-import { template as costOverrunAutopause } from './cost-overrun-autopause'
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -18,8 +15,5 @@ export interface TemplateEntry {
  * Import and register new templates here after creating them in this directory.
  */
 export const TEMPLATES: Record<string, TemplateEntry> = {
-  'admin-access-granted': adminAccessGranted,
   'intake-client-confirmation': intakeClientConfirmation,
-  'intake-submission-operator-alert': intakeSubmissionOperatorAlert,
-  'cost-overrun-autopause': costOverrunAutopause,
 }
