@@ -199,3 +199,27 @@ export const completeIntakeSession = createServerFn({ method: "POST" })
     }
     return { received: true, delivered: result.delivered };
   });
+
+export const attachIntakeFile = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        resumeToken: z.string().uuid(),
+        filename: z.string().min(1).max(200),
+        mimeType: z.string().max(120),
+        // ~7 MB of binary once decoded.
+        base64: z.string().min(8).max(10_000_000),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { storeAttachment } = await import("./website-intake/session.server");
+    const bytes = Uint8Array.from(Buffer.from(data.base64, "base64"));
+    const mediaRef = await storeAttachment({
+      resumeToken: data.resumeToken,
+      filename: data.filename,
+      bytes,
+      contentType: data.mimeType || "application/octet-stream",
+    });
+    return { mediaRef };
+  });
