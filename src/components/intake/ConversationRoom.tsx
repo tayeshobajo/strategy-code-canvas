@@ -363,9 +363,21 @@ function ConversationBody(props: {
         </div>
       </div>
 
+        {!atBottom && (
+          <button
+            type="button"
+            onClick={() => scrollToBottom()}
+            className="absolute bottom-4 left-1/2 z-10 inline-flex min-h-9 -translate-x-1/2 items-center gap-2 rounded-full border border-ink/10 bg-white/95 px-4 text-sm text-ink/70 shadow-[0_10px_30px_-18px_rgba(1,5,27,0.6)] backdrop-blur transition hover:text-ink"
+          >
+            <ChevronDown className="h-4 w-4" /> Jump to latest
+          </button>
+        )}
+      </div>
+
       <ThemeDrawer themes={props.themes} />
       <Composer c={c} voiceFirst={props.voiceFirst} />
     </>
+
   );
 }
 
