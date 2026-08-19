@@ -681,7 +681,7 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
                       ? "Saving"
                       : c.saveState === "saved"
                         ? "Saved"
-                        : "⌘ + enter"}
+                        : "enter to send · shift + enter for a new line"}
                 </span>
 
                 <button
