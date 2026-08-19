@@ -36,6 +36,12 @@ const ENOUGH_COVERAGE = 0.75;
 
 const DREAM_KEYS: IntakeObjectiveKey[] = ["future_day", "future_you", "future_customer"];
 
+/** Ground that must be heard first-hand, never assumed from other answers. */
+const NEVER_INFERRED: IntakeObjectiveKey[] = ["future_day"];
+
+/** A past-attempt follow-up only belongs on an answer about past attempts. */
+const FAILURE_CONTEXT_KEYS: IntakeObjectiveKey[] = ["already_tried", "whats_in_the_way", "whats_working"];
+
 const FAILURE_PATTERNS =
   /\b(agency|consultant|freelancer|vendor|developer|contractor)\b[\s\S]{0,80}\b(didn'?t|failed|wasted|burn(?:ed|t)|left|ghosted|never)\b|\b(didn'?t work out|waste of money|got burned|fell through|nobody (?:kept|used)|never delivered|nothing changed)\b/i;
 
@@ -93,6 +99,8 @@ export function coveredObjectives(state: ConversationState): Set<IntakeObjective
 
   for (const q of INTAKE_QUESTIONS) {
     if (covered.has(q.key) || q.signals.length === 0) continue;
+    // The two-year Tuesday is the one moment we always ask for in their words.
+    if (NEVER_INFERRED.includes(q.key)) continue;
     const distinct = (t: string) => q.signals.filter((s) => t.includes(s)).length;
     // A rich answer that touches this ground twice has covered it.
     if (richText.some((t) => distinct(t) >= 2)) {
@@ -164,7 +172,8 @@ export function pendingFollowUp(
     if (!dreamAlreadyRich) candidates.push("thin_dream");
   }
 
-  const isFailureStory = FAILURE_PATTERNS.test(text);
+  const isFailureStory =
+    FAILURE_CONTEXT_KEYS.includes(lastKey) && FAILURE_PATTERNS.test(text);
   if (isFailureStory) candidates.push("past_failure");
 
   // Never ask "what would become possible if you used that well" about
@@ -220,7 +229,12 @@ export function nextStep(state: ConversationState): NextStep {
     (q) => !covered.has(q.key) && !state.skipped.includes(q.key),
   );
   // A brief answerer only gets the ground that genuinely matters.
-  const shortlist = brief && !settled ? pool.filter((q) => q.essential) : pool;
+  let shortlist = pool;
+  if (!settled && (brief || asked >= 5)) {
+    // Don't let optional colour push the essential ground to the very end.
+    const essentials = pool.filter((q) => q.essential);
+    if (essentials.length > 0) shortlist = essentials;
+  }
   const q = (shortlist.length > 0 ? shortlist : pool)[0];
   if (!q) return { kind: "contact" };
 

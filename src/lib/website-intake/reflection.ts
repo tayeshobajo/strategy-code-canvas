@@ -34,10 +34,13 @@ function baseKey(key: VerbatimAnswer["key"]): IntakeObjectiveKey {
 
 function textFor(answers: VerbatimAnswer[], keys: IntakeObjectiveKey[]): string | null {
   for (const key of keys) {
-    const hit = answers.find(
-      (a) => baseKey(a.key) === key && !a.skipped && (a.answer ?? "").trim().length > 0,
-    );
-    if (hit) return hit.answer.trim();
+    // Prefer the fullest thing they said on this ground, including any
+    // follow-up, rather than whichever came first.
+    const hits = answers
+      .filter((a) => baseKey(a.key) === key && !a.skipped && (a.answer ?? "").trim().length > 0)
+      .map((a) => a.answer.trim())
+      .sort((a, b) => b.length - a.length);
+    if (hits.length > 0) return hits[0];
   }
   return null;
 }
@@ -67,7 +70,7 @@ const SLOTS: Array<{ id: string; label: string; keys: IntakeObjectiveKey[] }> = 
 ];
 
 /** Below this there is nothing to reflect back; echoing it would overstate understanding. */
-const REFLECTABLE_CHARS = 12;
+const REFLECTABLE_CHARS = 10;
 
 /**
  * Three to five grounded statements, drawn only from what was actually said.
