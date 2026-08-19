@@ -223,3 +223,39 @@ export const attachIntakeFile = createServerFn({ method: "POST" })
     });
     return { mediaRef };
   });
+
+/**
+ * One governed conversation turn.
+ *
+ * Takes what the founder just said plus the conversation so far, and returns
+ * the single next thing Tai should say. Never throws into the room: if the
+ * model is unreachable the deterministic posture plan is returned instead.
+ */
+export const interpretIntakeTurn = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        latest: z.string().min(1).max(20000),
+        verbatim: verbatimSchema.max(80),
+        skipped: z.array(z.string().max(60)).max(40),
+        followUpsAsked: z.array(z.string().max(60)).max(20),
+        supported: z.array(z.string().max(60)).max(40).default([]),
+        currentObjective: z.string().max(120).nullable().default(null),
+        isFirstTurn: z.boolean().default(false),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { reasonTurn } = await import("./website-intake/conversation.server");
+    return reasonTurn({
+      state: {
+        answers: data.verbatim as Parameters<typeof reasonTurn>[0]["state"]["answers"],
+        skipped: data.skipped as never[],
+        followUpsAsked: data.followUpsAsked as never[],
+        supported: data.supported as never[],
+      },
+      latest: data.latest,
+      currentObjective: data.currentObjective as never,
+      isFirstTurn: data.isFirstTurn,
+    });
+  });

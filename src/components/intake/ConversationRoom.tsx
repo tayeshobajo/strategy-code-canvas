@@ -274,9 +274,10 @@ function ConversationBody(props: {
 
   // Nothing left worth asking — move to reflection rather than a dead end.
   React.useEffect(() => {
-    if (c.step.kind === "contact" && c.hasProgress && !c.busy) c.openReflection();
+    const done = c.turn ? c.turn.should_end : c.step.kind === "contact";
+    if (done && c.hasProgress && !c.busy) c.openReflection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c.step.kind, c.hasProgress, c.busy]);
+  }, [c.turn, c.step.kind, c.hasProgress, c.busy]);
 
   const visible = c.answers.filter((a) => a.key !== ("founder_confirmed_reflection" as never));
   const nearingEnd = c.offerExit;
@@ -305,7 +306,13 @@ function ConversationBody(props: {
 
           {visible.map((a, i) => (
             <div key={`${a.key}-${i}`} className="space-y-6">
-              {i > 0 && <TaiBlock><p className="text-base leading-relaxed text-ink/85">{a.question}</p></TaiBlock>}
+              {i > 0 && (
+                <TaiBlock>
+                  <p className="whitespace-pre-line text-base leading-relaxed text-ink/85">
+                    {a.question}
+                  </p>
+                </TaiBlock>
+              )}
               <FounderBlock modality={a.modality} at={a.answered_at}>
                 {a.answer}
               </FounderBlock>
@@ -317,7 +324,9 @@ function ConversationBody(props: {
               {c.currentTransition && (
                 <p className="mb-2 text-base leading-relaxed text-ink/55">{c.currentTransition}</p>
               )}
-              <p className="text-base leading-relaxed text-ink/85">{c.currentPrompt}</p>
+              <p className="whitespace-pre-line text-base leading-relaxed text-ink/85">
+                {c.currentPrompt}
+              </p>
             </TaiBlock>
           )}
 
