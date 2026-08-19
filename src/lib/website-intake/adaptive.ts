@@ -157,10 +157,11 @@ export function pendingFollowUp(
   const last = [...state.answers].reverse().find((a) => baseKey(a.key) === lastKey && !a.skipped);
   if (!last) return null;
   const text = textOf(last);
-  if (text.length < FOLLOW_UP_FLOOR_CHARS) return null;
+  if (!text) return null;
 
   const candidates: FollowUpKey[] = [];
 
+  // A one-line dream is the one place a short answer earns a gentle nudge.
   if (DREAM_KEYS.includes(lastKey) && text.length < THIN_DREAM_CHARS) {
     // Only if the dream hasn't already been painted properly somewhere else.
     const dreamAlreadyRich = state.answers.some(
@@ -172,13 +173,14 @@ export function pendingFollowUp(
     if (!dreamAlreadyRich) candidates.push("thin_dream");
   }
 
+  const longEnoughToProbe = text.length >= FOLLOW_UP_FLOOR_CHARS;
   const isFailureStory =
-    FAILURE_CONTEXT_KEYS.includes(lastKey) && FAILURE_PATTERNS.test(text);
+    longEnoughToProbe && FAILURE_CONTEXT_KEYS.includes(lastKey) && FAILURE_PATTERNS.test(text);
   if (isFailureStory) candidates.push("past_failure");
 
   // Never ask "what would become possible if you used that well" about
   // something the person just told us failed.
-  if (!isFailureStory && lastKey !== "already_tried" && ASSET_PATTERNS.test(text)) {
+  if (longEnoughToProbe && !isFailureStory && lastKey !== "already_tried" && ASSET_PATTERNS.test(text)) {
     candidates.push("hidden_asset");
   }
 
