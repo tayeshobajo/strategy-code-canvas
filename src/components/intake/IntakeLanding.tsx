@@ -174,23 +174,8 @@ export function IntakeLanding(props: {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-paper/70 via-paper/0 to-transparent lg:from-paper/80" />
 
-            <div className="relative flex h-full flex-col justify-center gap-3 px-6 py-12 md:px-10">
-              <Bubble>
-                Let's start with your world. Tell me about your business the way you
-                would tell a friend over coffee.
-              </Bubble>
-              <Bubble mine>
-                We help local service businesses get more customers and run more
-                smoothly.
-              </Bubble>
-              <Bubble>
-                Nice. What does the business look like two years from now if everything
-                is working the way you want?
-              </Bubble>
-              <div className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/85 px-3.5 py-2.5 shadow-sm backdrop-blur">
-                <Dot /> <Dot /> <Dot />
-              </div>
-            </div>
+            <HeroConversation />
+
           </div>
         </div>
       </section>
