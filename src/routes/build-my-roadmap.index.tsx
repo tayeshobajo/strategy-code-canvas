@@ -16,6 +16,7 @@ import {
   transcribeIntakeVoiceAnswer,
 } from "@/lib/website-intake.functions";
 import { readAttribution, recordFirstTouch } from "@/lib/website-intake/attribution";
+import { trackEvent } from "@/lib/website-intake/track";
 import {
   CONTACT_PROMPT,
   EARLY_EXIT_PROMPT,
@@ -94,6 +95,7 @@ function BuildMyRoadmap() {
 
   React.useEffect(() => {
     recordFirstTouch();
+    trackEvent({ name: "intake_view", dedupe: "build-my-roadmap" });
   }, []);
 
   const state: ConversationState = React.useMemo(
@@ -127,6 +129,7 @@ function BuildMyRoadmap() {
         setName((session.person as { name?: string | null })?.name ?? "");
         setEmail((session.person as { email?: string | null })?.email ?? "");
         if ((session.verbatim as VerbatimAnswer[]).length > 0) setPhase("conversation");
+        trackEvent({ name: "intake_resumed", dedupe: token, submissionId: token });
       } catch {
         window.localStorage.removeItem(RESUME_KEY);
       } finally {
@@ -142,6 +145,7 @@ function BuildMyRoadmap() {
       resumeToken: string;
     };
     setResumeToken(created.resumeToken);
+    trackEvent({ name: "intake_started", dedupe: created.resumeToken });
     try {
       window.localStorage.setItem(RESUME_KEY, created.resumeToken);
     } catch {
@@ -198,6 +202,11 @@ function BuildMyRoadmap() {
       setFollowUpsAsked(nextFollowUps);
       setDraft("");
       await persist({ verbatim: nextAnswers, skipped, followUpsAsked: nextFollowUps });
+      trackEvent({
+        name: "intake_answered",
+        dedupe: `${key}:${answer.answered_at}`,
+        properties: { question_id: key, question_text: currentPrompt, modality },
+      });
     },
     [answers, currentPrompt, followUpsAsked, persist, skipped, step],
   );
@@ -282,6 +291,7 @@ function BuildMyRoadmap() {
       } catch {
         /* ignore */
       }
+      trackEvent({ name: "intake_submitted", dedupe: token, submissionId: token });
       setPhase("done");
     } catch {
       toast.error("Something went wrong sending that. Try again in a moment.");
