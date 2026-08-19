@@ -514,7 +514,11 @@ function Thinking() {
   return (
     <div className="flex items-start gap-3 sm:gap-4">
       <TaiAvatar />
-      <div className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-4">
+      <div
+        className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-4"
+        role="status"
+        aria-label="Tai is replying"
+      >
         <span className="flex items-center gap-1.5" aria-hidden>
           {[0, 1, 2].map((i) => (
             <span
@@ -524,10 +528,11 @@ function Thinking() {
             />
           ))}
         </span>
-              </div>
+      </div>
     </div>
   );
 }
+
 
 function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
   const { c } = props;
