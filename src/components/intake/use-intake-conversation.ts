@@ -378,6 +378,7 @@ export function useIntakeConversation() {
   );
 
   return {
+    resumeToken,
     answers,
     step,
     turn,
