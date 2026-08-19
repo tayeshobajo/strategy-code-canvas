@@ -240,6 +240,7 @@ export async function completeSession(input: {
         ? Number((row as unknown as { scout_attempts: number }).scout_attempts) + 1
         : 1,
       scout_last_error: result.ok ? null : result.error,
+      scout_prospect_id: result.ok ? result.prospectId : null,
       scout_delivered_at: result.ok ? new Date().toISOString() : null,
     } as never)
     .eq("id", row.id);
@@ -287,6 +288,7 @@ export async function retryPendingHandoffs(limit = 25) {
         scout_status: result.ok ? "delivered" : result.retryable ? "pending" : "failed",
         scout_attempts: Number(row.scout_attempts ?? 0) + 1,
         scout_last_error: result.ok ? null : result.error,
+        scout_prospect_id: result.ok ? result.prospectId : null,
         scout_delivered_at: result.ok ? new Date().toISOString() : null,
       } as never)
       .eq("id", row.id);

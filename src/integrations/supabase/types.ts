@@ -7720,6 +7720,42 @@ export type Database = {
           },
         ]
       }
+      website_event_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          delivered_at: string | null
+          event_key: string
+          id: string
+          last_error: string | null
+          payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          event_key: string
+          id?: string
+          last_error?: string | null
+          payload: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          event_key?: string
+          id?: string
+          last_error?: string | null
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       website_intake_sessions: {
         Row: {
           attribution: Json
@@ -7733,6 +7769,7 @@ export type Database = {
           scout_attempts: number
           scout_delivered_at: string | null
           scout_last_error: string | null
+          scout_prospect_id: string | null
           scout_status: string
           signals: Json
           started_at: string
@@ -7753,6 +7790,7 @@ export type Database = {
           scout_attempts?: number
           scout_delivered_at?: string | null
           scout_last_error?: string | null
+          scout_prospect_id?: string | null
           scout_status?: string
           signals?: Json
           started_at?: string
@@ -7773,6 +7811,7 @@ export type Database = {
           scout_attempts?: number
           scout_delivered_at?: string | null
           scout_last_error?: string | null
+          scout_prospect_id?: string | null
           scout_status?: string
           signals?: Json
           started_at?: string

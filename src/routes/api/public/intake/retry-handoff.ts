@@ -22,9 +22,13 @@ export const Route = createFileRoute("/api/public/intake/retry-handoff")({
         const { retryPendingHandoffs } = await import(
           "@/lib/website-intake/session.server"
         );
+        const { retryPendingEvents } = await import(
+          "@/lib/website-intake/events.server"
+        );
         try {
           const result = await retryPendingHandoffs();
-          return Response.json(result);
+          const events = await retryPendingEvents().catch(() => ({ processed: 0, delivered: 0 }));
+          return Response.json({ ...result, events });
         } catch (err) {
           console.error("intake retry failed", err);
           return new Response("Retry failed", { status: 500 });
