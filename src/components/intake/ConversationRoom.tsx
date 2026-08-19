@@ -342,10 +342,29 @@ function ConversationBody(props: {
   );
 }
 
-function TaiBlock(props: { children: React.ReactNode }) {
+function TaiAvatar(props: { className?: string; alt?: string }) {
   return (
-    <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%]">
-      {props.children}
+    <img
+      src={taiHeadshot.url}
+      alt={props.alt ?? "Tai"}
+      className={`shrink-0 rounded-full object-cover ring-1 ring-ink/10 ${
+        props.className ?? "h-9 w-9"
+      }`}
+    />
+  );
+}
+
+function TaiBlock(props: { children: React.ReactNode; hideAvatar?: boolean }) {
+  return (
+    <div className="flex items-start gap-3 sm:gap-4">
+      {props.hideAvatar ? (
+        <span className="h-9 w-9 shrink-0" aria-hidden />
+      ) : (
+        <TaiAvatar />
+      )}
+      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%]">
+        {props.children}
+      </div>
     </div>
   );
 }
@@ -373,17 +392,20 @@ function FounderBlock(props: {
 
 function Thinking() {
   return (
-    <div className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-4">
-      <span className="flex items-center gap-1.5" aria-hidden>
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="h-1.5 w-1.5 rounded-full bg-royal/60 motion-safe:animate-pulse"
-            style={{ animationDelay: `${i * 160}ms` }}
-          />
-        ))}
-      </span>
-      <span className="text-sm text-ink/60">Thinking through what you shared…</span>
+    <div className="flex items-start gap-3 sm:gap-4">
+      <TaiAvatar />
+      <div className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-4">
+        <span className="flex items-center gap-1.5" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="h-1.5 w-1.5 rounded-full bg-royal/60 motion-safe:animate-pulse"
+              style={{ animationDelay: `${i * 160}ms` }}
+            />
+          ))}
+        </span>
+        <span className="text-sm text-ink/60">Thinking through what you shared…</span>
+      </div>
     </div>
   );
 }
