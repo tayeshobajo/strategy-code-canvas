@@ -115,7 +115,7 @@ export function IntakeLanding(props: {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-cream">
+      <section className="relative overflow-hidden bg-paper">
         <div className="grid lg:grid-cols-[1fr_1fr]">
           <div className="flex items-center px-6 py-16 md:py-24 lg:pl-[max(1.5rem,calc((100vw-1280px)/2))] lg:pr-16">
             <Reveal className="max-w-xl">
@@ -140,7 +140,7 @@ export function IntakeLanding(props: {
                   type="button"
                   disabled={props.resuming}
                   onClick={props.onStart}
-                  className="inline-flex items-center gap-2 rounded-full bg-ink px-7 py-4 text-sm text-cream transition hover:bg-royal disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full bg-ink px-7 py-4 text-sm text-paper transition hover:bg-royal disabled:opacity-60"
                 >
                   <Sparkles className="h-4 w-4" />
                   {startLabel}
@@ -169,7 +169,7 @@ export function IntakeLanding(props: {
               alt="A quiet table by a window, set for a conversation"
               className="absolute inset-0 h-full w-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-cream/70 via-cream/0 to-transparent lg:from-cream/80" />
+            <div className="absolute inset-0 bg-gradient-to-r from-paper/70 via-paper/0 to-transparent lg:from-paper/80" />
 
             <div className="relative flex h-full flex-col justify-center gap-3 px-6 py-12 md:px-10">
               <Bubble>
@@ -213,7 +213,7 @@ export function IntakeLanding(props: {
                     0{i + 1}
                   </span>
                 </div>
-                <h3 className="mt-4 text-[15px] font-semibold">{step.title}</h3>
+                <h3 className="mt-4 font-sans text-[15px] font-semibold">{step.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink/65">{step.body}</p>
                 {i < STEPS.length - 1 && (
                   <span className="absolute left-[calc(50%+2.5rem)] right-[-2.5rem] top-8 hidden border-t border-dashed border-ink/20 lg:block" />
@@ -225,7 +225,7 @@ export function IntakeLanding(props: {
       </section>
 
       {/* Who it's for */}
-      <section className="bg-cream px-6 py-20 md:py-24">
+      <section className="bg-paper px-6 py-20 md:py-24">
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
@@ -254,7 +254,7 @@ export function IntakeLanding(props: {
               >
                 <item.icon className="h-6 w-6 shrink-0 text-royal" strokeWidth={1.5} />
                 <div>
-                  <h3 className="text-[15px] font-semibold">{item.title}</h3>
+                  <h3 className="font-sans text-[15px] font-semibold">{item.title}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-ink/65">
                     {item.body}
                   </p>
@@ -266,7 +266,7 @@ export function IntakeLanding(props: {
       </section>
 
       {/* Approach */}
-      <section className="bg-ink px-6 py-20 text-cream md:py-24">
+      <section className="bg-ink px-6 py-20 text-paper md:py-24">
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal-soft">
@@ -279,12 +279,12 @@ export function IntakeLanding(props: {
             </h2>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-3 sm:divide-x sm:divide-cream/15">
+          <div className="grid gap-8 sm:grid-cols-3 sm:divide-x sm:divide-paper/15">
             {APPROACH.map((item) => (
               <div key={item.title} className="sm:px-6 sm:first:pl-0 sm:last:pr-0">
-                <item.icon className="h-6 w-6 text-cream" strokeWidth={1.5} />
-                <h3 className="mt-4 text-[15px] font-semibold">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-cream/70">{item.body}</p>
+                <item.icon className="h-6 w-6 text-paper" strokeWidth={1.5} />
+                <h3 className="mt-4 font-sans text-[15px] font-semibold">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-paper/70">{item.body}</p>
               </div>
             ))}
           </div>
@@ -313,7 +313,7 @@ export function IntakeLanding(props: {
               <div key={item.title} className="flex gap-3 md:px-5 md:first:pl-0">
                 <item.icon className="h-5 w-5 shrink-0 text-royal" strokeWidth={1.5} />
                 <div>
-                  <h3 className="text-sm font-semibold">{item.title}</h3>
+                  <h3 className="font-sans text-sm font-semibold">{item.title}</h3>
                   <p className="mt-1.5 text-[13px] leading-relaxed text-ink/65">
                     {item.body}
                   </p>
