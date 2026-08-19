@@ -1,23 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Bookmark, Check, Loader2, LogOut, Paperclip, Trash2, Upload } from "lucide-react";
+import { ArrowRight, Check, Loader2, SkipForward } from "lucide-react";
 import * as React from "react";
-import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import trustTaiLogoDark from "@/assets/trust-tai-logo.png.asset.json";
+import { VoiceRecorder } from "@/components/intake/VoiceRecorder";
 import { Reveal } from "@/hooks/use-reveal";
-import notebookImg from "@/assets/cta-book-cover-desk.png.asset.json";
 import heroMountain from "@/assets/roadmap-hero-mountain.png.asset.json";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  completeIntakeSession,
+  loadIntakeSession,
+  saveIntakeProgress,
+  startIntakeSession,
+  transcribeIntakeVoiceAnswer,
+} from "@/lib/website-intake.functions";
+import { readAttribution, recordFirstTouch } from "@/lib/website-intake/attribution";
+import {
+  CONTACT_PROMPT,
+  EARLY_EXIT_PROMPT,
+  canOfferEarlyExit,
+  completeness,
+  nextStep,
+  objectiveCoverage,
+  type ConversationState,
+} from "@/lib/website-intake/adaptive";
+import { INTAKE_QUESTIONS, QUESTION_BY_KEY, type FollowUpKey, type IntakeObjectiveKey } from "@/lib/website-intake/questions";
+import type { VerbatimAnswer } from "@/lib/website-intake/types";
 
-
+const RESUME_KEY = "tt_intake_resume_v1";
 
 export const Route = createFileRoute("/build-my-roadmap/")({
   head: () => {
     const title = "Build My Roadmap | Trust Tai";
     const description =
-      "A 30-minute conversation, not a pitch. We listen first, tell you what we see, and only map the road if it fits. No pressure, no follow-up hounding.";
+      "A conversation, not a form. Tell us about your business in your own words — by typing or speaking — and we'll come back with what we see.";
     return {
       meta: [
         { title },
@@ -32,3106 +49,503 @@ export const Route = createFileRoute("/build-my-roadmap/")({
         { name: "twitter:description", content: description },
       ],
       links: [{ rel: "canonical", href: "https://trusttai.com/build-my-roadmap" }],
-      scripts: [
-        {
-          type: "application/ld+json",
-          id: "jsonld-build-my-roadmap",
-          children: JSON.stringify({
-            "@context": "https://schema.org",
-            "@graph": [
-              {
-                "@type": "ContactPage",
-                name: title,
-                description,
-                url: "https://trusttai.com/build-my-roadmap",
-                isPartOf: { "@type": "WebSite", name: "Trust Tai", url: "https://trusttai.com" },
-                mainEntity: {
-                  "@type": "Organization",
-                  name: "Trust Tai",
-                  email: "tai@trusttai.com",
-                  contactPoint: {
-                    "@type": "ContactPoint",
-                    contactType: "customer support",
-                    email: "tai@trusttai.com",
-                  },
-                },
-              },
-              {
-                "@type": "BreadcrumbList",
-                itemListElement: [
-                  { "@type": "ListItem", position: 1, name: "Home", item: "https://trusttai.com/" },
-                  { "@type": "ListItem", position: 2, name: "Build My Roadmap", item: "https://trusttai.com/build-my-roadmap" },
-                ],
-              },
-            ],
-          }),
-        },
-      ],
-
-
     };
   },
-  component: BuildMyRoadmapPage,
+  component: BuildMyRoadmap,
 });
 
-const container = "mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-12";
-const ROYAL = "#2563FF";
+type Phase = "intro" | "conversation" | "contact" | "done";
 
-/* -------------------- HERO -------------------- */
-function Hero() {
-  return (
-    <section className="relative w-full overflow-hidden bg-white">
-      <div className={`${container} flex flex-col-reverse items-center gap-10 pt-[140px] pb-10 lg:grid lg:grid-cols-[1.05fr_1fr] lg:pt-[160px] lg:pb-12`}>
-        <div>
-          <Reveal as="p" immediate variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.28em]" >
-            <span style={{ color: ROYAL }}>Build My Roadmap</span>
-          </Reveal>
-          <Reveal
-            as="h1"
-            immediate
-            variant="rise"
-            delay={60}
-            className="mt-5 font-display text-[clamp(2.4rem,5vw,3.6rem)] leading-[1.06] tracking-[-0.02em] text-ink"
-          >
-            Let&rsquo;s see where your<br />business needs to go.
-          </Reveal>
-          <Reveal as="p" immediate variant="fade-up" delay={120} className="mt-6 max-w-[34rem] text-[15px] leading-[1.75] text-ink/70">
-            This is a 30-minute conversation, not a pitch. We listen first. You leave with a clearer picture of your business whether we walk together or not.
-          </Reveal>
-          <Reveal as="p" immediate variant="fade-up" delay={160} className="mt-4 max-w-[34rem] text-[15px] leading-[1.75] text-ink/70">
-            If we are not the right partner, we will tell you, and point you to who is.
-          </Reveal>
-        </div>
-        <Reveal as="div" immediate variant="fade-up" delay={80} className="relative">
-          <EngravedWorld />
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-function EngravedWorld() {
-  return (
-    <img
-      src={heroMountain.url}
-      alt=""
-      aria-hidden="true"
-      className="block w-full h-auto select-none"
-      draggable={false}
-      loading="eager"
-      decoding="async"
-      // @ts-expect-error fetchpriority is a valid HTML attribute
-      fetchpriority="high"
-    />
-  );
-}
-
-
-
-/* -------------------- SECTION 2 - Lead-in line -------------------- */
-function ConversationLead() {
-  return (
-    <section className="bg-paper">
-      <div className={`${container} pt-14 pb-8 lg:pt-16 lg:pb-10`}>
-        <Reveal
-          as="div"
-          variant="fade-up"
-          className="mx-auto flex max-w-[60ch] items-start justify-center gap-4"
-        >
-          <span
-            aria-hidden="true"
-            className="mt-[2px] inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border"
-            style={{ borderColor: "rgba(37,99,255,0.35)" }}
-          >
-            <ClockGlyph />
-          </span>
-          <p className="text-[14.5px] leading-[1.8] text-ink/75">
-            <span className="font-medium text-ink">One 30-minute conversation.</span>
-            <br />
-            No slides, no pitch, no obligation.
-          </p>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-function ClockGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.2} strokeLinecap="round">
-        <circle cx={12} cy={12} r={8} />
-        <path d="M 12 7 L 12 12 L 16 14" />
-      </g>
-    </svg>
-  );
-}
-
-/* -------------------- SECTION 3 - Immersive intake -------------------- */
-const CONTACT_EMAIL = "tai@trusttai.com";
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const URL_RE = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const REFLECT_MIN = 25;
-const REFLECT_DEBOUNCE_MS = 2200;
-const REFLECT_TIMEOUT_MS = 12000;
-const STORAGE_KEY = "tt:intake:token:v1";
-const PATH_D = "M22,64 C 200,30 300,82 400,52 S 560,24 658,34";
-
-function getBezierPoint(
-  t: number,
-  p0: { x: number; y: number },
-  p1: { x: number; y: number },
-  p2: { x: number; y: number },
-  p3: { x: number; y: number },
-) {
-  const u = 1 - t;
-  const u2 = u * u;
-  const u3 = u2 * u;
-  const t2 = t * t;
-  const t3 = t2 * t;
-  return {
-    x: u3 * p0.x + 3 * u2 * t * p1.x + 3 * u * t2 * p2.x + t3 * p3.x,
-    y: u3 * p0.y + 3 * u2 * t * p1.y + 3 * u * t2 * p2.y + t3 * p3.y,
-  };
-}
-
-const SEG1: [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }] = [
-  { x: 22, y: 64 },
-  { x: 200, y: 30 },
-  { x: 300, y: 82 },
-  { x: 400, y: 52 },
-];
-const SEG2: [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }] = [
-  { x: 400, y: 52 },
-  { x: 500, y: 22 },
-  { x: 560, y: 24 },
-  { x: 658, y: 34 },
-];
-
-function pointOnPath(t: number) {
-  if (t <= 0.5) {
-    return getBezierPoint(t * 2, SEG1[0], SEG1[1], SEG1[2], SEG1[3]);
-  }
-  return getBezierPoint((t - 0.5) * 2, SEG2[0], SEG2[1], SEG2[2], SEG2[3]);
-}
-
-
-// Lightweight analytics shim — fires to GTM dataLayer and gtag if present,
-// and always emits a CustomEvent so other listeners (Plausible, Segment shim,
-// tests) can subscribe without coupling to a vendor.
-type TrackPayload = Record<string, string | number | boolean | null | undefined>;
-function track(event: string, payload: TrackPayload = {}) {
-  if (typeof window === "undefined") return;
-  const data = { event, ...payload, ts: Date.now() };
-  try {
-    const w = window as unknown as {
-      dataLayer?: Array<Record<string, unknown>>;
-      gtag?: (...args: unknown[]) => void;
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read_failed"));
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      resolve(result.slice(result.indexOf(",") + 1));
     };
-    if (Array.isArray(w.dataLayer)) w.dataLayer.push(data);
-    if (typeof w.gtag === "function") w.gtag("event", event, payload);
-    window.dispatchEvent(new CustomEvent("tt:analytics", { detail: data }));
-  } catch {
-    /* analytics must never break the form */
-  }
+    reader.readAsDataURL(file);
+  });
 }
 
-type IntakeQuestion = {
-  key: string;
-  eyebrow: string;
-  before: string;
-  accent: string;
-  after: string;
-  helper: string;
-  placeholder?: string;
-  optional?: boolean;
-};
+function BuildMyRoadmap() {
+  const start = useServerFn(startIntakeSession);
+  const load = useServerFn(loadIntakeSession);
+  const save = useServerFn(saveIntakeProgress);
+  const transcribe = useServerFn(transcribeIntakeVoiceAnswer);
+  const complete = useServerFn(completeIntakeSession);
 
-const QUESTIONS: IntakeQuestion[] = [
-  {
-    key: "current_state",
-    eyebrow: "01 / where you are",
-    before: "Tell us what you have built. ",
-    accent: "What is the business today, in your words",
-    after: "?",
-    helper: "Start anywhere. What do you do, who do you serve, and how does the business run right now?",
-  },
-  {
-    key: "the_weight",
-    eyebrow: "02 / the weight",
-    before: "What feels heavier than it should? ",
-    accent: "What keeps showing up no matter how many times you work around it",
-    after: "?",
-    helper: "This could be a system, a decision, a bottleneck, a team issue, a client experience, or something you keep carrying yourself.",
-  },
-  {
-    key: "point_b",
-    eyebrow: "03 / where you need to be",
-    before: "Where do you need the business to be in 24 months? ",
-    accent: "What would be different if it finally worked the way it should",
-    after: "?",
-    helper: "Think in outcomes. Time, clients, team, delivery, money, freedom, quality, or calm.",
-  },
-  {
-    key: "practical",
-    eyebrow: "04 / the first move",
-    before: "What would need to change first? ",
-    accent: "What is the move you already suspect matters most",
-    after: "?",
-    helper: "You do not need the full answer. Name the place your attention keeps returning to.",
-  },
-  {
-    key: "why_now",
-    optional: true,
-    eyebrow: "05 / why now",
-    before: "What brought you here now? ",
-    accent: "What made today the day to put this on paper",
-    after: "?",
-    helper: "A moment, a frustration, a new opportunity, a deadline, or a quiet feeling that something needs to change.",
-  },
-  {
-    key: "what_didnt_hold",
-    optional: true,
-    eyebrow: "06 / what did not hold",
-    before: "What have you already tried? ",
-    accent: "What looked like it would fix things, but did not hold",
-    after: "?",
-    helper: "Websites, tools, hires, automations, agencies, consultants, internal systems, or your own workarounds.",
-  },
-  {
-    key: "unbuilt_asset",
-    optional: true,
-    eyebrow: "07 / what you already have",
-    before: "",
-    accent: "What does the business already have that you have not fully built on",
-    after: "? A relationship base, a body of data, a credential you could issue, a position you already hold.",
-    helper: "Something already true about the business that could become far more than it is today. The Roadmap builds from what is real, it does not erase it.",
-  },
-  {
-    key: "point_c",
-    optional: true,
-    eyebrow: "08 / if it could not fail",
-    before: "If this could not fail, what would you finally build? ",
-    accent: "What would you stop postponing",
-    after: "?",
-    helper: "Say the version you usually edit down.",
-  },
-];
-
-const TOTAL_STEPS = 9; // 8 questions + 1 reply-details step (used for the 0N of 09 counter)
-const REQUIRED_KEYS = QUESTIONS.filter((q) => !q.optional).map((q) => q.key);
-
-
-type AnswerRecord = { response: string; reflected_offered: string | null };
-type AttachmentRecord = {
-  storage_path: string;
-  filename: string;
-  size: number;
-  mime: string | null;
-};
-type ContactState = {
-  name: string;
-  business: string;
-  website: string;
-  email: string;
-  role: string;
-  timeline: string;
-  decision_makers: string;
-  reply_preference: "" | "email" | "call" | "either";
-};
-type SubmitStatus = "idle" | "submitting" | "error";
-type ContactErrors = { name?: string; email?: string; business?: string; website?: string };
-
-function IntakeExperience({ open, intakeRef, onExit }: { open: boolean; intakeRef: React.RefObject<HTMLDivElement | null>; onExit?: () => void }) {
-  // step semantics:
-  //   -1            intro
-  //    0..7         questions 01..08
-  //    QCOUNT       reply details (step 09)
-  //    QCOUNT + 1   review
-  //    QCOUNT + 2   consent
-  //    QCOUNT + 3   confirmation (sent)
-  const [step, setStep] = React.useState<number>(-1);
-  const [answers, setAnswers] = React.useState<Record<string, AnswerRecord>>({});
-  const [reflections, setReflections] = React.useState<Record<string, { state: "idle" | "loading" | "ready" | "error"; text: string }>>({});
-  const [contact, setContact] = React.useState<ContactState>({
-    name: "", business: "", website: "", email: "",
-    role: "", timeline: "", decision_makers: "", reply_preference: "",
-  });
-  const [consent, setConsent] = React.useState<boolean>(false);
-  const [authorizesScan, setAuthorizesScan] = React.useState<boolean>(false);
-  const [contactErrors, setContactErrors] = React.useState<ContactErrors>({});
-  const [status, setStatus] = React.useState<SubmitStatus>("idle");
-  const [hydrated, setHydrated] = React.useState(false);
+  const [phase, setPhase] = React.useState<Phase>("intro");
   const [resumeToken, setResumeToken] = React.useState<string | null>(null);
-  const [resumeNote, setResumeNote] = React.useState<{ kind: "sent" | "saved" | "error"; text: string } | null>(null);
-  const [autosaveError, setAutosaveError] = React.useState<boolean>(false);
-  const [savingResume, setSavingResume] = React.useState<boolean>(false);
-  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [lastSavedAt, setLastSavedAt] = React.useState<number | null>(null);
-  const [furthestStep, setFurthestStep] = React.useState<number>(-1);
-  const [attachments, setAttachments] = React.useState<AttachmentRecord[]>([]);
+  const [answers, setAnswers] = React.useState<VerbatimAnswer[]>([]);
+  const [skipped, setSkipped] = React.useState<IntakeObjectiveKey[]>([]);
+  const [followUpsAsked, setFollowUpsAsked] = React.useState<FollowUpKey[]>([]);
+  const [draft, setDraft] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [transcribing, setTranscribing] = React.useState(false);
+  const [resuming, setResuming] = React.useState(false);
+  const [wrapUp, setWrapUp] = React.useState(false);
 
-  const lastSubmitPayload = React.useRef<Record<string, unknown> | null>(null);
+  const [name, setName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [company, setCompany] = React.useState("");
+  const [website, setWebsite] = React.useState("");
+  const [contactOk, setContactOk] = React.useState(true);
 
-  const total = QUESTIONS.length;
-  const requiredAnsweredCount = React.useMemo(
-    () => REQUIRED_KEYS.filter((k) => (answers[k]?.response ?? "").trim().length > 0).length,
-    [answers],
-  );
-  const progress = step < 0 ? 0 : Math.min(1, requiredAnsweredCount / REQUIRED_KEYS.length);
-
-  // Hydrate from URL ?draft= or localStorage token on mount
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const url = new URL(window.location.href);
-        let token = url.searchParams.get("draft");
-        if (!token) {
-          try { token = window.localStorage.getItem(STORAGE_KEY); } catch { /* noop */ }
-        }
-        if (token && UUID_RE.test(token)) {
-          const mod = await import("@/lib/intake.functions");
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const res = await mod.loadDraft({ data: { resume_token: token } } as any);
-          if (cancelled) return;
-          if (res?.found) {
-            const rebuilt: Record<string, AnswerRecord> = {};
-            for (const a of res.answers ?? []) {
-              if (a && typeof a.key === "string") {
-                rebuilt[a.key] = {
-                  response: String(a.response ?? ""),
-                  reflected_offered: a.reflected_offered == null ? null : String(a.reflected_offered),
-                };
-              }
-            }
-            setAnswers(rebuilt);
-            const c = res.contact ?? {};
-            setContact((p) => ({
-              ...p,
-              name: String(c.name ?? p.name ?? ""),
-              business: String(c.business ?? p.business ?? ""),
-              website: String(c.website ?? p.website ?? ""),
-              email: String(c.email ?? p.email ?? ""),
-              role: String(c.role ?? p.role ?? ""),
-              timeline: String(c.timeline ?? p.timeline ?? ""),
-              decision_makers: String(c.decision_makers ?? p.decision_makers ?? ""),
-              reply_preference: ((["email", "call", "either"] as const).includes(String(c.reply_preference ?? "") as never)
-                ? (String(c.reply_preference) as ContactState["reply_preference"])
-                : p.reply_preference) ,
-            }));
-            setResumeToken(token);
-            if (Array.isArray(res.attachments)) {
-              setAttachments(
-                res.attachments.map((a) => ({
-                  storage_path: String(a.storage_path ?? ""),
-                  filename: String(a.filename ?? ""),
-                  size: Number(a.size ?? 0),
-                  mime: a.mime == null ? null : String(a.mime),
-                })),
-              );
-            }
-            // Do NOT advance step here. Begin must remain an explicit user click.
-            // The intro screen (step === -1) stays until the user presses Begin.
-            try { window.localStorage.setItem(STORAGE_KEY, token); } catch { /* noop */ }
-            // Ensure ?draft= is on the URL for shareability
-            if (!url.searchParams.get("draft")) {
-              url.searchParams.set("draft", token);
-              window.history.replaceState({}, "", url.toString());
-            }
-            track("intake_draft_resumed", { resume_token: token, answers_count: Object.keys(rebuilt).length });
-          } else {
-            // stale token, drop it
-            try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
-          }
-        }
-      } catch (err) {
-        console.warn("[intake] could not restore draft", err);
-      } finally {
-        if (!cancelled) setHydrated(true);
-      }
-    })();
-    return () => { cancelled = true; };
+    recordFirstTouch();
   }, []);
 
-  // Debounced server-side autosave through save-draft. Browser never writes to the table.
-  const saveTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const inflightSave = React.useRef<Promise<void> | null>(null);
+  const state: ConversationState = React.useMemo(
+    () => ({ answers, skipped, followUpsAsked }),
+    [answers, skipped, followUpsAsked],
+  );
+  const step = React.useMemo(() => nextStep(state), [state]);
+  const coverage = React.useMemo(() => objectiveCoverage(state), [state]);
+  const progress = React.useMemo(() => completeness(state), [state]);
+  const offerExit = React.useMemo(() => canOfferEarlyExit(state), [state]);
+
+  // Resume anything left behind in this browser.
   React.useEffect(() => {
-    if (!hydrated || typeof window === "undefined") return;
-    if (step >= total + 3) return;
-    const hasAny =
-      Object.values(answers).some((a) => (a?.response ?? "").trim().length > 0) ||
-      contact.name.trim() || contact.email.trim() || contact.website.trim() || contact.business.trim();
-    if (!hasAny) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      const payload = {
-        resume_token: resumeToken ?? undefined,
-        answers: QUESTIONS.map((q) => ({
-          key: q.key,
-          question: `${q.before}${q.accent}${q.after}`,
-          response: (answers[q.key]?.response ?? "").trim(),
-          reflected_offered: answers[q.key]?.reflected_offered ?? null,
-        })).filter((a) => a.response.length > 0),
-        contact,
-      };
-      setSaveState("saving");
-      inflightSave.current = (async () => {
-        try {
-          const mod = await import("@/lib/intake.functions");
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const res = await mod.saveDraft({ data: payload } as any);
-          if (res?.resume_token && res.resume_token !== resumeToken) {
-            setResumeToken(res.resume_token);
-            try { window.localStorage.setItem(STORAGE_KEY, res.resume_token); } catch { /* noop */ }
-            try {
-              const url = new URL(window.location.href);
-              url.searchParams.set("draft", res.resume_token);
-              window.history.replaceState({}, "", url.toString());
-            } catch { /* noop */ }
-          }
-          setAutosaveError(false);
-          setSaveState("saved");
-          setLastSavedAt(Date.now());
-          track("intake_draft_saved", { resume_token: res?.resume_token ?? null, answers_count: payload.answers.length });
-        } catch (err) {
-          console.warn("[intake] autosave failed (non-blocking)", err);
-          setAutosaveError(true);
-          setSaveState("error");
-          track("intake_draft_save_failed", { resume_token: resumeToken });
-        }
-      })();
-    }, 900);
-
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [answers, contact, resumeToken, hydrated, step, total]);
-
-  const clearDraft = () => {
     if (typeof window === "undefined") return;
-    try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("draft");
-      window.history.replaceState({}, "", url.toString());
-    } catch { /* noop */ }
-  };
-
-  const onAnswerChange = (key: string, value: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [key]: { response: value, reflected_offered: prev[key]?.reflected_offered ?? null },
-    }));
-    // Optimistic indicator: show "Saving…" as soon as the user types,
-    // before the debounce window even starts.
-    setSaveState((s) => (s === "error" ? s : "saving"));
-  };
-
-  // Track the furthest step the user has reached, so the journey dots
-  // know which milestones are visited (and therefore clickable).
-  React.useEffect(() => {
-    if (step > furthestStep) setFurthestStep(step);
-  }, [step, furthestStep]);
-
-  // Milestone states for the journey path: answered / skipped / current / future.
-  // Nine dots total — the eight questions plus the reply-details step.
-  const milestoneStates = React.useMemo<MilestoneState[]>(() => {
-    const qs: MilestoneState[] = QUESTIONS.map((q, i) => {
-      if (step === i) return "current";
-      const filled = (answers[q.key]?.response ?? "").trim().length > 0;
-      if (filled) return "answered";
-      if (i <= furthestStep && q.optional) return "skipped";
-      if (i < furthestStep) return "answered"; // visited but somehow empty required — treat as reached
-      return "future";
-    });
-    // Reply-details dot
-    const replyHasAll =
-      contact.name.trim() && contact.email.trim() && EMAIL_RE.test(contact.email.trim()) && contact.business.trim();
-    let replyState: MilestoneState = "future";
-    if (step === total) replyState = "current";
-    else if (step > total) replyState = replyHasAll ? "answered" : "skipped";
-    else if (furthestStep >= total) replyState = replyHasAll ? "answered" : "skipped";
-    return [...qs, replyState];
-  }, [answers, step, furthestStep, contact, total]);
-
-  // (Scroll-into-view removed — intake now mounts inside a full-screen overlay
-  // that owns the viewport, so there is nothing on the page to scroll to.)
-
-
-
-
-  // Reflection debouncing per-question (with timeout + abort)
-  // Reflection lock: never mutate the displayed mirror while the founder
-  // is actively typing. We track the last keystroke time per question and
-  // defer both the "refining" state and the final text swap until the
-  // founder has been idle for REFLECT_LOCK_MS.
-  const REFLECT_LOCK_MS = 500;
-  const reflectTimers = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
-  const reflectAborts = React.useRef<Record<string, AbortController | undefined>>({});
-  const lastKeystrokeAt = React.useRef<Record<string, number>>({});
-  const commitTimers = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
-  // Track the last response value we actually fetched a reflection for, per
-  // question. Without this, any setAnswers call from inside the effect (e.g.
-  // committing `reflected_offered`) re-triggers the effect, restamps
-  // lastKeystrokeAt, and fires another fetch — an infinite token burn.
-  const lastFetchedFor = React.useRef<Record<string, string>>({});
-  React.useEffect(() => {
-    if (step < 0 || step >= total) return;
-    const q = QUESTIONS[step];
-    const value = answers[q.key]?.response ?? "";
-    const trimmed = value.trim();
-
-    // If the response text hasn't changed since the last run, this effect was
-    // triggered by something else (e.g. reflected_offered being stored). Do
-    // nothing — no keystroke stamp, no fetch, no "refining" flicker.
-    if (lastFetchedFor.current[q.key] === trimmed) return;
-
-    // Mark this keystroke; any pending commit will wait for the lock window.
-    lastKeystrokeAt.current[q.key] = Date.now();
-
-
-    const existing = reflectTimers.current[q.key];
-    if (existing) clearTimeout(existing);
-    const pendingCommit = commitTimers.current[q.key];
-    if (pendingCommit) clearTimeout(pendingCommit);
-    reflectAborts.current[q.key]?.abort();
-
-    if (trimmed.length < REFLECT_MIN) {
-      // Below the threshold: clear to idle so the placeholder shows again.
-      setReflections((prev) => {
-        if (!prev[q.key] || (prev[q.key]?.state === "idle" && !prev[q.key]?.text)) return prev;
-        return { ...prev, [q.key]: { state: "idle", text: "" } };
-      });
-      return;
-    }
-
-    const key = q.key;
-    const commitState = (next: { state: "idle" | "loading" | "ready" | "error"; text: string }) => {
-      const elapsed = Date.now() - (lastKeystrokeAt.current[key] ?? 0);
-      if (elapsed < REFLECT_LOCK_MS) {
-        const existingCommit = commitTimers.current[key];
-        if (existingCommit) clearTimeout(existingCommit);
-        commitTimers.current[key] = setTimeout(() => commitState(next), REFLECT_LOCK_MS - elapsed);
-        return;
-      }
-      setReflections((prev) => ({ ...prev, [key]: next }));
-    };
-
-    // Reflection requires a live intake draft (resume_token) so the paid AI
-    // endpoint can verify a real session server-side. Autosave creates it
-    // shortly after the first keystroke; skip until then.
-    if (!resumeToken) return;
-
-    reflectTimers.current[q.key] = setTimeout(async () => {
-      // Remember which value we're fetching for so the effect doesn't re-fire
-      // when setAnswers writes reflected_offered back into state.
-      lastFetchedFor.current[q.key] = trimmed;
-      const ctrl = new AbortController();
-      reflectAborts.current[q.key] = ctrl;
-      const to = setTimeout(() => ctrl.abort(), REFLECT_TIMEOUT_MS);
-
-      // Stale-while-revalidate: keep previous text visible, only flip state to "loading"
-      // — and only once the founder has actually paused (lock window).
-      commitState({ state: "loading", text: reflections[q.key]?.text ?? "" });
+    const token = window.localStorage.getItem(RESUME_KEY);
+    if (!token) return;
+    setResuming(true);
+    void (async () => {
       try {
-        const mod = await import("@/lib/intake.functions");
-        const res = await mod.reflectAnswer({
-          data: {
-            resume_token: resumeToken ?? "",
-            question: `${q.before}${q.accent}${q.after}`,
-            answer: trimmed,
-          },
-          signal: ctrl.signal,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any);
-        const text = (res?.text ?? "").trim();
-        if (!text) {
-          // No new mirror — preserve any previous one instead of blanking.
-          const prevText = reflections[q.key]?.text ?? "";
-          commitState({ state: prevText ? "ready" : "idle", text: prevText });
+        const session = (await load({ data: { resumeToken: token } })) as Awaited<
+          ReturnType<typeof loadIntakeSession>
+        >;
+        if (!session || session.status === "completed") {
+          window.localStorage.removeItem(RESUME_KEY);
           return;
         }
-        commitState({ state: "ready", text });
-        // Only stash reflected_offered once the new mirror is actually committed.
-        const commitAnswer = () => {
-          const elapsed = Date.now() - (lastKeystrokeAt.current[key] ?? 0);
-          if (elapsed < REFLECT_LOCK_MS) {
-            setTimeout(commitAnswer, REFLECT_LOCK_MS - elapsed);
-            return;
-          }
-          setAnswers((prev) => ({
-            ...prev,
-            [key]: { response: prev[key]?.response ?? trimmed, reflected_offered: text },
-          }));
-        };
-        commitAnswer();
-      } catch (err) {
-        if ((err as { name?: string })?.name === "AbortError") return;
-        console.warn("[intake] reflect failed (non-blocking)", err);
-        // Keep the last good mirror visible; just mark error state.
-        commitState({ state: "error", text: reflections[q.key]?.text ?? "" });
+        setResumeToken(token);
+        setAnswers(session.verbatim as VerbatimAnswer[]);
+        setSkipped(session.skipped as IntakeObjectiveKey[]);
+        setFollowUpsAsked(session.followUpsAsked as FollowUpKey[]);
+        setName((session.person as { name?: string | null })?.name ?? "");
+        setEmail((session.person as { email?: string | null })?.email ?? "");
+        if ((session.verbatim as VerbatimAnswer[]).length > 0) setPhase("conversation");
+      } catch {
+        window.localStorage.removeItem(RESUME_KEY);
       } finally {
-        clearTimeout(to);
+        setResuming(false);
       }
-    }, REFLECT_DEBOUNCE_MS);
-
-
-    return () => {
-      const t = reflectTimers.current[q.key];
-      if (t) clearTimeout(t);
-      const c = commitTimers.current[q.key];
-      if (c) clearTimeout(c);
-    };
-  }, [step, answers, total]);
-
-
-  const useReflectedWords = (key: string) => {
-    const text = reflections[key]?.text ?? "";
-    if (!text) return;
-    setAnswers((prev) => ({
-      ...prev,
-      [key]: { response: text, reflected_offered: text },
-    }));
-  };
-
-  const STEP_REPLY = total;       // 8 → step 09 (reply details)
-  const STEP_REVIEW = total + 1;  // 9
-  const STEP_CONSENT = total + 2; // 10
-  const STEP_SENT = total + 3;    // 11
-
-  const advance = () => {
-    if (step >= 0 && step < total) {
-      const q = QUESTIONS[step];
-      const filled = (answers[q.key]?.response ?? "").trim().length > 0;
-      track("intake_question_advanced", {
-        key: q.key,
-        index: step + 1,
-        optional: !!q.optional,
-        skipped: !!q.optional && !filled,
-        characters: (answers[q.key]?.response ?? "").length,
-      });
-    }
-    if (step < STEP_REPLY) setStep(step + 1);
-    else if (step === STEP_REPLY) {
-      const ce = validateContact();
-      setContactErrors(ce);
-      if (Object.keys(ce).length > 0) {
-        track("intake_reply_validation_failed", { fields: Object.keys(ce).join(",") });
-        return;
-      }
-      track("intake_review_reached", {});
-      setStep(STEP_REVIEW);
-    } else if (step === STEP_REVIEW) {
-      setStep(STEP_CONSENT);
-    }
-  };
-  const back = () => {
-    if (step > -1) {
-      track("intake_question_back", { from_index: step + 1 });
-      setStep(step - 1);
-    }
-  };
-
-  const validateContact = (state: ContactState = contact): ContactErrors => {
-    const e: ContactErrors = {};
-    if (!state.name.trim()) e.name = "Please add your name.";
-    const em = state.email.trim();
-    if (!em) e.email = "Please add your email.";
-    else if (!EMAIL_RE.test(em)) e.email = "That email does not look right.";
-    if (!state.business.trim()) e.business = "Please add your business name.";
-    const site = state.website.trim();
-    if (site && !URL_RE.test(site)) e.website = "That URL does not look right.";
-    return e;
-  };
-
-  // Live revalidation after first error appears
-  React.useEffect(() => {
-    if (Object.keys(contactErrors).length === 0) return;
-    setContactErrors(validateContact());
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contact]);
+  }, []);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (status === "submitting") return;
-    const ce = validateContact();
-    setContactErrors(ce);
-    if (Object.keys(ce).length > 0) {
-      track("intake_submit_validation_failed", { fields: Object.keys(ce).join(",") });
-      // Jump back to the reply-details step so the user can fix it.
-      setStep(STEP_REPLY);
-      return;
-    }
-    if (!consent) {
-      track("intake_consent_missing", {});
-      return;
-    }
-
-    setStatus("submitting");
-    const payload = {
-      name: contact.name.trim(),
-      business: contact.business.trim(),
-      website: contact.website.trim(),
-      email: contact.email.trim(),
-      role: contact.role.trim(),
-      timeline: contact.timeline.trim(),
-      decision_makers: contact.decision_makers.trim(),
-      reply_preference: contact.reply_preference,
-      authorizes_scan: authorizesScan,
-      answers: QUESTIONS.map((q) => ({
-        key: q.key,
-        question: `${q.before}${q.accent}${q.after}`,
-        response: (answers[q.key]?.response ?? "").trim(),
-        reflected_offered: answers[q.key]?.reflected_offered ?? null,
-      })).filter((a) => a.response.length > 0),
-      resume_token: resumeToken ?? undefined,
+  const ensureSession = React.useCallback(async () => {
+    if (resumeToken) return resumeToken;
+    const created = (await start({ data: { attribution: readAttribution() } })) as {
+      resumeToken: string;
     };
-    lastSubmitPayload.current = payload;
-    track("intake_submit_started", { answers_count: payload.answers.length, resume_token: resumeToken });
-
+    setResumeToken(created.resumeToken);
     try {
-      const mod = await import("@/lib/intake.functions");
-      // Ensure any pending autosave settles first so the server has the latest draft state.
-      if (inflightSave.current) {
-        try { await inflightSave.current; } catch { /* ignore */ }
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await mod.submitIntake({ data: payload } as any);
-      clearDraft();
-      setResumeToken(null);
-      setStep(STEP_SENT);
-      setStatus("idle");
-      track("intake_submit_success", { answers_count: payload.answers.length });
-    } catch (err) {
-      console.error("[intake] submit failed", err);
-      setStatus("error");
-      track("intake_submit_failed", { message: (err as Error)?.message?.slice(0, 200) ?? "" });
+      window.localStorage.setItem(RESUME_KEY, created.resumeToken);
+    } catch {
+      /* private browsing — resume simply won't be available */
     }
-  };
+    return created.resumeToken;
+  }, [resumeToken, start]);
 
-  const onRetrySubmit = () => {
-    // Re-fires from the latest captured form state. Answers stay in React state, so nothing is lost.
-    const fakeEvent = { preventDefault: () => {} } as unknown as React.FormEvent;
-    track("intake_submit_retry", {});
-    void onSubmit(fakeEvent);
-  };
+  const persist = React.useCallback(
+    async (next: {
+      verbatim: VerbatimAnswer[];
+      skipped: IntakeObjectiveKey[];
+      followUpsAsked: FollowUpKey[];
+    }) => {
+      const token = await ensureSession();
+      await save({
+        data: {
+          resumeToken: token,
+          verbatim: next.verbatim,
+          skipped: next.skipped,
+          followUpsAsked: next.followUpsAsked,
+        },
+      });
+    },
+    [ensureSession, save],
+  );
 
-  const onSaveAndComeBack = async () => {
-    if (typeof window === "undefined") return;
-    if (savingResume) return;
-    setSavingResume(true);
-    setResumeNote(null);
-    const email = contact.email.trim();
-    let token = resumeToken;
+  const currentPrompt =
+    step.kind === "contact"
+      ? CONTACT_PROMPT
+      : step.kind === "followup"
+        ? step.prompt
+        : step.prompt;
+
+  const recordAnswer = React.useCallback(
+    async (text: string, modality: "text" | "voice", mediaRef?: string | null) => {
+      if (step.kind === "contact") return;
+      const key =
+        step.kind === "followup"
+          ? (`${step.forKey}__followup_${step.key}` as VerbatimAnswer["key"])
+          : step.key;
+      const answer: VerbatimAnswer = {
+        key,
+        question: currentPrompt,
+        answer: text,
+        modality,
+        media_ref: mediaRef ?? null,
+        answered_at: new Date().toISOString(),
+      };
+      const nextAnswers = [...answers, answer];
+      const nextFollowUps =
+        step.kind === "followup" ? [...followUpsAsked, step.key] : followUpsAsked;
+      setAnswers(nextAnswers);
+      setFollowUpsAsked(nextFollowUps);
+      setDraft("");
+      await persist({ verbatim: nextAnswers, skipped, followUpsAsked: nextFollowUps });
+    },
+    [answers, currentPrompt, followUpsAsked, persist, skipped, step],
+  );
+
+  async function handleSend() {
+    const text = draft.trim();
+    if (!text) return;
+    setBusy(true);
     try {
-      if (inflightSave.current) {
-        try { await inflightSave.current; } catch { /* ignore */ }
-      }
-      if (!token) {
-        const mod = await import("@/lib/intake.functions");
-        const payload = {
-          answers: QUESTIONS.map((q) => ({
-            key: q.key,
-            question: `${q.before}${q.accent}${q.after}`,
-            response: (answers[q.key]?.response ?? "").trim(),
-            reflected_offered: answers[q.key]?.reflected_offered ?? null,
-          })).filter((a) => a.response.length > 0),
-          contact,
-        };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const res = await mod.saveDraft({ data: payload } as any);
-        token = res?.resume_token ?? null;
-        if (token) {
-          setResumeToken(token);
-          try { window.localStorage.setItem(STORAGE_KEY, token); } catch { /* noop */ }
-          const url = new URL(window.location.href);
-          url.searchParams.set("draft", token);
-          window.history.replaceState({}, "", url.toString());
-        }
-      }
-      if (!token) {
-        setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page." });
-        return;
-      }
-      const url = new URL(window.location.href);
-      url.searchParams.set("draft", token);
-      const resumeUrl = url.toString();
-      if (email && EMAIL_RE.test(email)) {
-        const mod = await import("@/lib/intake.functions");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await mod.sendResumeLink({ data: { resume_token: token, email, resume_url: resumeUrl, name: contact.name.trim() } } as any);
-        setResumeNote({ kind: "sent", text: `saved. a continue link is on its way to ${email}.` });
-        toast.success("Continue link sent", {
-          description: `A private link to ${email}.\n${resumeUrl}`,
-        });
-        track("intake_resume_link_sent", { resume_token: token });
-      } else {
-        let copied = false;
-        try {
-          if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(resumeUrl);
-            copied = true;
-          }
-        } catch { /* ignore clipboard failure */ }
-        setResumeNote({
-          kind: "saved",
-          text: copied
-            ? "saved. your private link is copied to the clipboard. paste it somewhere safe, or add your email above to have it sent."
-            : "saved. this page URL is now your private link. bookmark it, or add your email above to have it sent.",
-        });
-        if (copied) {
-          toast.success("Private link copied", {
-            description: resumeUrl,
-          });
-        } else {
-          toast.success("Private link saved", {
-            description: `Copy this URL to return:\n${resumeUrl}`,
-          });
-        }
-        track("intake_draft_saved_manual", { resume_token: token, link_copied: copied });
-      }
-    } catch (err) {
-      console.warn("[intake] save and come back failed", err);
-      setResumeNote({ kind: "error", text: "we could not save just yet. your words are still on this page. try again, or copy this page URL to come back to." });
-      track("intake_save_and_come_back_failed", { message: (err as Error)?.message?.slice(0, 200) ?? "" });
+      await recordAnswer(text, "text");
+    } catch {
+      toast.error("That didn't save. Try once more.");
     } finally {
-      setSavingResume(false);
+      setBusy(false);
     }
-  };
+  }
 
+  async function handleSkip() {
+    if (step.kind === "contact") return;
+    setBusy(true);
+    try {
+      if (step.kind === "followup") {
+        const nextFollowUps = [...followUpsAsked, step.key];
+        setFollowUpsAsked(nextFollowUps);
+        await persist({ verbatim: answers, skipped, followUpsAsked: nextFollowUps });
+      } else {
+        const nextSkipped = [...skipped, step.key];
+        setSkipped(nextSkipped);
+        await persist({ verbatim: answers, skipped: nextSkipped, followUpsAsked });
+      }
+      setDraft("");
+    } finally {
+      setBusy(false);
+    }
+  }
 
-  const currentQuestion = step >= 0 && step < total ? QUESTIONS[step] : null;
-  const currentAnswerValue = currentQuestion ? answers[currentQuestion.key]?.response ?? "" : "";
-  const currentReflection = currentQuestion ? reflections[currentQuestion.key] : undefined;
+  async function handleVoice(file: File) {
+    if (step.kind === "contact") return;
+    setTranscribing(true);
+    try {
+      const token = await ensureSession();
+      const base64 = await fileToBase64(file);
+      const key = step.kind === "followup" ? step.forKey : step.key;
+      const result = (await transcribe({
+        data: { resumeToken: token, questionKey: key, mimeType: file.type || "audio/webm", base64 },
+      })) as { transcript: string; mediaRef: string };
+      await recordAnswer(result.transcript, "voice", result.mediaRef);
+    } catch {
+      toast.error("I couldn't hear that clearly. Try again, or type it instead.");
+    } finally {
+      setTranscribing(false);
+    }
+  }
 
-  if (!open) return null;
+  async function handleFinish() {
+    if (!email.trim()) {
+      toast.error("An email address is the one thing I need.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const token = await ensureSession();
+      await complete({
+        data: {
+          resumeToken: token,
+          person: {
+            name: name.trim() || null,
+            email: email.trim(),
+            phone: null,
+            role: null,
+          },
+          company: { name: company.trim() || null, website: website.trim() || null },
+          consent: {
+            contact_ok: contactOk,
+            marketing_ok: false,
+            agreed_at: new Date().toISOString(),
+          },
+        },
+      });
+      try {
+        window.localStorage.removeItem(RESUME_KEY);
+      } catch {
+        /* ignore */
+      }
+      setPhase("done");
+    } catch {
+      toast.error("Something went wrong sending that. Try again in a moment.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
-  const saveLabel =
-    saveState === "saving"
-      ? "Saving\u2026"
-      : saveState === "saved"
-        ? "All changes saved"
-        : saveState === "error"
-          ? "Save paused"
-          : null;
-
-  const savedTooltip = lastSavedAt ? `Saved ${formatRelativeTime(lastSavedAt)}` : undefined;
+  const answeredCount = answers.filter((a) => !a.key.includes("__followup_")).length;
 
   return (
-    <section
-      id="intake"
-      ref={intakeRef}
-      className="relative"
-    >
-      {/* Room header — Trust Tai mark / autosave status / exit */}
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-ink/8 pb-4">
-        <div className="flex items-center gap-4">
-          <img
-            src={trustTaiLogoDark.url}
-            alt="Trust Tai"
-            className="h-7 w-auto sm:h-8 transition-opacity duration-200 hover:opacity-90"
-          />
-        </div>
-        <div className="flex shrink-0 items-center gap-4 sm:gap-6">
-          {saveLabel && (
-            <span
-              aria-live="polite"
-              title={saveState === "saved" ? savedTooltip : undefined}
-              className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.04em] text-ink/60"
-            >
-              {saveState === "saving" ? (
-                <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin text-ink/45" />
-              ) : saveState === "error" ? (
-                <span aria-hidden="true" className="inline-block h-[7px] w-[7px] rounded-full bg-[#B91C1C]/70" />
-              ) : (
-                <span
-                  aria-hidden="true"
-                  className="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full"
-                  style={{ backgroundColor: "rgba(16,150,90,0.10)" }}
-                >
-                  <Check className="h-3 w-3" style={{ color: "#10965A" }} />
-                </span>
-              )}
-              <span className="hidden sm:inline">{saveLabel}</span>
-            </span>
-          )}
-          {onExit && (
-            <>
-              <span aria-hidden="true" className="hidden h-[3px] w-[3px] rounded-full bg-[#B91C1C]/30 sm:inline-block" />
+    <div className="min-h-screen bg-cream text-ink">
+      <SiteHeader />
+
+      <main>
+        {phase === "intro" && (
+          <section className="mx-auto max-w-3xl px-6 pb-24 pt-16 md:pt-24">
+            <Reveal>
+              <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
+                Build my roadmap
+              </p>
+              <h1 className="mt-4 font-display text-4xl leading-[1.1] md:text-6xl">
+                Tell me about your business.
+              </h1>
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink/75">
+                This is a conversation, not a form. One question at a time, in plain
+                language. Type or speak — whichever is easier. Skip anything you'd
+                rather not answer. It takes about fifteen minutes, and you can stop
+                and come back.
+              </p>
               <button
                 type="button"
-                onClick={onExit}
-                className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] transition-colors"
-                style={{ color: "#B91C1C" }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "#7F1D1D"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "#B91C1C"; }}
+                disabled={resuming}
+                onClick={() => setPhase("conversation")}
+                className="mt-10 inline-flex items-center gap-2 rounded-full bg-ink px-7 py-4 text-sm uppercase tracking-[0.18em] text-cream transition hover:bg-royal disabled:opacity-60"
               >
-                <LogOut aria-hidden="true" className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-[2px]" />
-                <span className="hidden sm:inline">Exit and return home</span>
+                {answeredCount > 0 ? "Pick up where we left off" : "Start the conversation"}
+                <ArrowRight className="h-4 w-4" />
               </button>
-            </>
-          )}
-        </div>
-      </header>
-
-
-
-      <div className="pt-4 lg:pt-5">
-        {/* Section eyebrow above the journey dots */}
-        <p className="mb-3 text-center font-mono text-[10.5px] uppercase tracking-[0.32em] text-ink/55">
-          Roadmap intake
-        </p>
-        {/* Journey path */}
-        <JourneyPath
-          step={step}
-          progress={step >= STEP_REVIEW ? 1 : progress}
-          milestoneStates={milestoneStates}
-          milestoneLabels={[
-            ...QUESTIONS.map((q) => q.eyebrow.split("/").slice(1).join("/").trim() || q.key),
-            "reply details",
-          ]}
-          furthestStep={furthestStep}
-          onJump={(i) => {
-            // i is 0..total. Dots 0..total-1 are questions; dot at index total is reply details.
-            const target = i <= total ? i : total;
-            // Only allow jumping to a milestone the user has visited.
-            if (target > Math.max(furthestStep, step)) return;
-            track("intake_dot_jump", { to: target });
-            setStep(target);
-          }}
-          atReview={step >= STEP_REVIEW}
-        />
-        {/* Quiet phase line under the path — reads as understanding, not a counter. */}
-        {step >= 0 && step < STEP_REVIEW && (
-          <p className="mx-auto mt-4 max-w-[520px] text-center font-display italic text-[13px] leading-[1.65] text-ink/50">
-            {progress < 0.5 ? "We are finding your starting point" : "Mapping where you need to be"}
-          </p>
+            </Reveal>
+            <img
+              src={heroMountain.src}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="mt-16 w-full rounded-lg opacity-90"
+            />
+          </section>
         )}
 
-
-
-        <div className="mx-auto mt-6 max-w-[820px]">
-          {step === -1 && (
-            <IntakeIntro onBegin={() => { track("intake_started", {}); setStep(0); }} />
-          )}
-
-          {currentQuestion && (
-            <QuestionPanel
-              q={currentQuestion}
-              index={step}
-              total={total}
-              value={currentAnswerValue}
-              onChange={(v) => onAnswerChange(currentQuestion.key, v)}
-              reflection={currentReflection}
-              onUseReflected={() => useReflectedWords(currentQuestion.key)}
-              onBack={step > 0 ? back : undefined}
-              onNext={advance}
-            />
-          )}
-
-          {step === STEP_REPLY && (
-            <ReplyDetailsStep
-              contact={contact}
-              setContact={(updater) => {
-                setContact(updater);
-                setSaveState((s) => (s === "error" ? s : "saving"));
-              }}
-              errors={contactErrors}
-              onBack={() => setStep(total - 1)}
-              onNext={advance}
-            />
-          )}
-
-          {step === STEP_REVIEW && (
-            <ReviewStep
-              answers={answers}
-              contact={contact}
-              attachments={attachments}
-              setAttachments={setAttachments}
-              resumeToken={resumeToken}
-              ensureResumeToken={async () => {
-                if (resumeToken) return resumeToken;
-                // Autosave normally creates a token; when nothing has autosaved
-                // (e.g. user reaches review without any content), force a save.
-                if (inflightSave.current) await inflightSave.current;
-                if (resumeToken) return resumeToken;
-                const mod = await import("@/lib/intake.functions");
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const res = await mod.saveDraft({
-                  data: {
-                    answers: QUESTIONS.map((q) => ({
-                      key: q.key,
-                      question: `${q.before}${q.accent}${q.after}`,
-                      response: (answers[q.key]?.response ?? "").trim(),
-                      reflected_offered: answers[q.key]?.reflected_offered ?? null,
-                    })).filter((a) => a.response.length > 0),
-                    contact,
-                  },
-                } as any);
-                const t = res?.resume_token as string | undefined;
-                if (!t) throw new Error("Could not initialize draft");
-                setResumeToken(t);
-                try { window.localStorage.setItem(STORAGE_KEY, t); } catch { /* noop */ }
-                return t;
-              }}
-              onEdit={(i) => setStep(i)}
-              onEditReply={() => setStep(STEP_REPLY)}
-              onBack={() => setStep(STEP_REPLY)}
-              onNext={() => setStep(STEP_CONSENT)}
-            />
-          )}
-
-          {step === STEP_CONSENT && (
-            <ConsentStep
-              consent={consent}
-              setConsent={setConsent}
-              authorizesScan={authorizesScan}
-              setAuthorizesScan={setAuthorizesScan}
-              website={contact.website}
-              status={status}
-              onBack={() => setStep(STEP_REVIEW)}
-              onSubmit={onSubmit}
-              onRetry={onRetrySubmit}
-            />
-          )}
-
-          {step === STEP_SENT && <IntakeConfirmation />}
-        </div>
-
-        {step >= 0 && step <= STEP_REPLY && (
-          <div className="mx-auto mt-6 max-w-[560px] text-center">
-            <div className="flex items-center justify-center gap-4">
-              <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
-              <button
-                type="button"
-                onClick={onSaveAndComeBack}
-                disabled={savingResume}
-                aria-busy={savingResume}
-                className="group inline-flex items-center gap-2 rounded-full border border-[color:var(--royal,#2563FF)]/25 bg-white/70 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.22em] shadow-[0_1px_0_rgba(37,99,255,0.08)] transition-all hover:border-[color:var(--royal,#2563FF)]/60 hover:bg-white hover:shadow-[0_2px_8px_rgba(37,99,255,0.12)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--royal,#2563FF)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ color: ROYAL }}
-              >
-                {savingResume ? (
-                  <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Bookmark aria-hidden="true" className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-px" />
-                )}
-                <span>{savingResume ? "Saving…" : "Save and come back later"}</span>
-              </button>
-              <span aria-hidden="true" className="h-px w-20 bg-ink/12" />
+        {phase === "conversation" && (
+          <section className="mx-auto max-w-3xl px-6 pb-24 pt-12 md:pt-16">
+            <div className="mb-8">
+              <div className="h-1 w-full overflow-hidden rounded-full bg-ink/10">
+                <div
+                  className="h-full bg-royal transition-all duration-500"
+                  style={{ width: `${Math.max(4, Math.round(progress * 100))}%` }}
+                />
+              </div>
+              <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink/45">
+                {answeredCount === 0 ? "Let's begin" : `${answeredCount} answered`}
+              </p>
             </div>
-            <p className="mt-3 font-mono text-[12px] tracking-[0.02em] text-ink/45">
-              We will save as you go. You will get a private link to return.
-            </p>
 
-            {resumeNote && (
-              <p
-                role={resumeNote.kind === "error" ? "alert" : undefined}
-                className={`mt-3 font-mono text-[11px] normal-case tracking-[0.04em] ${
-                  resumeNote.kind === "error" ? "text-[#B91C1C]" : "text-ink/55"
-                }`}
-              >
-                {resumeNote.text}
-                {resumeNote.kind === "error" && (
-                  <>
-                    {" "}
+            {step.kind === "contact" || wrapUp ? (
+              <ContactBlock
+                name={name}
+                email={email}
+                company={company}
+                website={website}
+                contactOk={contactOk}
+                busy={busy}
+                onChange={{ setName, setEmail, setCompany, setWebsite, setContactOk }}
+                onFinish={handleFinish}
+              />
+            ) : (
+              <div>
+                <h2 className="font-display text-3xl leading-snug md:text-[2.6rem]">
+                  {currentPrompt}
+                </h2>
+
+                <textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  rows={7}
+                  placeholder="Take your time. There's no right answer."
+                  className="mt-8 w-full resize-y rounded-lg border border-ink/15 bg-white p-5 text-base leading-relaxed text-ink outline-none transition focus:border-royal"
+                />
+
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleSend}
+                    disabled={busy || transcribing || !draft.trim()}
+                    className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm uppercase tracking-[0.16em] text-cream transition hover:bg-royal disabled:opacity-40"
+                  >
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                    Continue
+                  </button>
+
+                  <VoiceRecorder disabled={busy || transcribing} onRecorded={handleVoice} />
+                  {transcribing && (
+                    <span className="inline-flex items-center gap-2 text-sm text-ink/60">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Listening back…
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSkip}
+                    disabled={busy || transcribing}
+                    className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-5 py-3 text-sm text-ink/60 transition hover:text-ink disabled:opacity-40"
+                  >
+                    <SkipForward className="h-4 w-4" /> Skip this one
+                  </button>
+                </div>
+
+                {offerExit && (
+                  <div className="mt-10 rounded-lg border border-royal/25 bg-royal/5 p-5">
+                    <p className="text-base text-ink/80">{EARLY_EXIT_PROMPT}</p>
                     <button
                       type="button"
-                      onClick={onSaveAndComeBack}
-                      className="underline decoration-[#B91C1C]/40 underline-offset-[4px] hover:decoration-[#B91C1C]"
+                      onClick={() => setWrapUp(true)}
+                      className="mt-3 inline-flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-royal hover:underline"
                     >
-                      try again
+                      Wrap up here <ArrowRight className="h-4 w-4" />
                     </button>
-                  </>
+                  </div>
                 )}
-              </p>
+
+                {answers.length > 0 && (
+                  <details className="mt-12 border-t border-ink/10 pt-6">
+                    <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.22em] text-ink/45">
+                      What you've told me so far
+                    </summary>
+                    <ul className="mt-5 space-y-5">
+                      {answers.map((a, i) => (
+                        <li key={`${a.key}-${i}`}>
+                          <p className="text-sm text-ink/50">{a.question}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-base text-ink/85">
+                            {a.answer}
+                          </p>
+                          {a.modality === "voice" && (
+                            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/40">
+                              Spoken
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+
+                <p className="sr-only" data-testid="coverage">
+                  {coverage}
+                </p>
+              </div>
             )}
-            {autosaveError && !resumeNote && (
-              <p role="status" className="mt-3 font-mono text-[11px] normal-case tracking-[0.04em] text-ink/45">
-                autosave paused. your words stay on this page. we will retry as you type.
-              </p>
-            )}
-          </div>
+          </section>
         )}
 
-        {/* Quiet bottom note — present across every step except the sent confirmation */}
-        {step !== STEP_SENT && (
-          <p className="mx-auto mt-4 max-w-[640px] text-center font-display italic text-[13px] leading-[1.65] text-ink/55">
-            A person reads every word. This is a note to understand you, not a form to qualify you.
-          </p>
+        {phase === "done" && (
+          <section className="mx-auto max-w-2xl px-6 pb-28 pt-20 text-center">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-royal/10">
+              <Check className="h-6 w-6 text-royal" />
+            </div>
+            <h1 className="mt-8 font-display text-4xl">Thank you. I have it.</h1>
+            <p className="mt-5 text-lg leading-relaxed text-ink/75">
+              I'll read every word of what you wrote, and come back to you at{" "}
+              <span className="text-ink">{email}</span> with what I see. Look out for a
+              short confirmation in your inbox in the meantime.
+            </p>
+          </section>
         )}
-      </div>
-    </section>
-  );
-}
+      </main>
 
-
-type MilestoneState = "answered" | "skipped" | "current" | "future";
-
-function formatRelativeTime(ts: number): string {
-  const diff = Math.max(0, Date.now() - ts);
-  const s = Math.floor(diff / 1000);
-  if (s < 5) return "just now";
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  return `${h}h ago`;
-}
-
-function JourneyPath({
-  step,
-  progress,
-  milestoneStates,
-  milestoneLabels,
-  furthestStep,
-  onJump,
-  atReview,
-}: {
-  step: number;
-  progress: number;
-  milestoneStates: MilestoneState[];
-  milestoneLabels: string[];
-  furthestStep: number;
-  onJump: (i: number) => void;
-  atReview: boolean;
-}) {
-  const reduce = usePrefersReducedMotion();
-  const STOPS = milestoneStates.length;
-  // Build a cumulative arc-length table so the drawn line ends exactly on each milestone dot.
-  const arc = React.useMemo(() => {
-    const N = 240;
-    const cum: number[] = [0];
-    let total = 0;
-    let prev = pointOnPath(0);
-    for (let i = 1; i <= N; i++) {
-      const p = pointOnPath(i / N);
-      total += Math.hypot(p.x - prev.x, p.y - prev.y);
-      cum.push(total);
-      prev = p;
-    }
-    return { cum, total, N };
-  }, []);
-  const lengthAt = React.useCallback(
-    (t: number) => {
-      const clamped = Math.max(0, Math.min(1, t));
-      const idx = clamped * arc.N;
-      const lo = Math.floor(idx);
-      const hi = Math.min(arc.N, lo + 1);
-      const f = idx - lo;
-      return arc.cum[lo] + (arc.cum[hi] - arc.cum[lo]) * f;
-    },
-    [arc],
-  );
-  const LENGTH = arc.total;
-  // Line tracks the active dot, not answered-required count.
-  const lineT = atReview ? 1 : step <= 0 ? 0 : Math.min(1, step / (STOPS - 1));
-  const drawn = lengthAt(lineT);
-  const offset = reduce ? 0 : LENGTH - drawn;
-  const points = Array.from({ length: STOPS }, (_, i) => pointOnPath(i / (STOPS - 1)));
-  const bg = "oklch(0.97 0.02 255)";
-  const pct = Math.round(progress * 100);
-
-
-  // Active label tracks the currently focused milestone — past, current, skipped, or review.
-  const activeLabel = React.useMemo(() => {
-    if (step < 0) return "begin";
-    if (atReview || step >= STOPS) return "review";
-    return milestoneLabels[step] ?? "";
-  }, [step, atReview, STOPS, milestoneLabels]);
-  const rightLabel = atReview ? "review" : "point B";
-
-  return (
-    <div className="mx-auto w-full max-w-[620px]">
-      <style>{`
-        .jp-dot { transition: transform 220ms cubic-bezier(0.22,1,0.36,1); transform-box: fill-box; transform-origin: center; outline: none; }
-        .jp-dot[data-jumpable="true"]:hover, .jp-dot[data-jumpable="true"]:focus-visible { transform: scale(1.18); }
-        .jp-hover-ring { opacity: 0; transition: opacity 220ms ease; pointer-events: none; }
-        .jp-dot[data-jumpable="true"]:hover .jp-hover-ring,
-        .jp-dot[data-jumpable="true"]:focus-visible .jp-hover-ring { opacity: 0.55; }
-        @keyframes jpActivePop { 0% { transform: scale(0.55); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes jpActiveBreathe { 0%, 100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.06); opacity: 0.75; } }
-        .jp-active-ring { transform-box: fill-box; transform-origin: center; animation: jpActivePop 420ms cubic-bezier(0.22,1,0.36,1) both, jpActiveBreathe 2.4s ease-in-out 420ms infinite; }
-        .jp-active-core { transform-box: fill-box; transform-origin: center; animation: jpActivePop 360ms cubic-bezier(0.22,1,0.36,1) both; }
-        @media (prefers-reduced-motion: reduce) {
-          .jp-dot, .jp-hover-ring, .jp-active-ring, .jp-active-core { transition: none !important; animation: none !important; }
-        }
-        .jp-label { transition: color 220ms ease; }
-        .jp-label-anim { animation: jpLabelIn 360ms cubic-bezier(0.22,1,0.36,1) both; display: inline-block; }
-        @keyframes jpLabelIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
-      <svg viewBox="0 0 680 100" className="block h-[64px] w-full">
-        <defs>
-          <filter id="intake-glow" x="-20%" y="-50%" width="140%" height="200%">
-            <feGaussianBlur stdDeviation="2.4" />
-          </filter>
-        </defs>
-        <path d={PATH_D} fill="none" stroke="rgba(10,15,31,0.28)" strokeWidth={1} strokeDasharray="2 5" />
-        {!reduce && (
-          <path
-            d={PATH_D}
-            fill="none"
-            stroke={ROYAL}
-            strokeOpacity={0.22}
-            strokeWidth={4}
-            strokeLinecap="round"
-            strokeDasharray={LENGTH}
-            strokeDashoffset={offset}
-            filter="url(#intake-glow)"
-            style={{ transition: "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
-          />
-        )}
-        <path
-          d={PATH_D}
-          fill="none"
-          stroke={ROYAL}
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeDasharray={LENGTH}
-          strokeDashoffset={offset}
-          style={{ transition: reduce ? "none" : "stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1)" }}
-        />
-        {points.map((p, i) => {
-          const state = milestoneStates[i];
-          const isCurrent = state === "current";
-          const isAnswered = state === "answered";
-          const isSkipped = state === "skipped";
-          const canJump = i <= Math.max(furthestStep, step);
-          return (
-            <g
-              key={i}
-              className="jp-dot"
-              data-jumpable={canJump ? "true" : "false"}
-              transform={`translate(${p.x},${p.y})`}
-              role={canJump ? "button" : undefined}
-              tabIndex={canJump ? 0 : -1}
-              aria-label={canJump ? `Go to ${milestoneLabels[i] ?? `question ${i + 1}`}` : undefined}
-              style={{ cursor: canJump ? "pointer" : "default" }}
-              onClick={() => { if (canJump) onJump(i); }}
-              onKeyDown={(e) => {
-                if (!canJump) return;
-                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onJump(i); }
-              }}
-            >
-              {/* Generous transparent hit target */}
-              <circle r={14} fill="transparent" />
-              {/* Hover/focus ring */}
-              <circle className="jp-hover-ring" r={11} fill="none" stroke={ROYAL} strokeWidth={1} />
-              {isCurrent ? (
-                <g key={`active-${step}`}>
-                  <circle className="jp-active-ring" r={8} fill="none" stroke={ROYAL} strokeWidth={1.75} />
-                  <circle className="jp-active-core" r={4} fill={ROYAL} />
-                </g>
-              ) : isAnswered ? (
-                <circle r={4.5} fill={ROYAL} />
-              ) : isSkipped ? (
-                <circle r={4.5} fill={bg} stroke={ROYAL} strokeOpacity={0.55} strokeWidth={1.25} />
-              ) : (
-                <circle r={4.5} fill={bg} stroke="rgba(10,15,31,0.22)" strokeWidth={1} />
-              )}
-            </g>
-          );
-        })}
-        {/* Trailing review marker at the very end of the path */}
-        {(() => {
-          const end = pointOnPath(1);
-          const filled = atReview;
-          return (
-            <g transform={`translate(${end.x + 14},${end.y})`}>
-              {filled ? (
-                <g key="review-active">
-                  <circle className="jp-active-ring" r={8} fill="none" stroke={ROYAL} strokeWidth={1.75} />
-                  <circle className="jp-active-core" r={4} fill={ROYAL} />
-                </g>
-              ) : (
-                <circle r={5.5} fill={bg} stroke={ROYAL} strokeOpacity={0.55} strokeWidth={1.25} />
-              )}
-            </g>
-          );
-        })()}
-
-      </svg>
-      <div className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.32em]">
-        <span className="jp-label text-ink/70">
-          <span key={`label-${step}-${atReview ? "r" : "q"}`} className="jp-label-anim">{activeLabel}</span>
-        </span>
-        <span className="inline-flex items-center gap-2 text-ink/45">
-          <span className="rounded-full bg-ink/5 px-2 py-[3px] tracking-[0.22em] text-ink/65">{pct}%</span>
-          <span aria-hidden="true" className="text-ink/25">·</span>
-          <span key={`right-${atReview ? "r" : "q"}`} className="jp-label-anim">{rightLabel}</span>
-        </span>
-      </div>
-
+      <SiteFooter />
     </div>
   );
 }
 
-
-
-function usePrefersReducedMotion() {
-  const [reduce, setReduce] = React.useState(false);
-  React.useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduce(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setReduce(e.matches);
-    mq.addEventListener?.("change", handler);
-    return () => mq.removeEventListener?.("change", handler);
-  }, []);
-  return reduce;
-}
-
-function IntakeIntro({ onBegin }: { onBegin: () => void }) {
+function ContactBlock(props: {
+  name: string;
+  email: string;
+  company: string;
+  website: string;
+  contactOk: boolean;
+  busy: boolean;
+  onChange: {
+    setName: (v: string) => void;
+    setEmail: (v: string) => void;
+    setCompany: (v: string) => void;
+    setWebsite: (v: string) => void;
+    setContactOk: (v: boolean) => void;
+  };
+  onFinish: () => void;
+}) {
+  const { onChange } = props;
   return (
-    <div className="text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
-        the intake
+    <div>
+      <h2 className="font-display text-3xl leading-snug md:text-[2.6rem]">{CONTACT_PROMPT}</h2>
+      <p className="mt-4 text-base text-ink/65">
+        Just enough to reach you. Nothing more.
       </p>
-      <h2 className="mt-5 font-display text-[clamp(1.8rem,3vw,2.3rem)] leading-[1.15] tracking-[-0.018em] text-ink">
-        Four questions are enough to begin.<br />
-        <em className="italic font-normal" style={{ color: ROYAL }}>Four more help us see deeper.</em>
-      </h2>
-      <p className="mx-auto mt-6 max-w-[52ch] text-[14.5px] leading-[1.8] text-ink/70">
-        You write, you review, you send. A person reads it next.
-      </p>
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <Field label="Your name" value={props.name} onChange={onChange.setName} />
+        <Field
+          label="Email"
+          type="email"
+          required
+          value={props.email}
+          onChange={onChange.setEmail}
+        />
+        <Field label="Business name" value={props.company} onChange={onChange.setCompany} />
+        <Field label="Website" value={props.website} onChange={onChange.setWebsite} />
+      </div>
+
+      <label className="mt-6 flex items-start gap-3 text-sm text-ink/70">
+        <input
+          type="checkbox"
+          checked={props.contactOk}
+          onChange={(e) => onChange.setContactOk(e.target.checked)}
+          className="mt-1"
+        />
+        You can reply to me about what I shared here.
+      </label>
+
       <button
         type="button"
-        onClick={onBegin}
-        className="group mt-10 inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
+        onClick={props.onFinish}
+        disabled={props.busy}
+        className="mt-8 inline-flex items-center gap-2 rounded-full bg-ink px-7 py-4 text-sm uppercase tracking-[0.16em] text-cream transition hover:bg-royal disabled:opacity-50"
       >
-        <span>Begin</span>
-        <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+        {props.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+        Send it to Tai
       </button>
     </div>
   );
 }
 
-function QuestionPanel({
-  q,
-  index,
-  total,
-  value,
-  onChange,
-  reflection,
-  onUseReflected,
-  onBack,
-  onNext,
-}: {
-  q: IntakeQuestion;
-  index: number;
-  total: number;
-  value: string;
-  onChange: (v: string) => void;
-  reflection?: { state: "idle" | "loading" | "ready" | "error"; text: string };
-  onUseReflected: () => void;
-  onBack?: () => void;
-  onNext: () => void;
-}) {
-  const isOptional = !!q.optional;
-  const hasText = value.trim().length > 0;
-  const canAdvance = isOptional || hasText;
-  // Spec: Continue when there is text, Skip when optional and empty. Never "Review".
-  const primaryLabel = isOptional && !hasText ? "Skip" : "Continue";
-  const [touched, setTouched] = React.useState(false);
-  // Reset touched as the user moves between steps
-  React.useEffect(() => { setTouched(false); }, [q.key]);
-  const showRequiredHint = !isOptional && !hasText && touched;
-  // Parse the eyebrow ("01 / where you are") so we can render only the section label —
-  // the numeric prefix is dropped in favour of quiet phase language.
-  const eyebrowTail = q.eyebrow.split(" / ").slice(1).join(" / ");
-  // Phase language lives under the Point A → Point B path (rendered by the
-  // parent), not here. Nothing counter-shaped appears above the question.
-
-
-  const hasMirror = !!reflection?.text;
-  const isLoading = reflection?.state === "loading";
-  const isError = reflection?.state === "error";
-  // Editorial cross-fade: hold the previous mirror, dim out briefly, swap the
-  // text once it is off-screen, then ease the new line back in. Respects
-  // prefers-reduced-motion via the wrapper's motion-safe utilities.
-  const incoming = reflection?.text ?? "";
-  const [displayedText, setDisplayedText] = React.useState(incoming);
-  const [textOpacity, setTextOpacity] = React.useState(1);
-  React.useEffect(() => {
-    if (incoming === displayedText) return;
-    // If we have no current text, just set it without a fade (first paint).
-    if (!displayedText) {
-      setDisplayedText(incoming);
-      setTextOpacity(1);
-      return;
-    }
-    setTextOpacity(0);
-    const swap = setTimeout(() => setDisplayedText(incoming), 220);
-    const settle = setTimeout(() => setTextOpacity(1), 360);
-    return () => {
-      clearTimeout(swap);
-      clearTimeout(settle);
-    };
-  }, [incoming, displayedText]);
-
-  const charLimit = 2000;
-  const charCount = value.length;
-
-  return (
-    <div>
-      {/* Centered eyebrow: hairline · section label (· optional) · hairline */}
-      <div className="flex items-center justify-center gap-3">
-        <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.36em] text-ink/60">
-          {eyebrowTail && <span>{eyebrowTail}</span>}
-          {isOptional && (
-            <span className="ml-3 inline-flex items-center rounded-full border border-ink/15 px-2 py-[3px] font-mono text-[10px] normal-case tracking-[0.22em] text-ink/55">optional</span>
-          )}
-        </p>
-        <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
-      </div>
-
-
-
-
-      <h2 className="mx-auto mt-6 max-w-[760px] text-center font-display text-[clamp(1.55rem,2.4vw,1.95rem)] leading-[1.3] tracking-[-0.015em] text-ink">
-        {q.before}
-        <em className="italic font-normal" style={{ color: ROYAL }}>{q.accent}</em>
-        {q.after}
-      </h2>
-
-      {q.helper && (
-        <p className="mx-auto mt-4 max-w-[60ch] text-center text-[14px] leading-[1.7] text-ink/55">
-          {q.helper}
-        </p>
-      )}
-
-      {/* Writing surface — layered shadow, ring focus, refined */}
-      <div className="relative mt-8">
-        <textarea
-          id={`intake-${q.key}`}
-          name={q.key}
-          aria-label={q.accent}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={() => setTouched(true)}
-          rows={6}
-          maxLength={charLimit}
-          placeholder={q.placeholder}
-          aria-invalid={showRequiredHint}
-          aria-describedby={showRequiredHint ? `${q.key}-hint` : undefined}
-          className={`peer w-full resize-none rounded-[20px] border bg-white px-6 py-5 pb-10 text-[16px] leading-[1.75] text-ink outline-none transition-all duration-200 placeholder:text-ink/35 focus:border-[rgba(37,99,255,0.35)] focus:ring-2 focus:ring-[rgba(37,99,255,0.18)] ${showRequiredHint ? "border-[#B91C1C]/60" : "border-ink/8"}`}
-          style={{
-            boxShadow:
-              "inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(10,15,31,0.04), 0 18px 40px -28px rgba(10,15,31,0.18)",
-          }}
-          autoFocus
-        />
-        {charCount > 200 && (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute bottom-3 right-4 rounded-full bg-ink/5 px-2 py-[3px] font-mono text-[10.5px] tracking-[0.04em] text-ink/45"
-          >
-            {charCount}/{charLimit}
-          </span>
-        )}
-      </div>
-      {showRequiredHint && (
-        <p id={`${q.key}-hint`} className="mt-2 font-mono text-[11px] normal-case tracking-[0.04em] text-[#B91C1C]">
-          this one is required. a sentence or two is plenty.
-        </p>
-      )}
-
-      {/* Reflection — ivory note with royal top accent */}
-      <div
-        className="relative mt-6 overflow-hidden rounded-[20px] border border-t-2 px-6 py-6 transition-opacity duration-300"
-        style={{
-          backgroundColor: "rgba(255,253,247,0.85)",
-          borderColor: "rgba(10,15,31,0.08)",
-          borderTopColor: "rgba(37,99,255,0.38)",
-          minHeight: 132,
-          opacity: isLoading && hasMirror ? 0.94 : 1,
-        }}
-        aria-live="polite"
-      >
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1 select-none font-display text-[64px] leading-none"
-          style={{ color: ROYAL, opacity: 0.14, fontStyle: "italic" }}
-        >
-          &ldquo;
-        </span>
-        <div className="relative flex items-start justify-between gap-4">
-          <span className="font-mono text-[10.5px] uppercase tracking-[0.26em]" style={{ color: ROYAL }}>
-            A clearer version, if it helps
-          </span>
-          {isLoading && (
-            <span className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/55">
-              <span
-                aria-hidden="true"
-                className="inline-block h-[6px] w-[6px] rounded-full motion-safe:animate-pulse"
-                style={{ backgroundColor: ROYAL }}
-              />
-              refining
-            </span>
-          )}
-        </div>
-
-        {hasMirror ? (
-          <div className="relative mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-            <p
-              className="font-display italic text-[16.5px] leading-[1.75] motion-safe:transition-opacity motion-safe:duration-[420ms] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
-              style={{ color: "rgba(10,15,31,0.82)", opacity: textOpacity }}
-            >
-              {displayedText}
-            </p>
-            <div className="flex shrink-0 items-center gap-3">
-              <button
-                type="button"
-                onClick={onUseReflected}
-                className="inline-flex items-center rounded-full px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.22em] text-paper transition-all duration-200 hover:-translate-y-[1px]"
-                style={{
-                  backgroundColor: ROYAL,
-                  boxShadow: "0 8px 20px -10px rgba(37,99,255,0.55)",
-                }}
-              >
-                Use these words
-              </button>
-              {isError && (
-                <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/50">
-                  couldn&rsquo;t refine just now
-                </span>
-              )}
-            </div>
-          </div>
-        ) : (
-          <p className="relative mt-3 font-display italic text-[15px] leading-[1.7] text-ink/45">
-            {isLoading
-              ? "Reading what you just wrote\u2026"
-              : isError
-                ? "We couldn\u2019t read that back. Your words are fine as written."
-                : "A clearer version will appear here once you pause. Write the way you talk."}
-          </p>
-        )}
-      </div>
-
-
-      {/* Action row — Back outlined pill / Continue solid navy pill */}
-      <div className="mt-8 flex items-center justify-between">
-        {onBack ? (
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink"
-          >
-            <ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />
-            <span>Back</span>
-          </button>
-        ) : <span />}
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!canAdvance}
-          className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-        >
-          <span>{primaryLabel}</span>
-          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-
-
-/* -------------------- REPLY DETAILS (step 09) -------------------- */
-function ReplyDetailsStep({
-  contact,
-  setContact,
-  errors,
-  onBack,
-  onNext,
-}: {
-  contact: ContactState;
-  setContact: React.Dispatch<React.SetStateAction<ContactState>>;
-  errors: ContactErrors;
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div>
-      {/* Counter + eyebrow */}
-      <div className="flex items-center justify-center gap-3">
-        <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.36em] text-ink/60">
-          09 of 09 · reply details
-        </p>
-        <span aria-hidden="true" className="h-px w-6 bg-ink/15" />
-      </div>
-
-      <h2 className="mx-auto mt-6 max-w-[760px] text-center font-display text-[clamp(1.55rem,2.4vw,1.95rem)] leading-[1.3] tracking-[-0.015em] text-ink">
-        Where should we send the reply?
-      </h2>
-      <p className="mx-auto mt-4 max-w-[60ch] text-center text-[14.5px] leading-[1.75] text-ink/65">
-        A few details so a real person can read this in context and respond properly.
-      </p>
-
-      <form
-        onSubmit={(e) => { e.preventDefault(); onNext(); }}
-        noValidate
-        className="mt-10"
-      >
-        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2">
-          <UnderlineField
-            label="Your name"
-            value={contact.name}
-            onChange={(v) => setContact((p) => ({ ...p, name: v }))}
-            error={errors.name}
-            required
-            autoComplete="name"
-          />
-          <UnderlineField
-            label="Email"
-            type="email"
-            value={contact.email}
-            onChange={(v) => setContact((p) => ({ ...p, email: v }))}
-            error={errors.email}
-            required
-            autoComplete="email"
-          />
-          <UnderlineField
-            label="Business name"
-            value={contact.business}
-            onChange={(v) => setContact((p) => ({ ...p, business: v }))}
-            error={errors.business}
-            required
-            autoComplete="organization"
-          />
-          <div>
-            <UnderlineField
-              label="Website"
-              value={contact.website}
-              onChange={(v) => setContact((p) => ({ ...p, website: v }))}
-              placeholder="https://"
-              autoComplete="url"
-              error={errors.website}
-            />
-            {contact.website.trim() && !errors.website && (
-              <p className="mt-2 font-mono text-[11px] normal-case tracking-[0.04em] text-ink/50">
-                You are welcome to look at our site before we talk.
-              </p>
-            )}
-          </div>
-          <UnderlineField
-            label="Your role"
-            value={contact.role}
-            onChange={(v) => setContact((p) => ({ ...p, role: v }))}
-            placeholder="Founder, CEO, Operator, Creative Director..."
-          />
-          <UnderlineField
-            label="Timeline you are working toward"
-            value={contact.timeline}
-            onChange={(v) => setContact((p) => ({ ...p, timeline: v }))}
-            placeholder="No rush, this quarter, next 90 days, before a launch..."
-          />
-          <div className="sm:col-span-2">
-            <UnderlineField
-              label="Anyone else part of this decision?"
-              value={contact.decision_makers}
-              onChange={(v) => setContact((p) => ({ ...p, decision_makers: v }))}
-              placeholder="Co-founder, spouse, partner, leadership team, no one else..."
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <span className="block font-mono text-[10.5px] uppercase tracking-[0.24em] text-ink/55">
-              Best way to reply
-            </span>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {([
-                { value: "email", label: "Email" },
-                { value: "call", label: "Schedule a call" },
-                { value: "either", label: "Either is fine" },
-              ] as const).map((opt) => {
-                const selected = contact.reply_preference === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() =>
-                      setContact((p) => ({
-                        ...p,
-                        reply_preference: selected ? "" : opt.value,
-                      }))
-                    }
-                    className={`inline-flex items-center rounded-full border px-4 py-2 text-[12.5px] tracking-[0.02em] transition-colors ${
-                      selected
-                        ? "border-[color:var(--royal,#2563FF)] bg-[rgba(37,99,255,0.06)] text-ink"
-                        : "border-ink/15 bg-white/60 text-ink/70 hover:border-ink/35 hover:text-ink"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-10 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink"
-          >
-            <ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />
-            <span>Back</span>
-          </button>
-          <button
-            type="submit"
-            className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
-          >
-            <span>Review my note</span>
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-/* -------------------- REVIEW SCREEN -------------------- */
-function ReviewStep({
-  answers,
-  contact,
-  attachments,
-  setAttachments,
-  resumeToken,
-  ensureResumeToken,
-  onEdit,
-  onEditReply,
-  onBack,
-  onNext,
-}: {
-  answers: Record<string, AnswerRecord>;
-  contact: ContactState;
-  attachments: AttachmentRecord[];
-  setAttachments: React.Dispatch<React.SetStateAction<AttachmentRecord[]>>;
-  resumeToken: string | null;
-  ensureResumeToken: () => Promise<string>;
-  onEdit: (i: number) => void;
-  onEditReply: () => void;
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  const replyRows: Array<{ label: string; value: string }> = [
-    { label: "Name", value: contact.name },
-    { label: "Email", value: contact.email },
-    { label: "Business", value: contact.business },
-    { label: "Website", value: contact.website },
-    { label: "Role", value: contact.role },
-    { label: "Timeline", value: contact.timeline },
-    { label: "Decision", value: contact.decision_makers },
-    {
-      label: "Best reply",
-      value:
-        contact.reply_preference === "email"
-          ? "Email"
-          : contact.reply_preference === "call"
-            ? "Schedule a call"
-            : contact.reply_preference === "either"
-              ? "Either is fine"
-              : "",
-    },
-  ];
-  return (
-    <div>
-      <h2 className="mt-2 font-display text-[clamp(1.6rem,2.8vw,2.1rem)] leading-[1.2] tracking-[-0.015em] text-ink">
-        Review your Roadmap note.
-      </h2>
-      <p className="mt-4 max-w-[60ch] text-[14.5px] leading-[1.75] text-ink/65">
-        Nothing has been sent yet. Read it once, adjust anything that needs adjusting, then send it when it feels true enough.
-      </p>
-
-      <ul className="mt-10 divide-y divide-ink/10">
-        {QUESTIONS.map((q, i) => {
-          const a = answers[q.key]?.response?.trim() ?? "";
-          const isSkipped = !!q.optional && a.length === 0;
-          return (
-            <li key={q.key} className="py-6">
-              <div className="flex items-baseline justify-between gap-4">
-                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
-                  {q.eyebrow}
-                  {q.optional && (
-                    <span className="ml-2 rounded-full border border-ink/15 px-2 py-[2px] font-mono text-[9.5px] normal-case tracking-[0.22em] text-ink/50">optional</span>
-                  )}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => onEdit(i)}
-                  className="font-mono text-[11px] uppercase tracking-[0.24em] underline decoration-royal/30 underline-offset-[5px] hover:decoration-royal"
-                  style={{ color: ROYAL }}
-                >
-                  edit
-                </button>
-              </div>
-              <p className="mt-3 font-display text-[15.5px] leading-[1.55] text-ink/85">
-                {q.before}
-                <em className="italic font-normal" style={{ color: ROYAL }}>{q.accent}</em>
-                {q.after}
-              </p>
-              <p className="mt-3 whitespace-pre-wrap text-[14.5px] leading-[1.75] text-ink/75">
-                {isSkipped ? (
-                  <span className="italic text-ink/40">Skipped</span>
-                ) : a ? a : <span className="italic text-ink/40">Skipped</span>}
-              </p>
-            </li>
-          );
-        })}
-
-        <li className="py-6">
-          <div className="flex items-baseline justify-between gap-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
-              09 / reply details
-            </p>
-            <button
-              type="button"
-              onClick={onEditReply}
-              className="font-mono text-[11px] uppercase tracking-[0.24em] underline decoration-royal/30 underline-offset-[5px] hover:decoration-royal"
-              style={{ color: ROYAL }}
-            >
-              edit
-            </button>
-          </div>
-          <dl className="mt-4 grid grid-cols-1 gap-y-2.5 text-[14px] leading-[1.6] sm:grid-cols-[160px_1fr]">
-            {replyRows.map((row) => (
-              <React.Fragment key={row.label}>
-                <dt className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/45">{row.label}</dt>
-                <dd className="text-ink/80">
-                  {row.value.trim() ? row.value : <span className="italic text-ink/40">Skipped</span>}
-                </dd>
-              </React.Fragment>
-            ))}
-          </dl>
-        </li>
-      </ul>
-
-      <AttachmentsPanel
-        attachments={attachments}
-        setAttachments={setAttachments}
-        resumeToken={resumeToken}
-        ensureResumeToken={ensureResumeToken}
-      />
-
-
-
-      <div className="mt-10 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink"
-        >
-          <ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />
-          <span>Back to questions</span>
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
-        >
-          <span>Continue</span>
-          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* -------------------- CONSENT + SUBMIT -------------------- */
-function ConsentStep({
-  consent,
-  setConsent,
-  authorizesScan,
-  setAuthorizesScan,
-  website,
-  status,
-  onBack,
-  onSubmit,
-  onRetry,
-}: {
-  consent: boolean;
-  setConsent: (v: boolean) => void;
-  authorizesScan: boolean;
-  setAuthorizesScan: (v: boolean) => void;
-  website: string;
-  status: SubmitStatus;
-  onBack: () => void;
-  onSubmit: (e: React.FormEvent) => void;
-  onRetry: () => void;
-}) {
-  return (
-    <form onSubmit={onSubmit} noValidate className="mx-auto max-w-[640px]">
-      <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
-        one last thing
-      </p>
-      <h2 className="mt-4 font-display text-[clamp(1.55rem,2.4vw,1.95rem)] leading-[1.25] tracking-[-0.015em] text-ink">
-        Ready when you are.
-      </h2>
-
-      <label className="mt-8 flex items-start gap-3 text-[14px] leading-[1.7] text-ink/75">
-        <input
-          type="checkbox"
-          checked={consent}
-          onChange={(e) => setConsent(e.target.checked)}
-          className="mt-[5px] h-4 w-4 accent-[#2563FF]"
-        />
-        <span>
-          I understand this note will be read by a person at Trust Tai so they can decide whether a 30-minute conversation makes sense.
-        </span>
-      </label>
-
-      {website.trim() && (
-        <label className="mt-4 flex items-start gap-3 text-[14px] leading-[1.7] text-ink/75">
-          <input
-            type="checkbox"
-            checked={authorizesScan}
-            onChange={(e) => setAuthorizesScan(e.target.checked)}
-            className="mt-[5px] h-4 w-4 accent-[#2563FF]"
-          />
-          <span>
-            I authorize Trust Tai to scan my website for additional context before our conversation.
-          </span>
-        </label>
-      )}
-
-      <div className="mt-10 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink"
-        >
-          <ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />
-          <span>Back</span>
-        </button>
-        <button
-          type="submit"
-          disabled={status === "submitting" || !consent}
-          aria-busy={status === "submitting"}
-          className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-        >
-          {status === "submitting" ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              <span>Sending&hellip;</span>
-            </>
-          ) : (
-            <>
-              <span>Send my Roadmap note</span>
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-            </>
-          )}
-        </button>
-      </div>
-
-      <p className="mt-6 text-center font-mono text-[11px] normal-case tracking-[0.04em] text-ink/50">
-        A real person will read this. Not a sequence.
-      </p>
-
-      {status === "error" && (
-        <div
-          role="alert"
-          className="mt-6 rounded-md border border-[#B91C1C]/30 bg-[#B91C1C]/5 p-4 text-[13px] leading-[1.7] text-ink/80"
-        >
-          <p>
-            That did not send. Your words are still here. Try once more, or email{" "}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="underline decoration-ink/30 underline-offset-2 hover:text-ink">
-              {CONTACT_EMAIL}
-            </a>{" "}
-            directly.
-          </p>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="mt-3 inline-flex items-center gap-2 rounded-full border border-ink/25 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-ink hover:border-ink/60"
-          >
-            Try again
-          </button>
-        </div>
-      )}
-    </form>
-  );
-}
-
-function UnderlineField({
-  label,
-  value,
-  onChange,
-  error,
-  type = "text",
-  required,
-  placeholder,
-  autoComplete,
-}: {
+function Field(props: {
   label: string;
   value: string;
   onChange: (v: string) => void;
-  error?: string;
   type?: string;
   required?: boolean;
-  placeholder?: string;
-  autoComplete?: string;
 }) {
   return (
     <label className="block">
-      <span className="block font-mono text-[10.5px] uppercase tracking-[0.24em] text-ink/55">
-        {label}{required && <span className="ml-1" style={{ color: ROYAL }}>*</span>}
+      <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink/45">
+        {props.label}
+        {props.required ? " *" : ""}
       </span>
       <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        aria-invalid={!!error}
-        className={`mt-2 w-full border-0 border-b bg-transparent px-0 py-2 text-[15px] text-ink outline-none transition-colors placeholder:text-ink/30 focus:border-royal ${error ? "border-[#B91C1C]" : "border-ink/25"}`}
+        type={props.type ?? "text"}
+        value={props.value}
+        required={props.required}
+        onChange={(e) => props.onChange(e.target.value)}
+        className="mt-2 w-full rounded-md border border-ink/15 bg-white px-4 py-3 text-base text-ink outline-none transition focus:border-royal"
       />
-      {error && (
-        <span className="mt-1.5 block font-mono text-[11px] normal-case tracking-[0.04em] text-ink/55">
-          {error}
-        </span>
-      )}
     </label>
   );
 }
 
-/* -------------------- CONFIRMATION -------------------- */
-function IntakeConfirmation() {
-  const steps = [
-    "Within one business day, you get one reply. From a person, by name. Not a sequence.",
-    "We read what you sent and tell you honestly whether a 30-minute conversation makes sense. If it does not, we say so.",
-    "If it does, we find a time that works for you. No pressure to decide on the call.",
-  ];
-  return (
-    <div className="text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.28em]" style={{ color: ROYAL }}>
-        YOUR MESSAGE ARRIVED
-      </p>
-      <h2 className="mt-5 font-display text-[clamp(1.9rem,3.2vw,2.5rem)] leading-[1.15] tracking-[-0.018em] text-ink">
-        We have it. Now you can{" "}
-        <em className="italic font-normal" style={{ color: ROYAL }}>put it down</em>.
-      </h2>
-      <p className="mx-auto mt-6 max-w-[52ch] text-[14.5px] leading-[1.8] text-ink/70">
-        Your note is with a person, not a queue. Here is what happens next.
-      </p>
-      <ol className="mx-auto mt-10 max-w-[58ch] space-y-5 text-left">
-        {steps.map((s, i) => (
-          <li key={i} className="flex items-start gap-4">
-            <span
-              className="mt-[2px] inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-[11px]"
-              style={{ borderColor: "rgba(37,99,255,0.35)", color: ROYAL }}
-            >
-              {i + 1}
-            </span>
-            <p className="text-[14.5px] leading-[1.7] text-ink/80">{s}</p>
-          </li>
-        ))}
-      </ol>
-      <p className="mx-auto mt-10 max-w-[52ch] text-[14px] leading-[1.7] text-ink/60">
-        Nothing is needed from you right now. The next move is ours.
-      </p>
-      <a
-        href="/"
-        className="mt-8 inline-flex items-center gap-2 rounded-full border border-ink/25 px-5 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/50 hover:text-ink"
-      >
-        Return to Trust Tai
-      </a>
-    </div>
-  );
-}
-
-/* -------------------- SUCCESS STATE (legacy, unused) -------------------- */
-function SuccessSection() {
-  const steps = [
-    {
-      mark: <SuccessMarkA />,
-      title: "Within one business day, you get one reply.",
-      body: "From a person, by name. Not a sequence.",
-    },
-    {
-      mark: <SuccessMarkB />,
-      title: "We read what you sent and tell you honestly whether a 30-minute conversation makes sense.",
-      body: "If it does not, we say so.",
-    },
-    {
-      mark: <SuccessMarkC />,
-      title: "If it does, we find a time that works for you.",
-      body: "No pressure to decide on the call.",
-    },
-  ];
-  return (
-    <section
-      id="cta"
-      className="relative"
-      style={{ background: "linear-gradient(to right, #F6F9FE, #EEF5FF)" }}
-    >
-      <div className={`${container} grid grid-cols-1 gap-14 py-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:py-28`}>
-        {/* LEFT - confirmation */}
-        <div>
-          <Reveal as="p" variant="fade-up" className="font-mono text-[11px] uppercase tracking-[0.28em]" >
-            <span style={{ color: ROYAL }}>Your message arrived</span>
-          </Reveal>
-          <Reveal
-            as="h2"
-            variant="rise"
-            delay={120}
-            className="mt-5 font-display text-[clamp(2rem,3.6vw,2.8rem)] leading-[1.1] tracking-[-0.018em] text-ink"
-          >
-            We have it.<br />
-            Now you can{" "}
-            <em className="italic font-normal" style={{ color: "oklch(0.55 0.13 75)" }}>
-              put it down
-            </em>
-            .
-          </Reveal>
-          <Reveal as="p" variant="fade-up" delay={220} className="mt-6 max-w-[42ch] text-[14.5px] leading-[1.75] text-ink/70">
-            Your note is with a person, not a queue.<br />
-            Here is what happens next.
-          </Reveal>
-
-          <ol className="mt-10 space-y-7">
-            {steps.map((s, i) => (
-              <Reveal as="li" key={i} variant="fade-up" delay={300 + i * 120} className="flex items-start gap-5">
-                <div className="mt-1 shrink-0">{s.mark}</div>
-                <div>
-                  <p className="text-[14.5px] font-medium leading-[1.55] text-ink">{s.title}</p>
-                  <p className="mt-1.5 max-w-[48ch] text-[13.5px] leading-[1.7] text-ink/60">{s.body}</p>
-                </div>
-              </Reveal>
-            ))}
-          </ol>
-
-          <div className="mt-12 border-t border-ink/10 pt-8">
-            <Reveal as="p" variant="fade-up" delay={700} className="text-[14px] leading-[1.7] text-ink/70">
-              Nothing is needed from you right now.<br />
-              The next move is ours.
-            </Reveal>
-            <Reveal as="p" variant="fade-up" delay={800} className="mt-8 flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.28em] text-ink/45">
-              <LockMark />
-              Complete. We will be in touch.
-            </Reveal>
-          </div>
-        </div>
-
-        {/* RIGHT - reassurance (preserved) */}
-        <div>
-          <Reveal as="h2" variant="fade-up" className="font-display text-[clamp(1.6rem,2.6vw,2rem)] text-ink">
-            Before you wonder.
-          </Reveal>
-          <ul className="mt-8 divide-y divide-ink/10">
-            <ReassureItem
-              mark={<RouteMarkA />}
-              title="You will not be hounded."
-              body="One reply, from a person. If you go quiet, we leave you be."
-            />
-            <ReassureItem
-              mark={<RouteMarkB />}
-              title="You will not be pitched."
-              body="The first conversation has no slides and no close. We listen."
-            />
-            <ReassureItem
-              mark={<RouteMarkC />}
-              title="You will not be the wrong fit in silence."
-              body="If we are not right for you, we say so on the call, and point you somewhere better."
-            />
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* Hairline marks for the success steps - vertical timeline feel */
-function SuccessMarkA() {
-  return (
-    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeLinecap="round">
-        <circle cx={22} cy={10} r={2.4} fill={ROYAL} stroke="none" />
-        <path d="M 22 14 L 22 36" strokeWidth={0.9} strokeDasharray="1.3 4" />
-      </g>
-    </svg>
-  );
-}
-function SuccessMarkB() {
-  return (
-    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeLinecap="round">
-        <path d="M 22 4 L 22 16" strokeWidth={0.9} strokeDasharray="1.3 4" />
-        <circle cx={22} cy={20} r={2.4} fill={ROYAL} stroke="none" />
-        <path d="M 22 24 L 22 40" strokeWidth={0.9} strokeDasharray="1.3 4" />
-      </g>
-    </svg>
-  );
-}
-function SuccessMarkC() {
-  return (
-    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeLinecap="round">
-        <path d="M 22 4 L 22 26" strokeWidth={0.9} strokeDasharray="1.3 4" />
-        <path d="M 14 30 L 30 30" strokeWidth={1} />
-        <path d="M 22 26 L 22 34" strokeWidth={1} />
-        <circle cx={22} cy={30} r={1.8} fill={ROYAL} stroke="none" />
-      </g>
-    </svg>
-  );
-}
-function LockMark() {
-  return (
-    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden="true">
-      <g fill="none" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round">
-        <rect x={3.5} y={7} width={9} height={6.5} rx={1} />
-        <path d="M 5.5 7 L 5.5 5 a 2.5 2.5 0 0 1 5 0 L 10.5 7" />
-      </g>
-    </svg>
-  );
-}
-
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="mb-2 block text-[13px] text-ink/75">{label}</label>
-      {children}
-      {error && <p className="mt-1.5 text-[12px] text-[#B91C1C]">{error}</p>}
-    </div>
-  );
-}
-
-function ReassureItem({
-  mark,
-  title,
-  body,
-}: {
-  mark: React.ReactNode;
-  title: string;
-  body: string;
-}) {
-  return (
-    <li className="flex items-start gap-5 py-6">
-      <div className="mt-1 shrink-0">{mark}</div>
-      <div>
-        <p className="text-[14.5px] font-medium text-ink">{title}</p>
-        <p className="mt-1.5 max-w-[44ch] text-[13.5px] leading-[1.7] text-ink/65">{body}</p>
-      </div>
-    </li>
-  );
-}
-
-/* Hairline route-marks: dotted course + survey tick. No icon glyphs. */
-function RouteMarkA() {
-  // Dotted route arriving at a single waypoint dot
-  return (
-    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeLinecap="round">
-        <path d="M 4 30 C 12 26, 18 22, 26 22" strokeWidth={1} strokeDasharray="1.3 4" />
-        <circle cx={28} cy={22} r={2.4} fill={ROYAL} stroke="none" />
-        <path d="M 28 14 L 28 18" strokeOpacity={0.5} strokeWidth={0.9} />
-      </g>
-    </svg>
-  );
-}
-function RouteMarkB() {
-  // Two waypoints joined by a dotted bearing line
-  return (
-    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeLinecap="round">
-        <circle cx={9} cy={30} r={2.2} fill={ROYAL} stroke="none" />
-        <path d="M 11 28 C 18 22, 24 18, 33 14" strokeWidth={1} strokeDasharray="1.3 4" />
-        <circle cx={34} cy={14} r={2.2} fill={ROYAL} stroke="none" />
-        <path d="M 6 34 L 38 34" strokeOpacity={0.25} strokeWidth={0.8} />
-      </g>
-    </svg>
-  );
-}
-function RouteMarkC() {
-  // Survey tick: hairline rule with three engraved ticks and a center mark
-  return (
-    <svg viewBox="0 0 44 44" className="h-9 w-9" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeLinecap="round">
-        <path d="M 4 24 L 40 24" strokeWidth={1} strokeOpacity={0.5} />
-        <path d="M 10 20 L 10 28" strokeWidth={0.9} strokeOpacity={0.55} />
-        <path d="M 22 16 L 22 32" strokeWidth={1} />
-        <path d="M 34 20 L 34 28" strokeWidth={0.9} strokeOpacity={0.55} />
-        <circle cx={22} cy={24} r={1.8} fill={ROYAL} stroke="none" />
-      </g>
-    </svg>
-  );
-}
-
-
-function CalendarMark() {
-  return (
-    <svg viewBox="0 0 36 36" className="h-8 w-8" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.2} strokeLinecap="round">
-        <rect x={6} y={9} width={24} height={20} rx={2} strokeOpacity={0.55} />
-        <path d="M 6 15 L 30 15" strokeOpacity={0.55} />
-        <path d="M 12 7 L 12 11" />
-        <path d="M 24 7 L 24 11" />
-        <circle cx={18} cy={22} r={1.6} fill={ROYAL} stroke="none" />
-      </g>
-    </svg>
-  );
-}
-
-/* -------------------- SECTION 4 - Fit list -------------------- */
-function FitList() {
-  const fits = [
-    "The business works, but it works because of you.",
-    "You have bought builds before and they did not change how the company runs.",
-    "You want to know what to build next, in what order, and why.",
-  ];
-  const notFits = [
-    "You want the cheapest option.",
-    "You want execution without a map.",
-    "You want it fast more than you want it right.",
-  ];
-  return (
-    <section className="bg-paper">
-      <div className={`${container} py-24 lg:py-28`}>
-        <Reveal
-          as="h2"
-          variant="fade-up"
-          className="text-center font-display text-[clamp(1.6rem,3vw,2.1rem)] text-ink"
-        >
-          This conversation is for founders who&hellip;
-        </Reveal>
-
-        <div className="mx-auto mt-14 grid max-w-[1000px] grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
-          <div>
-            <div className="mb-6 flex items-center gap-3">
-              <CheckMark />
-              <h3 className="font-display text-[1.25rem] text-ink">It fits if:</h3>
-            </div>
-            <ul className="space-y-4">
-              {fits.map((t) => (
-                <li key={t} className="flex items-start gap-3 text-[14px] leading-[1.7] text-ink/75">
-                  <span className="mt-[6px] shrink-0"><CheckMark small /></span>
-                  <span>{t}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="md:border-l md:border-rule md:pl-12">
-            <div className="mb-6 flex items-center gap-3">
-              <CrossMark />
-              <h3 className="font-display text-[1.25rem] text-ink">It does not fit if:</h3>
-            </div>
-            <ul className="space-y-4">
-              {notFits.map((t) => (
-                <li key={t} className="flex items-start gap-3 text-[14px] leading-[1.7] text-ink/75">
-                  <span className="mt-[6px] shrink-0"><CrossMark small /></span>
-                  <span>{t}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <Reveal
-          as="p"
-          variant="fade-up"
-          delay={300}
-          className="mx-auto mt-16 max-w-[60ch] text-center text-[14px] leading-[1.8] text-ink/70"
-        >
-          If that first list sounded like you, the conversation is worth 30 minutes.
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-function CheckMark({ small }: { small?: boolean }) {
-  const s = small ? 16 : 26;
-  return (
-    <svg viewBox="0 0 32 32" width={s} height={s} aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round">
-        {!small && <circle cx={16} cy={16} r={13} strokeOpacity={0.5} />}
-        <path d="M 9 17 L 14 22 L 23 11" />
-      </g>
-    </svg>
-  );
-}
-function CrossMark({ small }: { small?: boolean }) {
-  const s = small ? 16 : 26;
-  return (
-    <svg viewBox="0 0 32 32" width={s} height={s} aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.2} strokeLinecap="round">
-        {!small && <circle cx={16} cy={16} r={13} strokeOpacity={0.5} />}
-        <path d="M 11 11 L 21 21" />
-        <path d="M 21 11 L 11 21" />
-      </g>
-    </svg>
-  );
-}
-
-/* -------------------- SECTION 5 - Close (cream) -------------------- */
-function CloseSection() {
-  return (
-    <section className="relative bg-paper">
-      <div className={`${container} grid grid-cols-1 items-center gap-12 pt-24 pb-28 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-28 lg:pb-36`}>
-        <div className="text-center lg:text-left">
-          <Reveal
-            as="h2"
-            variant="fade-up"
-            className="font-display text-[clamp(1.85rem,3.6vw,2.6rem)] leading-[1.18] tracking-[-0.018em] text-ink"
-          >
-            Where you are is where you are.<br />
-            Where you need to be is{" "}
-            <em className="italic font-normal" style={{ color: "oklch(0.55 0.13 75)" }}>
-              what we map next
-            </em>
-            .
-          </Reveal>
-          <Reveal as="p" variant="fade-up" delay={160} className="mx-auto mt-6 max-w-[52ch] text-[14.5px] leading-[1.8] text-ink/70 lg:mx-0">
-            The first step is small. A conversation. No pitch, no pressure, no obligation. Everything after it is your choice.
-          </Reveal>
-          <Reveal as="div" variant="fade-up" delay={260} className="mt-8">
-            <a
-              href="#doors"
-              className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-[13.5px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(10,15,31,0.45)]"
-            >
-              Start the conversation
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-            </a>
-          </Reveal>
-          <Reveal as="p" variant="fade-up" delay={340} className="mx-auto mt-6 max-w-[52ch] text-[12.5px] italic leading-[1.7] text-ink/55 lg:mx-0">
-            If the timing is right, we should talk. If it is not, the work is waiting when it is.
-          </Reveal>
-        </div>
-        <Reveal as="div" variant="fade-up" delay={200} className="relative">
-          <img
-            src={notebookImg.url}
-            alt="A cream Roadmap journal embossed with the Trust Tai paper-plane mark, beside a navy notebook on a warm desk."
-            className="block h-auto w-full rounded-md object-cover shadow-[0_30px_60px_-30px_rgba(10,15,31,0.25)]"
-            loading="lazy"
-          />
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-/* -------------------- CAL.COM POPUP -------------------- */
-const CAL_LINK = "tai-shobajo-uzxa1b";
-
-function useCalEmbed(calLink: string) {
-  const loadedRef = React.useRef(false);
-
-  const ensureBootstrap = React.useCallback(() => {
-    if (typeof window === "undefined") return false;
-    if (loadedRef.current) return true;
-    // Official Cal.com embed queue bootstrap (loads embed.js lazily).
-    /* eslint-disable */
-    (function (C: any, A: string, L: string) {
-      const p = function (a: any, ar: any) { a.q.push(ar); };
-      const d = C.document;
-      C.Cal = C.Cal || function () {
-        const cal = C.Cal; const ar = arguments;
-        if (!cal.loaded) {
-          cal.ns = {}; cal.q = cal.q || [];
-          d.head.appendChild(d.createElement("script")).src = A;
-          cal.loaded = true;
-        }
-        if (ar[0] === L) {
-          const api: any = function () { p(api, arguments); };
-          const namespace = ar[1];
-          api.q = api.q || [];
-          if (typeof namespace === "string") {
-            cal.ns[namespace] = cal.ns[namespace] || api;
-            p(cal.ns[namespace], ar); p(cal, ["initNamespace", namespace]);
-          } else { p(cal, ar); }
-          return;
-        }
-        p(cal, ar);
-      };
-    })(window as any, "https://app.cal.com/embed/embed.js", "init");
-    /* eslint-enable */
-    loadedRef.current = true;
-    return true;
-  }, []);
-
-  const open = React.useCallback(() => {
-    try {
-      ensureBootstrap();
-      const w = window as unknown as { Cal?: (cmd: string, opts?: unknown) => void };
-      if (!w.Cal) throw new Error("Cal not initialized");
-      w.Cal("init", { origin: "https://cal.com" });
-      w.Cal("modal", { calLink });
-    } catch {
-      if (typeof window !== "undefined") {
-        window.open(`https://cal.com/${calLink}`, "_blank", "noopener,noreferrer");
-      }
-    }
-  }, [calLink, ensureBootstrap]);
-
-  return { open };
-}
-
-/* -------------------- INTAKE OVERLAY -------------------- */
-function IntakeOverlay({
-  open,
-  onClose,
-  children,
-}: {
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  const reduce = usePrefersReducedMotion();
-  const [mounted, setMounted] = React.useState(open);
-  const [visible, setVisible] = React.useState(false);
-
-  React.useEffect(() => {
-    if (open) {
-      setMounted(true);
-      const id = window.requestAnimationFrame(() => setVisible(true));
-      return () => window.cancelAnimationFrame(id);
-    }
-    setVisible(false);
-    const t = window.setTimeout(() => setMounted(false), reduce ? 0 : 260);
-    return () => window.clearTimeout(t);
-  }, [open, reduce]);
-
-  React.useEffect(() => {
-    if (!mounted) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, [mounted]);
-
-  React.useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!mounted || typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Write before we talk"
-      className="fixed inset-0 z-[80] flex min-h-screen items-center justify-center overflow-y-auto px-3 py-4"
-      style={{
-        backgroundColor: "rgba(10,15,31,0.42)",
-        backdropFilter: "blur(12px)",
-        opacity: reduce ? 1 : visible ? 1 : 0,
-        transition: reduce ? "none" : "opacity 320ms cubic-bezier(0.32,0.72,0,1)",
-      }}
-      onMouseDown={(e) => {
-        // Click outside the room closes the overlay (clicks inside the card stop propagation).
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        className="mx-auto w-[min(100%-12px,1140px)]"
-        style={{
-          opacity: reduce ? 1 : visible ? 1 : 0,
-          transform: reduce ? "none" : visible ? "translateY(0)" : "translateY(14px)",
-          transition: reduce
-            ? "none"
-            : "opacity 420ms cubic-bezier(0.32,0.72,0,1) 60ms, transform 420ms cubic-bezier(0.32,0.72,0,1) 60ms",
-        }}
-      >
-        <div
-          className="relative overflow-hidden rounded-[28px] border px-6 py-5 sm:px-10 sm:py-6 lg:px-14 lg:py-8"
-          style={{
-            backgroundColor: "oklch(0.97 0.02 255)",
-            borderColor: "rgba(10,15,31,0.10)",
-            boxShadow:
-              "0 50px 110px -30px rgba(10,15,31,0.55), 0 14px 32px -16px rgba(10,15,31,0.22), inset 0 1px 0 rgba(255,255,255,0.6)",
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          {/* Soft top vignette for depth */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-[220px]"
-            style={{
-              background:
-                "radial-gradient(ellipse 70% 100% at 50% 0%, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)",
-            }}
-          />
-          <div className="relative">{children}</div>
-        </div>
-      </div>
-
-    </div>,
-    document.body,
-  );
-
-}
-
-
-/* -------------------- PAGE -------------------- */
-function BuildMyRoadmapPage() {
-  const [intakeOpen, setIntakeOpen] = React.useState(false);
-  const openerRef = React.useRef<HTMLElement | null>(null);
-  const intakeRef = React.useRef<HTMLDivElement | null>(null);
-  const cal = useCalEmbed(CAL_LINK);
-
-  const openIntake = React.useCallback((opener: HTMLElement | null) => {
-    if (opener) openerRef.current = opener;
-    setIntakeOpen(true);
-    if (typeof window === "undefined") return;
-    const url = new URL(window.location.href);
-    if (url.searchParams.get("write") !== "open") {
-      url.searchParams.set("write", "open");
-      window.history.pushState({}, "", url.toString());
-    }
-  }, []);
-
-  const closeIntake = React.useCallback(() => {
-    setIntakeOpen(false);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      if (url.searchParams.has("write")) {
-        url.searchParams.delete("write");
-        window.history.replaceState({}, "", url.toString());
-      }
-    }
-    const o = openerRef.current;
-    if (o && typeof o.focus === "function") {
-      window.setTimeout(() => o.focus(), 50);
-    }
-  }, []);
-
-  // Initial mount: never auto-open. If the URL still carries ?write=open from a
-  // previous session, strip it silently so a refresh lands on the page, not the overlay.
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const url = new URL(window.location.href);
-      if (url.searchParams.has("write")) {
-        url.searchParams.delete("write");
-        window.history.replaceState({}, "", url.toString());
-      }
-    } catch { /* noop */ }
-  }, []);
-
-  // Browser back syncs to the URL: if ?write=open disappears, close the overlay.
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const onPop = () => {
-      const writeParam = new URL(window.location.href).searchParams.get("write");
-      setIntakeOpen(writeParam === "open");
-    };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-paper">
-      <SiteHeader />
-      <main>
-        <Hero />
-        {/* Reassurance band removed — the hero and the conversation card already carry it. */}
-        <TwoDoors
-          onOpenWriteDoor={openIntake}
-          onOpenCallDoor={cal.open}
-        />
-        <FitList />
-        <CloseSection />
-      </main>
-      <SiteFooter />
-      <IntakeOverlay open={intakeOpen} onClose={closeIntake}>
-        {intakeOpen ? <IntakeExperience open={intakeOpen} intakeRef={intakeRef} onExit={closeIntake} /> : null}
-      </IntakeOverlay>
-    </div>
-  );
-}
-
-
-/* -------------------- TWO DOORS -------------------- */
-function TwoDoors({
-  onOpenWriteDoor,
-  onOpenCallDoor,
-}: {
-  onOpenWriteDoor: (opener: HTMLElement | null) => void;
-  onOpenCallDoor: () => void;
-}) {
-
-  return (
-    <section id="doors" className="scroll-mt-32 bg-paper">
-      <div className={`${container} pb-4 pt-2 lg:pb-6`}>
-        <div
-          className="rounded-2xl border px-6 py-12 lg:px-12 lg:py-16"
-          style={{
-            background: "linear-gradient(to right, #F6F9FE, #EEF5FF)",
-            borderColor: "rgba(37,99,255,0.18)",
-          }}
-        >
-          <div className="grid grid-cols-1 gap-12 lg:grid-cols-[2fr_1fr] lg:gap-16">
-            <div>
-              <div className="flex items-baseline gap-3">
-                <SparkGlyph />
-                <h2 className="font-display text-[clamp(1.4rem,2.4vw,1.85rem)] tracking-[-0.012em] text-ink">
-                  Two ways to begin.
-                </h2>
-              </div>
-              <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
-                Choose what feels easiest right now.
-              </p>
-
-              <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
-                {/* Door 1 - conversation (recommended, unchanged) */}
-                <div
-                  className="relative rounded-xl border-2 bg-white/80 p-7 text-center shadow-[0_20px_50px_-30px_rgba(10,15,31,0.25)]"
-                  style={{ borderColor: ROYAL }}
-                >
-                  <span
-                    className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-md px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-paper"
-                    style={{ backgroundColor: ROYAL }}
-                  >
-                    Recommended
-                  </span>
-                  <div className="mx-auto mt-2 flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: "rgba(37,99,255,0.10)" }}>
-                    <CalendarMark />
-                  </div>
-                  <h3 className="mt-5 font-display text-[1.2rem] text-ink">Start with a conversation.</h3>
-                  <p className="mt-3 text-[13.5px] leading-[1.7] text-ink/70">
-                    Thirty minutes. No pitch.<br />
-                    We listen first, then tell you<br />honestly what we see.
-                  </p>
-                  <ul className="mt-6 space-y-2.5 text-left">
-                    {[
-                      "Live conversation with a person",
-                      "No slides, no pitch deck",
-                      "You leave with clarity either way",
-                    ].map((t) => (
-                      <li key={t} className="flex items-start gap-2.5 text-[13px] leading-[1.6] text-ink/75">
-                        <span className="mt-[5px] shrink-0"><CheckMark small /></span>
-                        <span>{t}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={onOpenCallDoor}
-                    className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-semibold text-paper transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_28px_-12px_rgba(10,15,31,0.45)]"
-                  >
-                    Book a 30-minute call
-                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-                  </button>
-
-                  <p className="mt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
-                    View availability and pick a time
-                  </p>
-                </div>
-
-                {/* Door 2 - write (statement heading + honest bullets) */}
-                <div className="rounded-xl border border-rule bg-white/60 p-7 text-center">
-                  <div className="mx-auto mt-2 flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: "rgba(37,99,255,0.08)" }}>
-                    <PencilGlyph />
-                  </div>
-                  <h3 className="mt-5 font-display text-[1.2rem] text-ink">Write before we talk.</h3>
-                  <p className="mt-3 text-[13.5px] leading-[1.7] text-ink/70">
-                    Answer four questions in your own words. Four more if you want to go deeper. You can keep it rough. We read it with care.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={(e) => onOpenWriteDoor(e.currentTarget)}
-                    className="group mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-[13px] font-semibold transition-all duration-300 ease-out hover:-translate-y-[1px]"
-                    style={{ borderColor: ROYAL, color: ROYAL }}
-                  >
-                    Start writing
-                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-                  </button>
-                  <p className="mt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/45">
-                    Save and come back anytime.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right rail - before you wonder */}
-            <aside className="lg:border-l lg:border-ink/10 lg:pl-12">
-              <h3 className="font-display text-[clamp(1.25rem,1.9vw,1.5rem)] text-ink">Before you wonder.</h3>
-              <ul className="mt-7 space-y-7">
-                <ReassureRow
-                  icon={<PersonGlyph />}
-                  title="You will not be hounded."
-                  body={<>One reply, from a person.<br />If you go quiet, we leave you be.</>}
-                />
-                <ReassureRow
-                  icon={<NoPitchGlyph />}
-                  title="You will not be pitched."
-                  body={<>The first conversation has<br />no slides and no close.<br />We listen.</>}
-                />
-                <ReassureRow
-                  icon={<LeafGlyph />}
-                  title="You will not be the wrong fit in silence."
-                  body={<>If we are not right for you,<br />we say so on the call, and<br />point you somewhere better.</>}
-                />
-              </ul>
-            </aside>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ReassureRow({ icon, title, body }: { icon: React.ReactNode; title: string; body: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-4">
-      <span
-        className="mt-[2px] inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
-        style={{ borderColor: "rgba(37,99,255,0.25)" }}
-      >
-        {icon}
-      </span>
-      <div>
-        <p className="text-[13.5px] font-medium leading-[1.5]" style={{ color: ROYAL }}>{title}</p>
-        <p className="mt-1.5 text-[13px] leading-[1.7] text-ink/65">{body}</p>
-      </div>
-    </li>
-  );
-}
-
-function SparkGlyph() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true">
-      <path d="M10 2 L11.2 8.8 L18 10 L11.2 11.2 L10 18 L8.8 11.2 L2 10 L8.8 8.8 Z" fill={ROYAL} />
-    </svg>
-  );
-}
-function PencilGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 20 L8 19 L20 7 L17 4 L5 16 Z" />
-        <path d="M14 7 L17 10" />
-      </g>
-    </svg>
-  );
-}
-function PersonGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round">
-        <circle cx={12} cy={9} r={3.2} />
-        <path d="M5 19 C 6 15.5, 9 14, 12 14 C 15 14, 18 15.5, 19 19" />
-      </g>
-    </svg>
-  );
-}
-function NoPitchGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round">
-        <rect x={4} y={6} width={16} height={11} rx={1.5} />
-        <path d="M5 7 L19 16" />
-      </g>
-    </svg>
-  );
-}
-function LeafGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-      <g fill="none" stroke={ROYAL} strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 19 C 5 11, 11 5, 19 5 C 19 13, 13 19, 5 19 Z" />
-        <path d="M5 19 L13 11" />
-      </g>
-    </svg>
-  );
-}
-
-/* -------------------- ATTACHMENTS PANEL (Review step) -------------------- */
-const INTAKE_BUCKET = "intake-uploads";
-const INTAKE_MAX_BYTES = 25 * 1024 * 1024;
-const INTAKE_ALLOWED_EXT = new Set([
-  "pdf","doc","docx","txt","md","rtf","xls","xlsx","csv","ppt","pptx","key",
-  "png","jpg","jpeg","gif","webp","heic","svg","zip","json","yaml","yml",
-]);
-
-function AttachmentsPanel({
-  attachments,
-  setAttachments,
-  resumeToken,
-  ensureResumeToken,
-}: {
-  attachments: AttachmentRecord[];
-  setAttachments: React.Dispatch<React.SetStateAction<AttachmentRecord[]>>;
-  resumeToken: string | null;
-  ensureResumeToken: () => Promise<string>;
-}) {
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = React.useState(false);
-  const [removing, setRemoving] = React.useState<string | null>(null);
-
-  const upload = React.useCallback(
-    async (file: File) => {
-      if (file.size === 0) return toast.error("File is empty");
-      if (file.size > INTAKE_MAX_BYTES) return toast.error("File exceeds 25 MB limit");
-      const ext = (file.name.split(".").pop() ?? "").toLowerCase();
-      if (!INTAKE_ALLOWED_EXT.has(ext)) {
-        return toast.error(`".${ext || "unknown"}" files aren't allowed`);
-      }
-      if (attachments.length >= 10) {
-        return toast.error("Attach up to 10 files per intake");
-      }
-
-      setUploading(true);
-      try {
-        const token = await ensureResumeToken();
-        // crypto.randomUUID always available in modern browsers.
-        const cleaned = file.name.replace(/[^\w.\- ]+/g, "_").slice(0, 180);
-        const path = `${token}/${crypto.randomUUID()}-${cleaned}`;
-        const { error: upErr } = await supabase.storage
-          .from(INTAKE_BUCKET)
-          .upload(path, file, {
-            upsert: false,
-            contentType: file.type || undefined,
-          });
-        if (upErr) throw upErr;
-
-        const mod = await import("@/lib/intake.functions");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const res = await mod.recordIntakeAttachment({
-          data: {
-            resume_token: token,
-            storage_path: path,
-            filename: file.name,
-            size: file.size,
-            mime: file.type || null,
-          },
-        } as any);
-        setAttachments(
-          (res?.attachments ?? []).map((a: AttachmentRecord) => ({
-            storage_path: a.storage_path,
-            filename: a.filename,
-            size: a.size,
-            mime: a.mime,
-          })),
-        );
-        toast.success(`Attached ${file.name}`);
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Upload failed");
-      } finally {
-        setUploading(false);
-      }
-    },
-    [attachments.length, ensureResumeToken, setAttachments],
-  );
-
-  const remove = React.useCallback(
-    async (path: string) => {
-      if (!resumeToken) return;
-      setRemoving(path);
-      try {
-        const mod = await import("@/lib/intake.functions");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const res = await mod.removeIntakeAttachment({
-          data: { resume_token: resumeToken, storage_path: path },
-        } as any);
-        setAttachments(
-          (res?.attachments ?? []).map((a: AttachmentRecord) => ({
-            storage_path: a.storage_path,
-            filename: a.filename,
-            size: a.size,
-            mime: a.mime,
-          })),
-        );
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Remove failed");
-      } finally {
-        setRemoving(null);
-      }
-    },
-    [resumeToken, setAttachments],
-  );
-
-  return (
-    <div className="mt-10 rounded-2xl border border-ink/10 bg-white/60 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink/55">
-            Attachments <span className="ml-1 text-ink/40 normal-case tracking-normal">(optional)</span>
-          </p>
-          <h3 className="mt-1 font-display text-[17px] text-ink">
-            Anything we should read before we talk?
-          </h3>
-          <p className="mt-1 max-w-[52ch] text-[13.5px] leading-[1.6] text-ink/60">
-            A one-pager, a board deck, a plan you keep circling. Up to 10 files, 25 MB each.
-          </p>
-        </div>
-        <div>
-          <input
-            ref={inputRef}
-            type="file"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void upload(f);
-              if (inputRef.current) inputRef.current.value = "";
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={uploading || attachments.length >= 10}
-            className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white px-4 py-2 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/40 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {uploading ? (
-              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload aria-hidden="true" className="h-4 w-4" />
-            )}
-            <span>{uploading ? "Uploading…" : "Attach a file"}</span>
-          </button>
-        </div>
-      </div>
-
-      {attachments.length > 0 ? (
-        <ul className="mt-5 divide-y divide-ink/10">
-          {attachments.map((a) => (
-            <li
-              key={a.storage_path}
-              className="flex items-center justify-between gap-4 py-2.5 text-[13.5px]"
-            >
-              <div className="flex min-w-0 items-center gap-2 text-ink/85">
-                <Paperclip aria-hidden="true" className="h-4 w-4 shrink-0 text-ink/50" />
-                <span className="truncate">{a.filename}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="tabular-nums font-mono text-[11px] text-ink/50">
-                  {formatIntakeSize(a.size)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => remove(a.storage_path)}
-                  disabled={removing === a.storage_path}
-                  className="inline-flex items-center gap-1 rounded-md border border-ink/15 px-2 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-ink/60 transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-50"
-                >
-                  {removing === a.storage_path ? (
-                    <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Trash2 aria-hidden="true" className="h-3 w-3" />
-                  )}
-                  Remove
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-4 text-[13px] italic text-ink/45">
-          No attachments yet. This step is optional — skip if there's nothing to share.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function formatIntakeSize(bytes: number): string {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
+// Keep the canonical question list reachable for tests and future reuse.
+export { INTAKE_QUESTIONS, QUESTION_BY_KEY };
