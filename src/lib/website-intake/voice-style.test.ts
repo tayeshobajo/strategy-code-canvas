@@ -36,7 +36,7 @@ function assertClean(label: string, text: string) {
   }
 }
 
-const EMPTY_STATE: ConversationState = { answers: [], skipped: [], supported: [] };
+const EMPTY_STATE: ConversationState = { answers: [], skipped: [], supported: [], followUpsAsked: [] };
 
 const SAMPLES: Array<{ posture: Posture; latest: string }> = [
   { posture: "greeting", latest: "hey" },
