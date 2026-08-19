@@ -652,6 +652,9 @@ function ReflectionBody(props: { c: IntakeConversation }) {
                 {r.label}
               </p>
               <p className="mt-2 text-base leading-relaxed text-ink/85">{r.text}</p>
+              {r.source === "shortened" && (
+                <p className="mt-2 text-xs text-ink/40">Shortened from what you said.</p>
+              )}
             </li>
           ))}
         </ul>

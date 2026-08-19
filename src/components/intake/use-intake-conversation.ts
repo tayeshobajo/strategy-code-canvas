@@ -26,6 +26,7 @@ import {
   type ConversationState,
 } from "@/lib/website-intake/adaptive";
 import { buildReflection, type ReflectionStatement } from "@/lib/website-intake/reflection";
+import { logPacing } from "@/lib/website-intake/pacing";
 import type { FollowUpKey, IntakeObjectiveKey } from "@/lib/website-intake/questions";
 import type { VerbatimAnswer } from "@/lib/website-intake/types";
 
@@ -237,10 +238,11 @@ export function useIntakeConversation() {
 
   /** Move from conversation into the reflection state, in the same room. */
   const openReflection = React.useCallback(() => {
+    logPacing("reflection reached", { answers, skipped });
     setReflection(buildReflection(answers));
     setReflectionConfirmed(false);
     setPhase("reflection");
-  }, [answers]);
+  }, [answers, skipped]);
 
   const regenerateReflection = React.useCallback(
     (extra: VerbatimAnswer[] = []) => {
