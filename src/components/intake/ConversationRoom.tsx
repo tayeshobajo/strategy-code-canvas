@@ -245,10 +245,30 @@ function ConversationBody(props: {
   const { c } = props;
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = React.useState(true);
+
+  const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
+    bottomRef.current?.scrollIntoView({ block: "end", behavior });
+  }, []);
+
+  // Follow the conversation only while the founder is reading the latest lines.
+  React.useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setAtBottom(distance < 96);
+    };
+    onScroll();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   React.useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    if (atBottom) scrollToBottom();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.answers.length, c.thinking, c.currentPrompt]);
+
 
   // Nothing left worth asking — move to reflection rather than a dead end.
   React.useEffect(() => {
