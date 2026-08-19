@@ -215,7 +215,7 @@ export function planTurn(input: {
       return {
         ...base,
         acknowledgement: "No problem.",
-        next_question: "Start with the part that's been on your mind most lately.",
+        next_question: "What has been taking up the most space in your head lately?",
         objective: "recurring_problem",
         rationale_internal: "Lowered the burden with an easier entry point.",
       };
