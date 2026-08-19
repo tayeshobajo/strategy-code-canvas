@@ -34,6 +34,7 @@ import {
   phaseLabel,
 } from "@/lib/website-intake/reflection";
 import { EARLY_EXIT_PROMPT } from "@/lib/website-intake/adaptive";
+import { trackEvent } from "@/lib/website-intake/track";
 
 const OPENING_LINE = "Let's start with your world.";
 const OPENING_SUPPORT = "There's no perfect answer. Start wherever feels natural.";
@@ -120,7 +121,9 @@ export function ConversationRoom(props: {
 
         <div className="flex min-h-0 flex-1">
           <div className="flex min-h-0 flex-1 flex-col">
-            {c.phase === "conversation" && <ConversationBody c={c} voiceFirst={props.voiceFirst} />}
+            {c.phase === "conversation" && (
+              <ConversationBody c={c} voiceFirst={props.voiceFirst} themes={showRail ? themes : []} />
+            )}
             {c.phase === "reflection" && <ReflectionBody c={c} />}
             {c.phase === "contact" && <ContactBody c={c} />}
             {c.phase === "done" && <DoneBody onClose={props.onClose} />}
@@ -165,6 +168,7 @@ export function ConversationRoom(props: {
           onDismiss={() => setCloseIntent(false)}
           onLeave={() => {
             setCloseIntent(false);
+            trackEvent({ name: "intake_abandoned", dedupe: `abandoned:${c.answeredCount}` });
             props.onClose();
           }}
         />
@@ -208,7 +212,30 @@ function TopBar(props: { phase: string; progress: number; onClose: () => void })
   );
 }
 
-function ConversationBody(props: { c: IntakeConversation; voiceFirst?: boolean }) {
+function ThemeDrawer(props: { themes: { id: string; label: string; support: string }[] }) {
+  if (props.themes.length === 0) return null;
+  return (
+    <details className="shrink-0 border-t border-ink/10 bg-white/70 px-5 py-3 lg:hidden">
+      <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
+        What I'm hearing
+      </summary>
+      <ul className="mt-4 space-y-4 pb-1">
+        {props.themes.map((t) => (
+          <li key={t.id}>
+            <p className="text-sm text-ink">{t.label}</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink/55">{t.support}</p>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+function ConversationBody(props: {
+  c: IntakeConversation;
+  voiceFirst?: boolean;
+  themes: { id: string; label: string; support: string }[];
+}) {
   const { c } = props;
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
@@ -216,6 +243,12 @@ function ConversationBody(props: { c: IntakeConversation; voiceFirst?: boolean }
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [c.answers.length, c.thinking, c.currentPrompt]);
+
+  // Nothing left worth asking — move to reflection rather than a dead end.
+  React.useEffect(() => {
+    if (c.step.kind === "contact" && c.hasProgress && !c.busy) c.openReflection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.step.kind, c.hasProgress, c.busy]);
 
   const visible = c.answers.filter((a) => a.key !== ("founder_confirmed_reflection" as never));
   const nearingEnd = c.offerExit;
@@ -282,10 +315,21 @@ function ConversationBody(props: { c: IntakeConversation; voiceFirst?: boolean }
             </div>
           )}
 
+          {!nearingEnd && !c.thinking && c.answeredCount >= 5 && (
+            <button
+              type="button"
+              onClick={c.openReflection}
+              className="text-sm text-ink/45 underline-offset-4 transition hover:text-royal hover:underline"
+            >
+              That's the picture — show me what you heard
+            </button>
+          )}
+
           <div ref={bottomRef} />
         </div>
       </div>
 
+      <ThemeDrawer themes={props.themes} />
       <Composer c={c} voiceFirst={props.voiceFirst} />
     </>
   );
