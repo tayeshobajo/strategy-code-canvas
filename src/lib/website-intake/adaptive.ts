@@ -119,7 +119,13 @@ export function pendingFollowUp(
 /** Whether we already have a strong enough picture to offer wrapping up. */
 export function canOfferEarlyExit(state: ConversationState): boolean {
   const answered = state.answers.filter((a) => !a.skipped && textOf(a).length > 0).length;
-  return answered >= 8 && objectiveCoverage(state) >= 0.7;
+  const substantive = state.answers.filter(
+    (a) => !a.skipped && textOf(a).length >= ANSWER_CHARS,
+  ).length;
+  // Understanding, not question count: a handful of substantial answers with
+  // reasonable coverage is enough to offer wrapping up.
+  return (answered >= 8 && objectiveCoverage(state) >= 0.7) ||
+    (substantive >= 6 && objectiveCoverage(state) >= 0.4);
 }
 
 export const EARLY_EXIT_PROMPT =
