@@ -25,7 +25,7 @@ import {
   objectiveCoverage,
   type ConversationState,
 } from "@/lib/website-intake/adaptive";
-import { INTAKE_QUESTIONS, QUESTION_BY_KEY, type FollowUpKey, type IntakeObjectiveKey } from "@/lib/website-intake/questions";
+import type { FollowUpKey, IntakeObjectiveKey } from "@/lib/website-intake/questions";
 import type { VerbatimAnswer } from "@/lib/website-intake/types";
 
 const RESUME_KEY = "tt_intake_resume_v1";
@@ -323,7 +323,7 @@ function BuildMyRoadmap() {
               </button>
             </Reveal>
             <img
-              src={heroMountain.src}
+              src={heroMountain.url}
               alt=""
               aria-hidden="true"
               loading="lazy"
@@ -546,6 +546,3 @@ function Field(props: {
     </label>
   );
 }
-
-// Keep the canonical question list reachable for tests and future reuse.
-export { INTAKE_QUESTIONS, QUESTION_BY_KEY };
