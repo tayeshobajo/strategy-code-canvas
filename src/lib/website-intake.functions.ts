@@ -48,6 +48,54 @@ const companySchema = z.object({
   website: z.string().max(300).nullable(),
 });
 
+const eventSchema = z.object({
+  event_key: z.string().min(3).max(300),
+  event_name: z.enum([
+    "page_view",
+    "intake_view",
+    "intake_started",
+    "intake_answered",
+    "intake_resume_requested",
+    "intake_resumed",
+    "intake_submitted",
+    "intake_abandoned",
+  ]),
+  occurred_at: z.string().max(40),
+  session_id: z.string().max(120).nullable(),
+  submission_id: z.string().max(120).nullable(),
+  path: z.string().max(500).nullable(),
+  referrer: z.string().max(500).nullable(),
+  utm: z.object({
+    source: z.string().max(200).nullable(),
+    medium: z.string().max(200).nullable(),
+    campaign: z.string().max(200).nullable(),
+    term: z.string().max(200).nullable(),
+    content: z.string().max(200).nullable(),
+  }),
+  device: z.string().max(40).nullable(),
+  properties: z.record(z.string(), z.unknown()).default({}),
+});
+
+/** Analytics only. Never throws into the conversation UX. */
+export const trackWebsiteEvents = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ events: z.array(eventSchema).min(1).max(20) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const { recordEvents } = await import("./website-intake/events.server");
+      const result = await recordEvents(
+        data.events as unknown as Parameters<typeof recordEvents>[0],
+      );
+      return { ok: true, ...result };
+    } catch (err) {
+      console.error("website event send failed", (err as Error).message);
+      return { ok: false, queued: 0, delivered: false };
+    }
+  });
+
+
+
 export const startIntakeSession = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({ attribution: attributionSchema }).parse(input),
