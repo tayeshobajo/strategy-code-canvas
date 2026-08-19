@@ -13,6 +13,13 @@ export type ReflectionStatement = {
   id: string;
   label: string;
   text: string;
+  /**
+   * How this line relates to what the founder actually said.
+   * - "verbatim": their exact words, unchanged.
+   * - "shortened": their exact words, cut short — nothing added.
+   * There is deliberately no third option: we never infer a statement.
+   */
+  source: "verbatim" | "shortened";
 };
 
 export type ConversationTheme = {
@@ -56,6 +63,33 @@ export function condense(text: string, max = 220): string {
   return `${cut.slice(0, space > 0 ? space : max)}…`;
 }
 
+/** Whitespace-normalised text, so formatting differences never break a trace. */
+export function normalizeForTrace(text: string): string {
+  return (text ?? "")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Guardrail: a reflection line may only ever be words the founder typed or
+ * spoke. Returns the answer it came from, or null if it cannot be traced.
+ */
+export function traceToAnswer(
+  text: string,
+  answers: VerbatimAnswer[],
+): VerbatimAnswer | null {
+  const needle = normalizeForTrace(text.replace(/\u2026$/, "")).replace(/[.;,\s]+$/, "");
+  if (!needle) return null;
+  return (
+    answers.find(
+      (a) => !a.skipped && normalizeForTrace(a.answer ?? "").includes(needle),
+    ) ?? null
+  );
+}
+
 const SLOTS: Array<{ id: string; label: string; keys: IntakeObjectiveKey[] }> = [
   { id: "current", label: "Where you are", keys: ["the_business", "who_you_are", "whats_working"] },
   {
@@ -86,7 +120,13 @@ export function buildReflection(answers: VerbatimAnswer[]): ReflectionStatement[
     const condensed = condense(text);
     if (used.has(condensed)) continue;
     used.add(condensed);
-    out.push({ id: slot.id, label: slot.label, text: condensed });
+    const clean = text.replace(/\s+/g, " ").trim();
+    out.push({
+      id: slot.id,
+      label: slot.label,
+      text: condensed,
+      source: condensed === clean ? "verbatim" : "shortened",
+    });
   }
   return out.slice(0, 5);
 }
