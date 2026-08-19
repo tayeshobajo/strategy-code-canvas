@@ -625,11 +625,14 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                    e.preventDefault();
-                    void send();
-                  }
+                  if (e.key !== "Enter") return;
+                  // Enter sends; shift+enter keeps writing on a new line.
+                  if (e.shiftKey || e.nativeEvent.isComposing) return;
+                  e.preventDefault();
+                  if (c.busy || transcribing) return;
+                  void send();
                 }}
+
                 placeholder="Type your answer…"
                 disabled={c.busy || transcribing}
                 className="w-full resize-none bg-transparent px-3 py-2 text-base leading-relaxed text-ink outline-none placeholder:text-ink/35"
