@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /lovable/
+Disallow: /checkout/
 
 Sitemap: https://trusttai.com/sitemap.xml

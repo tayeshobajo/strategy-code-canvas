@@ -103,8 +103,7 @@ function CheckoutWalk() {
 
   const nextSteps = [
     "Payment is confirmed",
-    "Your client workspace is created",
-    "You're signed into your portal",
+    "We confirm your place by email",
     "We begin preparing your Roadmap",
   ];
 
@@ -138,8 +137,8 @@ function CheckoutWalk() {
                 <span className="italic">your build pace.</span>
               </h1>
               <p className="mt-5 max-w-lg text-[15px] leading-[1.7] text-ink/60">
-                Once payment is confirmed, your client workspace will be created
-                automatically and your Trust Tai portal will open.
+                Once payment is confirmed, we'll email you at the address you
+                use at checkout and begin preparing your Roadmap.
               </p>
             </div>
 
@@ -215,8 +214,8 @@ function CheckoutWalk() {
               <p className="mt-6 flex items-start gap-2 text-[12px] leading-[1.5] text-ink/50">
                 <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>
-                  After payment, your portal access is created automatically
-                  using the email entered at checkout.
+                  After payment, we confirm everything by email using the
+                  address entered at checkout.
                 </span>
               </p>
             </div>

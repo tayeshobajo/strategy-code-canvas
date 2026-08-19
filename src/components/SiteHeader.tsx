@@ -1,8 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ArrowRight, Lock, Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
-import { usePortalLink } from "@/hooks/use-portal-link";
 
 export type NavItem = { label: string; to: string; hash?: string };
 
@@ -18,7 +17,6 @@ export const NAV: NavItem[] = [
 export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
-  const portalLink = usePortalLink();
 
   useEffect(() => {
     setOpen(false);
@@ -70,15 +68,6 @@ export function SiteHeader() {
           </nav>
           <div className="flex shrink-0 items-center gap-2">
             <Link
-              to={portalLink.to}
-              aria-busy={portalLink.state === "loading"}
-              title={portalLink.state === "error" ? "Couldn't verify portal access. Sign in to continue." : undefined}
-              className={`hidden lg:inline-flex shrink-0 items-center gap-1.5 rounded-full border border-rule/60 px-3 py-2 text-[12px] text-ink/80 transition-colors hover:border-ink/30 hover:text-ink ${portalLink.state === "loading" ? "opacity-60 animate-pulse" : ""}`}
-            >
-              <Lock className="h-3.5 w-3.5" />
-              {portalLink.state === "loading" ? "Checking…" : portalLink.label}
-            </Link>
-            <Link
               to="/build-my-roadmap"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-3 py-2 text-[12px] font-medium text-paper transition-transform hover:scale-[1.02] sm:gap-2 sm:px-4 sm:text-[12.5px]"
             >
@@ -120,14 +109,6 @@ export function SiteHeader() {
               );
             })}
             <div className="my-2 border-t border-rule/60" />
-            <Link
-              to={portalLink.to}
-              aria-busy={portalLink.state === "loading"}
-              className={`flex items-center gap-2 rounded-lg px-3 py-3 text-[15px] text-ink/80 transition-colors hover:bg-ink/5 ${portalLink.state === "loading" ? "opacity-60 animate-pulse" : ""}`}
-            >
-              <Lock className="h-4 w-4" />
-              {portalLink.state === "loading" ? "Checking…" : portalLink.label}
-            </Link>
             <Link
               to="/build-my-roadmap"
               className="mt-1 flex items-center justify-center gap-2 rounded-full bg-ink px-3 py-3 text-[15px] font-medium text-paper"
