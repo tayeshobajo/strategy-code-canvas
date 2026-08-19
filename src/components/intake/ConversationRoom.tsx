@@ -110,7 +110,7 @@ export function ConversationRoom(props: {
 
       <div
         ref={panelRef}
-        className={`relative flex h-full w-full flex-col overflow-hidden border-ink/10 bg-paper shadow-[0_30px_90px_-60px_rgba(1,5,27,0.55)] sm:h-auto sm:max-h-[88vh] sm:w-full sm:max-w-[1040px] sm:rounded-3xl sm:border xl:max-w-[1180px] ${
+        className={`relative flex h-full w-full flex-col overflow-hidden border-ink/10 bg-paper shadow-[0_30px_90px_-60px_rgba(1,5,27,0.55)] sm:h-[86vh] sm:max-h-[92vh] sm:min-h-[640px] sm:w-full sm:max-w-[1040px] sm:rounded-3xl sm:border xl:max-w-[1180px] ${
           reduced ? "" : "motion-safe:animate-in motion-safe:fade-in-0"
         }`}
       >
