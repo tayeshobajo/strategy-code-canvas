@@ -194,11 +194,11 @@ export function essentialsSettled(state: ConversationState): boolean {
 
 /** Whether we already have a strong enough picture to offer wrapping up. */
 export function canOfferEarlyExit(state: ConversationState): boolean {
-  if (!essentialsSettled(state)) return false;
   const substantive = state.answers.filter(
     (a) => !a.skipped && textOf(a).length >= ANSWER_CHARS,
   ).length;
-  return substantive >= 4 || questionsAsked(state) >= 6;
+  if (essentialsSettled(state)) return true;
+  return questionsAsked(state) >= 7 && substantive >= 4;
 }
 
 export const EARLY_EXIT_PROMPT =

@@ -153,6 +153,9 @@ export function useIntakeConversation() {
   );
 
   const currentPrompt = step.kind === "contact" ? CONTACT_PROMPT : step.prompt;
+  /** A short human bridge when the topic changes. Never shown on the first ask. */
+  const currentTransition =
+    step.kind === "question" && answers.length > 0 ? (step.transition ?? null) : null;
 
   const submitAnswer = React.useCallback(
     async (text: string, modality: "text" | "voice", mediaRef?: string | null) => {
@@ -320,6 +323,7 @@ export function useIntakeConversation() {
     answers,
     step,
     currentPrompt,
+    currentTransition,
     coverage,
     progress,
     offerExit,
