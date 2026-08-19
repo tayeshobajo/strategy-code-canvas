@@ -191,6 +191,11 @@ function TopBar(props: { phase: string; progress: number; onClose: () => void })
         <TrustTaiLogo className="h-6 w-auto" />
         <span className="hidden h-5 w-px bg-ink/15 sm:block" />
         <p className="hidden text-sm text-ink/70 sm:block">Build My Roadmap</p>
+        <span className="hidden h-5 w-px bg-ink/15 lg:block" />
+        <span className="hidden items-center gap-2 lg:inline-flex">
+          <TaiAvatar className="h-7 w-7" alt="Tai" />
+          <span className="text-sm text-ink/55">You're talking with Tai</span>
+        </span>
         <p className="ml-auto font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
           {props.phase}
         </p>
