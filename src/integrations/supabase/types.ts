@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_execution_events: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          evidence_data: Json | null
+          evidence_refs: Json
+          finished_at: string | null
+          id: string
+          input_summary: string
+          invocation_key: string
+          output_summary: string
+          project_id: string
+          risk: string
+          run_id: string | null
+          started_at: string
+          status: string
+          tool_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          evidence_data?: Json | null
+          evidence_refs?: Json
+          finished_at?: string | null
+          id: string
+          input_summary?: string
+          invocation_key: string
+          output_summary?: string
+          project_id: string
+          risk: string
+          run_id?: string | null
+          started_at?: string
+          status: string
+          tool_id: string
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          evidence_data?: Json | null
+          evidence_refs?: Json
+          finished_at?: string | null
+          id?: string
+          input_summary?: string
+          invocation_key?: string
+          output_summary?: string
+          project_id?: string
+          risk?: string
+          run_id?: string | null
+          started_at?: string
+          status?: string
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_execution_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_execution_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_access: {
         Row: {
           created_at: string | null
@@ -6209,6 +6278,192 @@ export type Database = {
           },
         ]
       }
+      execution_agents: {
+        Row: {
+          capabilities: string[]
+          created_at: string | null
+          enabled: boolean
+          id: string
+          last_heartbeat_at: string | null
+          last_known_status: string | null
+          last_synced_at: string | null
+          metadata: Json
+          name: string
+          organization_id: string | null
+          owning_app: string
+          paperclip_agent_id: string
+          paperclip_company_id: string | null
+          paperclip_role: string | null
+          paperclip_title: string | null
+          paused_at: string | null
+          principal: string
+          reports_to_agent_id: string | null
+          routine_ids: string[]
+          updated_at: string | null
+        }
+        Insert: {
+          capabilities?: string[]
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          last_heartbeat_at?: string | null
+          last_known_status?: string | null
+          last_synced_at?: string | null
+          metadata?: Json
+          name: string
+          organization_id?: string | null
+          owning_app: string
+          paperclip_agent_id: string
+          paperclip_company_id?: string | null
+          paperclip_role?: string | null
+          paperclip_title?: string | null
+          paused_at?: string | null
+          principal: string
+          reports_to_agent_id?: string | null
+          routine_ids?: string[]
+          updated_at?: string | null
+        }
+        Update: {
+          capabilities?: string[]
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          last_heartbeat_at?: string | null
+          last_known_status?: string | null
+          last_synced_at?: string | null
+          metadata?: Json
+          name?: string
+          organization_id?: string | null
+          owning_app?: string
+          paperclip_agent_id?: string
+          paperclip_company_id?: string | null
+          paperclip_role?: string | null
+          paperclip_title?: string | null
+          paused_at?: string | null
+          principal?: string
+          reports_to_agent_id?: string | null
+          routine_ids?: string[]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "execution_agents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      execution_bindings: {
+        Row: {
+          business_outputs: Json
+          conductor_action_id: string | null
+          created_at: string | null
+          expected_outcome: string | null
+          id: string
+          idempotency_key: string | null
+          objective: string
+          organization_id: string | null
+          paperclip_agent_id: string
+          paperclip_company_id: string
+          paperclip_issue_id: string | null
+          paperclip_run_id: string | null
+          result_summary: string | null
+          source_app: string
+          source_entity_id: string | null
+          source_entity_type: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          business_outputs?: Json
+          conductor_action_id?: string | null
+          created_at?: string | null
+          expected_outcome?: string | null
+          id?: string
+          idempotency_key?: string | null
+          objective: string
+          organization_id?: string | null
+          paperclip_agent_id: string
+          paperclip_company_id: string
+          paperclip_issue_id?: string | null
+          paperclip_run_id?: string | null
+          result_summary?: string | null
+          source_app: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          business_outputs?: Json
+          conductor_action_id?: string | null
+          created_at?: string | null
+          expected_outcome?: string | null
+          id?: string
+          idempotency_key?: string | null
+          objective?: string
+          organization_id?: string | null
+          paperclip_agent_id?: string
+          paperclip_company_id?: string
+          paperclip_issue_id?: string | null
+          paperclip_run_id?: string | null
+          result_summary?: string | null
+          source_app?: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "execution_bindings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      icp_profiles: {
+        Row: {
+          content_markdown: string
+          created_at: string | null
+          id: string
+          metadata: Json
+          organization_id: string
+          updated_at: string | null
+          version: number
+        }
+        Insert: {
+          content_markdown: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json
+          organization_id: string
+          updated_at?: string | null
+          version?: number
+        }
+        Update: {
+          content_markdown?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          updated_at?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "icp_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intake_drafts: {
         Row: {
           answers: Json
@@ -6412,6 +6667,74 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          created_at: string
+          descriptor: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descriptor?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descriptor?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      paperclip_sync_state: {
+        Row: {
+          consecutive_failures: number
+          created_at: string
+          id: string
+          last_cursor: string | null
+          last_error: string | null
+          last_success_at: string | null
+          organization_id: string
+          resource_type: string
+          updated_at: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          created_at?: string
+          id?: string
+          last_cursor?: string | null
+          last_error?: string | null
+          last_success_at?: string | null
+          organization_id: string
+          resource_type: string
+          updated_at?: string
+        }
+        Update: {
+          consecutive_failures?: number
+          created_at?: string
+          id?: string
+          last_cursor?: string | null
+          last_error?: string | null
+          last_success_at?: string | null
+          organization_id?: string
+          resource_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paperclip_sync_state_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portal_access_events: {
         Row: {
           correlation_id: string | null
@@ -6480,6 +6803,271 @@ export type Database = {
           processed_at?: string
         }
         Relationships: []
+      }
+      project_access_secrets: {
+        Row: {
+          access_type: string
+          algorithm: string
+          ciphertext: string
+          created_at: string
+          id: string
+          iv: string
+          key_version: string
+          last_verified_at: string | null
+          project_id: string
+          provider: string
+          updated_at: string
+          username: string
+          verification_state: string
+        }
+        Insert: {
+          access_type: string
+          algorithm: string
+          ciphertext: string
+          created_at?: string
+          id?: string
+          iv: string
+          key_version: string
+          last_verified_at?: string | null
+          project_id: string
+          provider: string
+          updated_at?: string
+          username: string
+          verification_state?: string
+        }
+        Update: {
+          access_type?: string
+          algorithm?: string
+          ciphertext?: string
+          created_at?: string
+          id?: string
+          iv?: string
+          key_version?: string
+          last_verified_at?: string | null
+          project_id?: string
+          provider?: string
+          updated_at?: string
+          username?: string
+          verification_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_access_secrets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_messages: {
+        Row: {
+          body: Json
+          created_at: string
+          dedupe_key: string | null
+          id: string
+          kind: string
+          project_id: string
+          role: string
+          run_id: string | null
+          source_key: string | null
+        }
+        Insert: {
+          body?: Json
+          created_at?: string
+          dedupe_key?: string | null
+          id?: string
+          kind?: string
+          project_id: string
+          role?: string
+          run_id?: string | null
+          source_key?: string | null
+        }
+        Update: {
+          body?: Json
+          created_at?: string
+          dedupe_key?: string | null
+          id?: string
+          kind?: string
+          project_id?: string
+          role?: string
+          run_id?: string | null
+          source_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_messages_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          primary_domain: string
+          stack: string
+          status: string
+          trust_tai_os_project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id: string
+          primary_domain?: string
+          stack?: string
+          status?: string
+          trust_tai_os_project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          primary_domain?: string
+          stack?: string
+          status?: string
+          trust_tai_os_project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospect_evaluations: {
+        Row: {
+          created_at: string | null
+          discovery_run_id: string | null
+          icp_version: number | null
+          id: string
+          organization_id: string
+          prospect_id: string | null
+          reasoning: string | null
+          score: number | null
+          signals: Json
+        }
+        Insert: {
+          created_at?: string | null
+          discovery_run_id?: string | null
+          icp_version?: number | null
+          id?: string
+          organization_id: string
+          prospect_id?: string | null
+          reasoning?: string | null
+          score?: number | null
+          signals?: Json
+        }
+        Update: {
+          created_at?: string | null
+          discovery_run_id?: string | null
+          icp_version?: number | null
+          id?: string
+          organization_id?: string
+          prospect_id?: string | null
+          reasoning?: string | null
+          score?: number | null
+          signals?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_evaluations_discovery_run_id_fkey"
+            columns: ["discovery_run_id"]
+            isOneToOne: false
+            referencedRelation: "scout_discovery_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospect_evaluations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospect_evaluations_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospects: {
+        Row: {
+          company_name: string
+          created_at: string | null
+          id: string
+          inferred: Json
+          metadata: Json
+          observed: Json
+          organization_id: string
+          provenance: Json
+          source: string
+          status: string
+          suggested: Json
+          updated_at: string | null
+          website_url: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string | null
+          id?: string
+          inferred?: Json
+          metadata?: Json
+          observed?: Json
+          organization_id: string
+          provenance?: Json
+          source?: string
+          status?: string
+          suggested?: Json
+          updated_at?: string | null
+          website_url: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string | null
+          id?: string
+          inferred?: Json
+          metadata?: Json
+          observed?: Json
+          organization_id?: string
+          provenance?: Json
+          source?: string
+          status?: string
+          suggested?: Json
+          updated_at?: string | null
+          website_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       roadmap_approvals: {
         Row: {
@@ -6586,6 +7174,139 @@ export type Database = {
         }
         Relationships: []
       }
+      runs: {
+        Row: {
+          approval_required: boolean
+          backup_status: string
+          created_at: string
+          diagnosis_summary: string | null
+          environment_id: string
+          id: string
+          next_action: string | null
+          operator_prompt: string | null
+          plan_summary: string | null
+          project_id: string
+          qa_summary: string | null
+          qa_verdict: string | null
+          risk_level: string
+          state: string
+          task_summary: string
+          task_type: string
+          title: string
+          updated_at: string
+          urgency: string
+        }
+        Insert: {
+          approval_required?: boolean
+          backup_status?: string
+          created_at?: string
+          diagnosis_summary?: string | null
+          environment_id?: string
+          id?: string
+          next_action?: string | null
+          operator_prompt?: string | null
+          plan_summary?: string | null
+          project_id: string
+          qa_summary?: string | null
+          qa_verdict?: string | null
+          risk_level?: string
+          state?: string
+          task_summary?: string
+          task_type?: string
+          title?: string
+          updated_at?: string
+          urgency?: string
+        }
+        Update: {
+          approval_required?: boolean
+          backup_status?: string
+          created_at?: string
+          diagnosis_summary?: string | null
+          environment_id?: string
+          id?: string
+          next_action?: string | null
+          operator_prompt?: string | null
+          plan_summary?: string | null
+          project_id?: string
+          qa_summary?: string | null
+          qa_verdict?: string | null
+          risk_level?: string
+          state?: string
+          task_summary?: string
+          task_type?: string
+          title?: string
+          updated_at?: string
+          urgency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_discovery_runs: {
+        Row: {
+          candidates_researched: number
+          completed_at: string | null
+          icp_version: number | null
+          id: string
+          metadata: Json
+          organization_id: string
+          paperclip_agent_id: string | null
+          paperclip_run_id: string | null
+          prospects_created: number
+          prospects_duplicate: number
+          run_notes: string | null
+          sourcing_warranted: boolean
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          candidates_researched?: number
+          completed_at?: string | null
+          icp_version?: number | null
+          id?: string
+          metadata?: Json
+          organization_id: string
+          paperclip_agent_id?: string | null
+          paperclip_run_id?: string | null
+          prospects_created?: number
+          prospects_duplicate?: number
+          run_notes?: string | null
+          sourcing_warranted?: boolean
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          candidates_researched?: number
+          completed_at?: string | null
+          icp_version?: number | null
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          paperclip_agent_id?: string | null
+          paperclip_run_id?: string | null
+          prospects_created?: number
+          prospects_duplicate?: number
+          run_notes?: string | null
+          sourcing_warranted?: boolean
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_discovery_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -6667,6 +7388,264 @@ export type Database = {
         }
         Relationships: []
       }
+      tts_audience_feedback: {
+        Row: {
+          at: string
+          channel: string
+          id: string
+          kind: string
+          principle_impact: string | null
+          processed: boolean
+          production_id: string
+          studio_interpretation: string | null
+          tai_note: string | null
+          verbatim: string | null
+        }
+        Insert: {
+          at?: string
+          channel?: string
+          id: string
+          kind?: string
+          principle_impact?: string | null
+          processed?: boolean
+          production_id?: string
+          studio_interpretation?: string | null
+          tai_note?: string | null
+          verbatim?: string | null
+        }
+        Update: {
+          at?: string
+          channel?: string
+          id?: string
+          kind?: string
+          principle_impact?: string | null
+          processed?: boolean
+          production_id?: string
+          studio_interpretation?: string | null
+          tai_note?: string | null
+          verbatim?: string | null
+        }
+        Relationships: []
+      }
+      tts_correction_events: {
+        Row: {
+          after: string | null
+          at: string
+          before: string | null
+          category: string
+          id: string
+          interpretation_status: string
+          keep_unchanged: Json
+          labels: Json
+          principle_id: string | null
+          production_id: string
+          scope: string
+          studio_interpretation: string
+          surface: string
+          tai_note: string | null
+          target: string
+        }
+        Insert: {
+          after?: string | null
+          at?: string
+          before?: string | null
+          category?: string
+          id: string
+          interpretation_status?: string
+          keep_unchanged?: Json
+          labels?: Json
+          principle_id?: string | null
+          production_id?: string
+          scope?: string
+          studio_interpretation?: string
+          surface?: string
+          tai_note?: string | null
+          target?: string
+        }
+        Update: {
+          after?: string | null
+          at?: string
+          before?: string | null
+          category?: string
+          id?: string
+          interpretation_status?: string
+          keep_unchanged?: Json
+          labels?: Json
+          principle_id?: string | null
+          production_id?: string
+          scope?: string
+          studio_interpretation?: string
+          surface?: string
+          tai_note?: string | null
+          target?: string
+        }
+        Relationships: []
+      }
+      tts_principle_conflicts: {
+        Row: {
+          description: string
+          detected_at: string
+          id: string
+          principle_a: string
+          principle_b: string
+          resolution: string
+          severity: string
+          tai_note: string | null
+        }
+        Insert: {
+          description?: string
+          detected_at?: string
+          id: string
+          principle_a?: string
+          principle_b?: string
+          resolution?: string
+          severity?: string
+          tai_note?: string | null
+        }
+        Update: {
+          description?: string
+          detected_at?: string
+          id?: string
+          principle_a?: string
+          principle_b?: string
+          resolution?: string
+          severity?: string
+          tai_note?: string | null
+        }
+        Relationships: []
+      }
+      tts_productions: {
+        Row: {
+          archived_at: string | null
+          comments: Json
+          created_at: string
+          film: Json
+          gates: Json
+          id: string
+          published_at: string | null
+          revisions: Json
+          sections: Json
+          shift: Json
+          source_thought: string
+          source_type: string
+          spine: Json
+          title: string
+          updated_at: string
+          voice_warnings: Json
+        }
+        Insert: {
+          archived_at?: string | null
+          comments?: Json
+          created_at?: string
+          film?: Json
+          gates?: Json
+          id: string
+          published_at?: string | null
+          revisions?: Json
+          sections?: Json
+          shift?: Json
+          source_thought?: string
+          source_type?: string
+          spine?: Json
+          title?: string
+          updated_at?: string
+          voice_warnings?: Json
+        }
+        Update: {
+          archived_at?: string | null
+          comments?: Json
+          created_at?: string
+          film?: Json
+          gates?: Json
+          id?: string
+          published_at?: string | null
+          revisions?: Json
+          sections?: Json
+          shift?: Json
+          source_thought?: string
+          source_type?: string
+          spine?: Json
+          title?: string
+          updated_at?: string
+          voice_warnings?: Json
+        }
+        Relationships: []
+      }
+      tts_studio_principles: {
+        Row: {
+          behavior: string
+          belief: string
+          confidence: string
+          evidence_event_ids: Json
+          exceptions: Json
+          formats: Json
+          id: string
+          last_reinforced_at: string
+          layer: string
+          scope: string
+          source: string
+          title: string
+        }
+        Insert: {
+          behavior?: string
+          belief?: string
+          confidence?: string
+          evidence_event_ids?: Json
+          exceptions?: Json
+          formats?: Json
+          id: string
+          last_reinforced_at?: string
+          layer?: string
+          scope?: string
+          source?: string
+          title?: string
+        }
+        Update: {
+          behavior?: string
+          belief?: string
+          confidence?: string
+          evidence_event_ids?: Json
+          exceptions?: Json
+          formats?: Json
+          id?: string
+          last_reinforced_at?: string
+          layer?: string
+          scope?: string
+          source?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      tts_world_canon: {
+        Row: {
+          id: string
+          is_seed: boolean
+          kind: string
+          meaning: string
+          name: string
+          never_means: string
+          status: string
+        }
+        Insert: {
+          id: string
+          is_seed?: boolean
+          kind?: string
+          meaning?: string
+          name?: string
+          never_means?: string
+          status?: string
+        }
+        Update: {
+          id?: string
+          is_seed?: boolean
+          kind?: string
+          meaning?: string
+          name?: string
+          never_means?: string
+          status?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           email: string
@@ -6693,6 +7672,53 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      users: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          organization_id: string
+          role: string
+          status: string
+          trust_tai_os_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          organization_id: string
+          role?: string
+          status?: string
+          trust_tai_os_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          status?: string
+          trust_tai_os_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -7079,6 +8105,11 @@ export type Database = {
         Returns: string
       }
       begin_proposal_apply: { Args: never; Returns: undefined }
+      can_access_project: { Args: { _project_id: string }; Returns: boolean }
+      can_access_project_ref: {
+        Args: { _project_ref: string }
+        Returns: boolean
+      }
       client_portal_is_operator: { Args: { _email: string }; Returns: boolean }
       compute_engine_next_best_action: {
         Args: { _project_id: string }
@@ -7097,6 +8128,7 @@ export type Database = {
         }[]
       }
       current_client_portal_project_id: { Args: never; Returns: string }
+      current_member_organization: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
