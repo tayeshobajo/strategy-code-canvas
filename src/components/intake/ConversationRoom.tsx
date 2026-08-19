@@ -11,6 +11,8 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowRight,
   Check,
+  ChevronDown,
+
   Loader2,
   Mic,
   Paperclip,
@@ -245,10 +247,30 @@ function ConversationBody(props: {
   const { c } = props;
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = React.useState(true);
+
+  const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
+    bottomRef.current?.scrollIntoView({ block: "end", behavior });
+  }, []);
+
+  // Follow the conversation only while the founder is reading the latest lines.
+  React.useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setAtBottom(distance < 96);
+    };
+    onScroll();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   React.useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    if (atBottom) scrollToBottom();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.answers.length, c.thinking, c.currentPrompt]);
+
 
   // Nothing left worth asking — move to reflection rather than a dead end.
   React.useEffect(() => {
@@ -261,11 +283,13 @@ function ConversationBody(props: {
 
   return (
     <>
+      <div className="relative flex min-h-0 flex-1 flex-col">
       <div
         ref={scrollerRef}
-        className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto px-5 py-10 sm:px-10 sm:py-14"
+        className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto px-5 py-8 sm:px-10 sm:py-10"
       >
-        <div className="mx-auto w-full max-w-2xl space-y-10">
+        <div className="mx-auto w-full max-w-2xl space-y-11">
+
           <div>
             <TaiBlock>
               <p className="font-display text-2xl leading-snug text-ink sm:text-[1.75rem]">
@@ -341,20 +365,40 @@ function ConversationBody(props: {
         </div>
       </div>
 
+        {!atBottom && (
+          <button
+            type="button"
+            onClick={() => scrollToBottom()}
+            className="absolute bottom-4 left-1/2 z-10 inline-flex min-h-9 -translate-x-1/2 items-center gap-2 rounded-full border border-ink/10 bg-white/95 px-4 text-sm text-ink/70 shadow-[0_10px_30px_-18px_rgba(1,5,27,0.6)] backdrop-blur transition hover:text-ink"
+          >
+            <ChevronDown className="h-4 w-4" /> Jump to latest
+          </button>
+        )}
+      </div>
+
       <ThemeDrawer themes={props.themes} />
       <Composer c={c} voiceFirst={props.voiceFirst} />
     </>
+
   );
 }
 
+const AVATAR_SIZE = "h-9 w-9 sm:h-10 sm:w-10";
+
 function TaiAvatar(props: { className?: string; alt?: string }) {
+  const [loaded, setLoaded] = React.useState(false);
   return (
     <img
       src={taiHeadshot.url}
       alt={props.alt ?? "Tai"}
-      className={`shrink-0 rounded-full object-cover ring-1 ring-ink/10 ${
-        props.className ?? "h-9 w-9"
-      }`}
+      width={80}
+      height={80}
+      loading="lazy"
+      decoding="async"
+      onLoad={() => setLoaded(true)}
+      className={`aspect-square shrink-0 rounded-full bg-ink/[0.06] object-cover object-center ring-1 ring-ink/10 transition-opacity duration-500 ${
+        loaded ? "opacity-100" : "opacity-0"
+      } ${props.className ?? AVATAR_SIZE}`}
     />
   );
 }
@@ -363,16 +407,17 @@ function TaiBlock(props: { children: React.ReactNode; hideAvatar?: boolean }) {
   return (
     <div className="flex items-start gap-3 sm:gap-4">
       {props.hideAvatar ? (
-        <span className="h-9 w-9 shrink-0" aria-hidden />
+        <span className={`${AVATAR_SIZE} shrink-0`} aria-hidden />
       ) : (
         <TaiAvatar />
       )}
-      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%]">
+      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%] sm:px-6 sm:py-5">
         {props.children}
       </div>
     </div>
   );
 }
+
 
 function FounderBlock(props: {
   children: React.ReactNode;
@@ -382,7 +427,7 @@ function FounderBlock(props: {
   const time = new Date(props.at);
   return (
     <div className="flex justify-end">
-      <div className="max-w-[92%] rounded-2xl border border-royal/15 bg-royal/[0.05] px-5 py-4 sm:max-w-[85%]">
+      <div className="max-w-[92%] rounded-2xl border border-royal/15 bg-royal/[0.05] px-5 py-4 sm:max-w-[85%] sm:px-6 sm:py-5">
         <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">{props.children}</p>
         <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/35">
           {props.modality === "voice" ? "Spoken · " : ""}
@@ -580,11 +625,14 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                    e.preventDefault();
-                    void send();
-                  }
+                  if (e.key !== "Enter") return;
+                  // Enter sends; shift+enter keeps writing on a new line.
+                  if (e.shiftKey || e.nativeEvent.isComposing) return;
+                  e.preventDefault();
+                  if (c.busy || transcribing) return;
+                  void send();
                 }}
+
                 placeholder="Type your answer…"
                 disabled={c.busy || transcribing}
                 className="w-full resize-none bg-transparent px-3 py-2 text-base leading-relaxed text-ink outline-none placeholder:text-ink/35"
@@ -633,7 +681,7 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
                       ? "Saving"
                       : c.saveState === "saved"
                         ? "Saved"
-                        : "⌘ + enter"}
+                        : "enter to send · shift + enter for a new line"}
                 </span>
 
                 <button
