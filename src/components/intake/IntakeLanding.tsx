@@ -15,7 +15,9 @@ import {
   Users,
   Lock,
 } from "lucide-react";
+import * as React from "react";
 import { Reveal } from "@/hooks/use-reveal";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import heroRoom from "@/assets/roadmap-intake-hero.png.asset.json";
 
 const STEPS = [
@@ -172,23 +174,8 @@ export function IntakeLanding(props: {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-paper/70 via-paper/0 to-transparent lg:from-paper/80" />
 
-            <div className="relative flex h-full flex-col justify-center gap-3 px-6 py-12 md:px-10">
-              <Bubble>
-                Let's start with your world. Tell me about your business the way you
-                would tell a friend over coffee.
-              </Bubble>
-              <Bubble mine>
-                We help local service businesses get more customers and run more
-                smoothly.
-              </Bubble>
-              <Bubble>
-                Nice. What does the business look like two years from now if everything
-                is working the way you want?
-              </Bubble>
-              <div className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/85 px-3.5 py-2.5 shadow-sm backdrop-blur">
-                <Dot /> <Dot /> <Dot />
-              </div>
-            </div>
+            <HeroConversation />
+
           </div>
         </div>
       </section>
@@ -337,7 +324,93 @@ export function IntakeLanding(props: {
   );
 }
 
-function Bubble(props: { children: React.ReactNode; mine?: boolean }) {
+const HERO_LINES: { mine?: boolean; text: string; typing: number; pause: number }[] = [
+  {
+    text: "Let's start with your world. Tell me about your business the way you would tell a friend over coffee.",
+    typing: 1100,
+    pause: 700,
+  },
+  {
+    mine: true,
+    text: "We help local service businesses get more customers and run more smoothly.",
+    typing: 600,
+    pause: 800,
+  },
+  {
+    text: "Nice. What does the business look like two years from now if everything is working the way you want?",
+    typing: 1300,
+    pause: 500,
+  },
+];
+
+function HeroConversation() {
+  const reduced = useReducedMotion();
+  const [shown, setShown] = React.useState(0);
+  const [typing, setTyping] = React.useState<"none" | "them" | "me">("none");
+
+  React.useEffect(() => {
+    if (reduced) {
+      setShown(HERO_LINES.length);
+      setTyping("them");
+      return;
+    }
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => timers.push(setTimeout(resolve, ms)));
+
+    void (async () => {
+      await wait(500);
+      for (let i = 0; i < HERO_LINES.length; i++) {
+        const line = HERO_LINES[i]!;
+        if (cancelled) return;
+        setTyping(line.mine ? "me" : "them");
+        await wait(line.typing);
+        if (cancelled) return;
+        setTyping("none");
+        setShown(i + 1);
+        await wait(line.pause);
+      }
+      if (cancelled) return;
+      setTyping("them");
+    })();
+
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
+  }, [reduced]);
+
+  return (
+    <div className="relative flex h-full min-h-[320px] flex-col justify-center gap-3 px-6 py-12 md:px-10">
+      {HERO_LINES.slice(0, shown).map((line) => (
+        <Bubble key={line.text} mine={line.mine} animate={!reduced}>
+          {line.text}
+        </Bubble>
+      ))}
+      {typing !== "none" && (
+        <div
+          className={[
+            "mt-1 inline-flex w-fit items-center gap-1.5 rounded-full px-3.5 py-2.5 shadow-sm backdrop-blur",
+            typing === "me" ? "ml-auto bg-royal/90" : "bg-white/85",
+            reduced ? "" : "animate-fade-in",
+          ].join(" ")}
+        >
+          <Dot mine={typing === "me"} delay="0ms" />
+          <Dot mine={typing === "me"} delay="150ms" />
+          <Dot mine={typing === "me"} delay="300ms" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function Bubble(props: {
+  children: React.ReactNode;
+  mine?: boolean;
+  animate?: boolean;
+}) {
   return (
     <div
       className={[
@@ -345,6 +418,7 @@ function Bubble(props: { children: React.ReactNode; mine?: boolean }) {
         props.mine
           ? "ml-auto bg-royal text-white"
           : "bg-white/95 text-ink backdrop-blur",
+        props.animate ? "animate-fade-in" : "",
       ].join(" ")}
     >
       {props.children}
@@ -352,6 +426,15 @@ function Bubble(props: { children: React.ReactNode; mine?: boolean }) {
   );
 }
 
-function Dot() {
-  return <span className="h-1.5 w-1.5 rounded-full bg-ink/30" />;
+function Dot(props: { mine?: boolean; delay?: string }) {
+  return (
+    <span
+      className={[
+        "h-1.5 w-1.5 animate-pulse rounded-full",
+        props.mine ? "bg-white/70" : "bg-ink/30",
+      ].join(" ")}
+      style={props.delay ? { animationDelay: props.delay } : undefined}
+    />
+  );
 }
+
