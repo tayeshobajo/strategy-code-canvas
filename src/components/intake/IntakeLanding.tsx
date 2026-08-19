@@ -343,21 +343,40 @@ const HERO_LINES: { mine?: boolean; text: string; typing: number; pause: number 
   },
 ];
 
+function formatClock(date: Date) {
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 function HeroConversation() {
   const reduced = useReducedMotion();
   const [shown, setShown] = React.useState(0);
+  const [streamText, setStreamText] = React.useState("");
+  const [streamIndex, setStreamIndex] = React.useState(-1);
   const [typing, setTyping] = React.useState<"none" | "them" | "me">("none");
+  const [receipt, setReceipt] = React.useState<"none" | "delivered" | "seen">(
+    "none",
+  );
+  const [stamps, setStamps] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     if (reduced) {
       setShown(HERO_LINES.length);
       setTyping("them");
+      setReceipt("seen");
+      setStamps(HERO_LINES.map(() => formatClock(new Date())));
       return;
     }
     let cancelled = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
     const wait = (ms: number) =>
       new Promise<void>((resolve) => timers.push(setTimeout(resolve, ms)));
+
+    const stamp = (i: number) =>
+      setStamps((prev) => {
+        const next = [...prev];
+        next[i] = formatClock(new Date());
+        return next;
+      });
 
     void (async () => {
       await wait(500);
@@ -368,7 +387,29 @@ function HeroConversation() {
         await wait(line.typing);
         if (cancelled) return;
         setTyping("none");
-        setShown(i + 1);
+
+        if (line.mine) {
+          setShown(i + 1);
+          stamp(i);
+          setReceipt("delivered");
+          await wait(900);
+          if (cancelled) return;
+          setReceipt("seen");
+        } else {
+          // stream the assistant line character by character
+          setStreamIndex(i);
+          setStreamText("");
+          for (let c = 1; c <= line.text.length; c++) {
+            if (cancelled) return;
+            setStreamText(line.text.slice(0, c));
+            await wait(line.text[c - 1] === " " ? 12 : 18);
+          }
+          if (cancelled) return;
+          setStreamIndex(-1);
+          setStreamText("");
+          setShown(i + 1);
+          stamp(i);
+        }
         await wait(line.pause);
       }
       if (cancelled) return;
@@ -383,11 +424,34 @@ function HeroConversation() {
 
   return (
     <div className="relative flex h-full min-h-[320px] flex-col justify-center gap-3 px-6 py-12 md:px-10">
-      {HERO_LINES.slice(0, shown).map((line) => (
-        <Bubble key={line.text} mine={line.mine} animate={!reduced}>
-          {line.text}
-        </Bubble>
+      {HERO_LINES.slice(0, shown).map((line, i) => (
+        <div key={line.text} className="flex flex-col gap-1">
+          <Bubble mine={line.mine} animate={!reduced}>
+            {line.text}
+          </Bubble>
+          <span
+            className={[
+              "px-1 font-mono text-[10px] tracking-wide text-ink/40",
+              line.mine ? "ml-auto" : "",
+            ].join(" ")}
+          >
+            {stamps[i] ?? ""}
+            {line.mine && receipt !== "none" ? (
+              <span className="ml-1.5 text-ink/45">
+                · {receipt === "seen" ? "Seen" : "Delivered"}
+              </span>
+            ) : null}
+          </span>
+        </div>
       ))}
+
+      {streamIndex >= 0 && (
+        <Bubble mine={HERO_LINES[streamIndex]!.mine} animate={false}>
+          {streamText}
+          <span className="ml-0.5 inline-block h-[0.95em] w-[2px] translate-y-[2px] animate-pulse bg-ink/50 align-baseline" />
+        </Bubble>
+      )}
+
       {typing !== "none" && (
         <div
           className={[
