@@ -7720,6 +7720,69 @@ export type Database = {
           },
         ]
       }
+      website_intake_sessions: {
+        Row: {
+          attribution: Json
+          company: Json
+          completed_at: string | null
+          consent: Json
+          created_at: string
+          id: string
+          person: Json
+          resume_token: string
+          scout_attempts: number
+          scout_delivered_at: string | null
+          scout_last_error: string | null
+          scout_status: string
+          signals: Json
+          started_at: string
+          status: string
+          structured: Json
+          updated_at: string
+          verbatim: Json
+        }
+        Insert: {
+          attribution?: Json
+          company?: Json
+          completed_at?: string | null
+          consent?: Json
+          created_at?: string
+          id?: string
+          person?: Json
+          resume_token?: string
+          scout_attempts?: number
+          scout_delivered_at?: string | null
+          scout_last_error?: string | null
+          scout_status?: string
+          signals?: Json
+          started_at?: string
+          status?: string
+          structured?: Json
+          updated_at?: string
+          verbatim?: Json
+        }
+        Update: {
+          attribution?: Json
+          company?: Json
+          completed_at?: string | null
+          consent?: Json
+          created_at?: string
+          id?: string
+          person?: Json
+          resume_token?: string
+          scout_attempts?: number
+          scout_delivered_at?: string | null
+          scout_last_error?: string | null
+          scout_status?: string
+          signals?: Json
+          started_at?: string
+          status?: string
+          structured?: Json
+          updated_at?: string
+          verbatim?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       engine_project_family_summary: {
