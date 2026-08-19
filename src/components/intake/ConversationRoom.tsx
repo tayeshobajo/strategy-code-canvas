@@ -35,6 +35,7 @@ import {
 } from "@/lib/website-intake/reflection";
 import { EARLY_EXIT_PROMPT } from "@/lib/website-intake/adaptive";
 import { trackEvent } from "@/lib/website-intake/track";
+import taiHeadshot from "@/assets/tai-headshot.png.asset.json";
 
 const OPENING_LINE = "Let's start with your world.";
 const OPENING_SUPPORT = "There's no perfect answer. Start wherever feels natural.";
