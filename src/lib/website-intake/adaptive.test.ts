@@ -4,6 +4,7 @@ import {
   canOfferEarlyExit,
   completeness,
   coveredObjectives,
+  isBriefAnswerer,
   nextStep,
   objectiveCoverage,
   pendingFollowUp,
@@ -159,5 +160,72 @@ describe("attribution capture", () => {
       session_id: "sess-1",
       page_views_before_intake: 2,
     });
+  });
+});
+
+describe("pacing and respect", () => {
+  const long = (label: string) =>
+    `${label}. ` +
+    "This is a considered answer with real detail about how the business actually runs day to day.";
+
+  it("reaches the contact gate in roughly nine to twelve questions", () => {
+    const state: ConversationState = { answers: [], skipped: [], followUpsAsked: [] };
+    let asked = 0;
+    for (let i = 0; i < 40; i++) {
+      const step = nextStep(state);
+      if (step.kind === "contact") break;
+      if (step.kind === "question") {
+        asked++;
+        state.answers.push(answer(step.key, long(step.key)));
+      } else {
+        state.followUpsAsked.push(step.key);
+      }
+    }
+    expect(asked).toBeGreaterThanOrEqual(9);
+    expect(asked).toBeLessThanOrEqual(12);
+  });
+
+  it("always asks the two-year Tuesday in the founder's own words", () => {
+    const rich = answer(
+      "the_business",
+      "We supply forty cafés and our customers keep coming back. Ideally in the future the team would run it. " +
+        "I'd want to be developing products again and my time back.".repeat(2),
+    );
+    expect(coveredObjectives({ ...empty, answers: [rich] }).has("future_day")).toBe(false);
+  });
+
+  it("stops sooner and stops probing when answers stay short", () => {
+    const state: ConversationState = {
+      answers: [
+        answer("who_you_are", "Sam, photographer."),
+        answer("the_business", "Weddings."),
+        answer("future_day", "Busier."),
+      ],
+      skipped: [],
+      followUpsAsked: ["thin_dream"],
+    };
+    expect(isBriefAnswerer(state)).toBe(true);
+    expect(pendingFollowUp(state, "future_day")).toBeNull();
+    const step = nextStep(state);
+    expect(step.kind).toBe("question");
+    expect(QUESTION_BY_KEY[(step as { key: IntakeObjectiveKey }).key].essential).toBe(true);
+  });
+
+  it("never chains more than two follow-ups", () => {
+    const state: ConversationState = {
+      answers: [answer("existing_assets", "We have an email list of nine thousand people we never use.")],
+      skipped: [],
+      followUpsAsked: ["thin_dream", "past_failure"],
+    };
+    expect(pendingFollowUp(state, "existing_assets")).toBeNull();
+  });
+
+  it("does not ask what could be possible about something that failed", () => {
+    const state: ConversationState = {
+      answers: [answer("already_tried", "We tried a shared spreadsheet and nobody kept it updated.")],
+      skipped: [],
+      followUpsAsked: [],
+    };
+    expect(pendingFollowUp(state, "already_tried")?.key).not.toBe("hidden_asset");
   });
 });

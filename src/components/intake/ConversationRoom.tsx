@@ -281,6 +281,9 @@ function ConversationBody(props: {
 
           {visible.length > 0 && !c.thinking && (
             <TaiBlock>
+              {c.currentTransition && (
+                <p className="mb-2 text-base leading-relaxed text-ink/55">{c.currentTransition}</p>
+              )}
               <p className="text-base leading-relaxed text-ink/85">{c.currentPrompt}</p>
             </TaiBlock>
           )}
@@ -638,6 +641,9 @@ function ReflectionBody(props: { c: IntakeConversation }) {
         <h2 className="mt-4 font-display text-3xl leading-snug text-ink sm:text-[2.4rem]">
           Let me make sure I understood you.
         </h2>
+        <p className="mt-3 text-sm leading-relaxed text-ink/55">
+          This is your own words, shortened. Nothing here is a recommendation yet.
+        </p>
 
         <ul className="mt-8 space-y-5">
           {c.reflection.map((r) => (

@@ -34,10 +34,13 @@ function baseKey(key: VerbatimAnswer["key"]): IntakeObjectiveKey {
 
 function textFor(answers: VerbatimAnswer[], keys: IntakeObjectiveKey[]): string | null {
   for (const key of keys) {
-    const hit = answers.find(
-      (a) => baseKey(a.key) === key && !a.skipped && (a.answer ?? "").trim().length > 0,
-    );
-    if (hit) return hit.answer.trim();
+    // Prefer the fullest thing they said on this ground, including any
+    // follow-up, rather than whichever came first.
+    const hits = answers
+      .filter((a) => baseKey(a.key) === key && !a.skipped && (a.answer ?? "").trim().length > 0)
+      .map((a) => a.answer.trim())
+      .sort((a, b) => b.length - a.length);
+    if (hits.length > 0) return hits[0];
   }
   return null;
 }
@@ -55,19 +58,31 @@ export function condense(text: string, max = 220): string {
 
 const SLOTS: Array<{ id: string; label: string; keys: IntakeObjectiveKey[] }> = [
   { id: "current", label: "Where you are", keys: ["the_business", "who_you_are", "whats_working"] },
-  { id: "future", label: "Where you're heading", keys: ["future_day", "future_you", "future_customer"] },
-  { id: "friction", label: "What feels hardest", keys: ["recurring_problem", "whats_in_the_way"] },
-  { id: "why", label: "Why it matters", keys: ["cost_of_standing_still", "future_you", "future_team"] },
+  {
+    id: "future",
+    label: "Where you're heading",
+    keys: ["future_day", "future_you", "future_customer"],
+  },
+  { id: "friction", label: "What's getting in the way", keys: ["recurring_problem", "whats_in_the_way"] },
+  { id: "why", label: "Why it matters", keys: ["cost_of_standing_still"] },
+  { id: "leverage", label: "What you already have going for you", keys: ["existing_assets", "whats_working"] },
   { id: "next", label: "What you'd change first", keys: ["ninety_day_wish", "how_youd_know"] },
 ];
 
-/** Three to five grounded statements, drawn only from what was actually said. */
+/** Below this there is nothing to reflect back; echoing it would overstate understanding. */
+const REFLECTABLE_CHARS = 10;
+
+/**
+ * Three to five grounded statements, drawn only from what was actually said.
+ * Nothing is inferred, nothing is prescribed, and a slot with no real source
+ * is dropped rather than filled.
+ */
 export function buildReflection(answers: VerbatimAnswer[]): ReflectionStatement[] {
   const used = new Set<string>();
   const out: ReflectionStatement[] = [];
   for (const slot of SLOTS) {
     const text = textFor(answers, slot.keys);
-    if (!text) continue;
+    if (!text || text.length < REFLECTABLE_CHARS) continue;
     const condensed = condense(text);
     if (used.has(condensed)) continue;
     used.add(condensed);
@@ -75,6 +90,7 @@ export function buildReflection(answers: VerbatimAnswer[]): ReflectionStatement[
   }
   return out.slice(0, 5);
 }
+
 
 const THEME_RULES: Array<{ id: string; label: string; support: string; pattern: RegExp }> = [
   {
