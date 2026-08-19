@@ -71,7 +71,7 @@ describe("Spirit First response policy", () => {
   it("lowers the burden when the founder is unsure", () => {
     const t = plan("I don't know, not sure really");
     expect(t.move).toBe("RECEIVE");
-    expect(t.acknowledgement.toLowerCase()).toContain("that's okay");
+    expect(t.acknowledgement.toLowerCase()).toContain("no problem");
     expect(questionCount(renderTurn(t))).toBe(1);
   });
 
@@ -88,11 +88,12 @@ describe("Spirit First response policy", () => {
     expect(t.objective).toBe("future_day");
   });
 
-  it("reflects a rich answer in the founder's own words", () => {
+  it("does not parrot a rich answer back at the founder", () => {
     const rich = `We fit out dental practices. ${"It takes months of back and forth with suppliers. ".repeat(8)}`;
     const t = plan(rich);
     expect(t.move).toBe("REFLECT");
-    expect(t.acknowledgement).toContain("We fit out dental practices");
+    expect(t.acknowledgement).toBe("");
+    expect(questionCount(renderTurn(t))).toBe(1);
   });
 
   it("clarifies rather than assuming a solution", () => {
@@ -104,7 +105,7 @@ describe("Spirit First response policy", () => {
   it("lets the founder's correction win", () => {
     const t = plan("No, that's not what I meant at all");
     expect(t.move).toBe("RECEIVE");
-    expect(t.acknowledgement.toLowerCase()).toContain("correcting me");
+    expect(t.acknowledgement.toLowerCase()).toContain("correcting that");
   });
 
   it("holds the floor open when there is more to say", () => {

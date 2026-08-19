@@ -194,19 +194,19 @@ export function planTurn(input: {
     case "greeting":
       return {
         ...base,
-        acknowledgement: "Hey — good to meet you. Glad you're here.",
+        acknowledgement: "Hey, good to meet you.",
         next_question: "What brought you in today?",
         objective: null,
         rationale_internal: "Social opening; answered socially, no objective consumed.",
       };
     case "social_or_relational": {
       const ack = asksAboutUs(latest)
-        ? "I'm Tai. I sit with founders, understand the business properly, and come back with a roadmap — that's all this conversation is for."
+        ? "I'm Tai. I sit with founders, get to know the business properly, then come back with a roadmap. That's all this is."
         : "I'm well, thanks for asking.";
       return {
         ...base,
         acknowledgement: ack,
-        next_question: "Whenever you're ready — what's going on in the business?",
+        next_question: "Whenever you're ready, what's going on in the business?",
         objective: null,
         rationale_internal: "Answered the person first, then reopened gently.",
       };
@@ -214,23 +214,23 @@ export function planTurn(input: {
     case "uncertain":
       return {
         ...base,
-        acknowledgement: "That's okay — you don't need the answer ready.",
-        next_question: "What's been taking up the most mental space in the business lately?",
+        acknowledgement: "No problem.",
+        next_question: "What has been taking up the most space in your head lately?",
         objective: "recurring_problem",
         rationale_internal: "Lowered the burden with an easier entry point.",
       };
     case "emotional_or_frustrated":
       return {
         ...base,
-        acknowledgement: "That sounds heavy, and it's worth saying out loud.",
-        next_question: "Where do you feel that most — what keeps landing back on you?",
+        acknowledgement: "That sounds exhausting.",
+        next_question: "When everything keeps coming back to you, what tends to land on your plate most?",
         objective: "recurring_problem",
         rationale_internal: "Acknowledged the weight, then one grounded follow-up.",
       };
     case "excited_or_visionary":
       return {
         ...base,
-        acknowledgement: "I can hear there's a picture in your head.",
+        acknowledgement: "",
         next_question: "Take me into it. If it really worked, what would the business look like?",
         objective: "future_day",
         rationale_internal: "Followed the energy into the future-state door.",
@@ -238,32 +238,32 @@ export function planTurn(input: {
     case "detailed_or_rich":
       return {
         ...base,
-        acknowledgement: `So what I'm hearing is "${quoteFragment(latest)}".`,
+        acknowledgement: "",
         next_question: objectivePrompt(upcoming),
         objective: upcoming,
         should_advance: true,
-        rationale_internal: "Rich answer reflected; covered ground skipped.",
+        rationale_internal: "Rich answer taken as read; covered ground skipped.",
       };
     case "direct_problem_statement":
       return {
         ...base,
-        acknowledgement: "Understood.",
-        next_question: `What makes you feel that's the thing holding the business back right now?`,
+        acknowledgement: "",
+        next_question: `What makes you think that's the main thing holding the business back right now?`,
         objective: input.currentObjective ?? "recurring_problem",
         rationale_internal: "Clarified the evidence before assuming a solution.",
       };
     case "correction_or_disagreement":
       return {
         ...base,
-        acknowledgement: "Thanks for correcting me — I'll take your version, not mine.",
-        next_question: "Say it the way you'd say it, and I'll work from that.",
+        acknowledgement: "Thanks for correcting that.",
+        next_question: "Say it the way you mean it, and I'll work from there.",
         objective: input.currentObjective ?? null,
         rationale_internal: "Founder correction is authoritative; prior reading dropped.",
       };
     case "wants_to_keep_talking":
       return {
         ...base,
-        acknowledgement: "Good — I'd rather hear it now.",
+        acknowledgement: "Good, I'd rather hear it now.",
         next_question: "Go on, I'm listening.",
         objective: null,
         should_end: false,
@@ -282,7 +282,7 @@ export function planTurn(input: {
       }
       return {
         ...base,
-        acknowledgement: input.isFirstTurn ? "" : "Got it.",
+        acknowledgement: "",
         next_question: objectivePrompt(upcoming),
         objective: upcoming,
         should_advance: true,
@@ -290,6 +290,7 @@ export function planTurn(input: {
       };
   }
 }
+
 
 /** The single visitor-facing message. Acknowledgement + at most one question. */
 export function renderTurn(plan: Pick<TurnPlan, "acknowledgement" | "next_question">): string {

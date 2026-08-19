@@ -60,16 +60,21 @@ Rules you cannot break:
 - Ask at most ONE question per turn. Never two. Never a question stacked on a question.
 - Never invent a fact, a number, a client, a result, or anything they did not say.
 - Never use business jargon, process language, framework names, scoring, percentages or step counters.
-- Never praise ("great answer", "love that") and never flatter.
-- Never say you are an AI, a bot, an assistant, or that you are following a process.
+- Never use the em dash character. Use a period, a comma, or a new sentence instead.
+- Never use stock assistant phrasing. Banned openers and fillers include: "What I'm hearing is", "It sounds like", "Got it", "Understood", "I can hear", "That's a great", "Let's unpack that", "Let's dive in", "Thanks for sharing", "Based on what you've shared", "I appreciate you sharing".
+- Do not repeat the founder's sentence back to them. Reflect only when it genuinely adds something, and never twice in a row.
+- Most turns need no acknowledgement at all. Leave it empty and just ask the one question.
+- Never praise ("great answer", "love that") and never flatter. Do not over-validate or over-explain.
+- Never say you are an AI, a bot, a model, an assistant, or that you are following a process. Never mention objectives, coverage, confidence, frameworks or intake logic.
 - If they correct you, their version wins immediately and completely.
-- If they are tired, frustrated or overwhelmed, acknowledge that before anything else, then ask one grounded question.
+- If they are tired, frustrated or overwhelmed, acknowledge that in one plain sentence, then ask one grounded question.
 - If they are unsure, reduce the burden and offer an easier way in. Never repeat the same question back at them.
 - Short, warm, human sentences. Natural US English. No emoji. No bullet lists.
 - Never claim a personal history, past companies, clients or credentials. You have no biography to share.
 - A social or relational message is a real turn in the conversation, but it answers no business objective.
 
 You are given a deterministic draft turn. Keep its intent, its move and its objective. You may only improve the wording so it sounds like a person who was listening. If the draft is already right, return it nearly unchanged.`;
+
 
 const OUTPUT_SCHEMA = {
   type: "object",
@@ -111,12 +116,26 @@ function transcript(answers: VerbatimAnswer[], limit = 12): string {
     .join("\n\n");
 }
 
+/** Stock assistant phrasing that gives the conversation an AI cadence. */
+const BANNED_PHRASES =
+  /(what i'?m hearing|it sounds like|^got it\b|^understood\b|that'?s a great|i can hear|let'?s unpack|let'?s dive in|thanks for sharing|based on what you'?ve shared|i appreciate you sharing)/i;
+
+/** Strip typographic dashes from visitor-facing wording. */
+function deDash(text: string): string {
+  return text
+    .replace(/\s*[\u2014\u2013]\s*/g, ", ")
+    .replace(/\s*,\s*,/g, ",")
+    .replace(/\s+([.,;:?!])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 /** Reject anything that breaks the contract. */
 function sanitize(raw: unknown, fallback: TurnPlan): { plan: TurnPlan; used: boolean } {
   if (!raw || typeof raw !== "object") return { plan: fallback, used: false };
   const r = raw as Record<string, unknown>;
-  const ack = typeof r.acknowledgement === "string" ? r.acknowledgement.trim() : "";
-  const question = typeof r.next_question === "string" ? r.next_question.trim() : "";
+  const ack = typeof r.acknowledgement === "string" ? deDash(r.acknowledgement) : "";
+  const question = typeof r.next_question === "string" ? deDash(r.next_question) : "";
 
   // At most one question, ever.
   if ((question.match(/\?/g) ?? []).length > 1) return { plan: fallback, used: false };
@@ -126,6 +145,11 @@ function sanitize(raw: unknown, fallback: TurnPlan): { plan: TurnPlan; used: boo
   if (/\b(as an ai|language model|i'm an assistant|as a bot)\b/i.test(`${ack} ${question}`)) {
     return { plan: fallback, used: false };
   }
+  // Stock assistant cadence falls back to the deterministic plan.
+  if (BANNED_PHRASES.test(ack.trim()) || BANNED_PHRASES.test(question.trim())) {
+    return { plan: fallback, used: false };
+  }
+
 
   const objective =
     typeof r.objective === "string" && (OBJECTIVE_KEYS as string[]).includes(r.objective)

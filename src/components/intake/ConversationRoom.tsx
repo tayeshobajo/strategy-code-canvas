@@ -387,7 +387,7 @@ function ConversationBody(props: {
               </div>
               {c.keepTalking && (
                 <p className="mt-3 text-sm text-ink/55">
-                  Good. Keep going — I'll stay with you.
+                  Good. Keep going, I'm still here.
                 </p>
               )}
             </div>
@@ -399,7 +399,7 @@ function ConversationBody(props: {
               onClick={c.openReflection}
               className="text-sm text-ink/45 underline-offset-4 transition hover:text-royal hover:underline"
             >
-              That's the picture — show me what you heard
+              That's the picture. Show me what you heard
             </button>
           )}
 
@@ -514,7 +514,11 @@ function Thinking() {
   return (
     <div className="flex items-start gap-3 sm:gap-4">
       <TaiAvatar />
-      <div className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-4">
+      <div
+        className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-4"
+        role="status"
+        aria-label="Tai is replying"
+      >
         <span className="flex items-center gap-1.5" aria-hidden>
           {[0, 1, 2].map((i) => (
             <span
@@ -524,11 +528,11 @@ function Thinking() {
             />
           ))}
         </span>
-        <span className="text-sm text-ink/60">Thinking through what you shared…</span>
       </div>
     </div>
   );
 }
+
 
 function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
   const { c } = props;
@@ -612,8 +616,7 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
       <div className="mx-auto max-w-2xl">
         {c.saveState === "error" && (
           <p className="mb-3 rounded-xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink/70">
-            I couldn't save that just now — nothing you've written is lost. It's still here, and
-            I'll keep trying as you continue.
+            I couldn't save that just now. Nothing you've written is lost. It's still here, and I'll keep trying as you continue.
           </p>
         )}
 
@@ -929,7 +932,7 @@ function ContactBody(props: { c: IntakeConversation }) {
             }
             const ok = await c.submitContact(form);
             if (!ok) {
-              toast.error("That didn't send. Nothing is lost — try once more in a moment.");
+              toast.error("That didn't send. Nothing is lost. Try once more in a moment.");
             }
           }}
           className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-7 text-sm text-paper transition hover:bg-royal disabled:opacity-50"

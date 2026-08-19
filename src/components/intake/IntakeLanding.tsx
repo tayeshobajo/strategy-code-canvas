@@ -161,7 +161,7 @@ export function IntakeLanding(props: {
 
               <p className="mt-6 inline-flex items-center gap-2 text-sm text-ink/50">
                 <Lock className="h-3.5 w-3.5" />
-                About 7–12 minutes. You can stop anytime.
+                About 7 to 12 minutes. You can stop anytime.
               </p>
             </Reveal>
           </div>
@@ -223,7 +223,7 @@ export function IntakeLanding(props: {
               Founders building something meaningful.
             </h2>
             <p className="mt-6 text-base leading-relaxed text-ink/70">
-              Whether you're starting out, scaling up, or stuck in the middle — this is
+              Whether you're starting out, scaling up, or stuck in the middle, this is
               for you.
             </p>
             <a
@@ -289,7 +289,7 @@ export function IntakeLanding(props: {
             “Trust Tai helped us see the path we couldn't see ourselves. They brought
             clarity, focus, and real results.”
           </blockquote>
-          <p className="mt-5 text-sm text-ink/60">— J. Adams, Founder</p>
+          <p className="mt-5 text-sm text-ink/60">J. Adams, Founder</p>
         </div>
       </section>
 
