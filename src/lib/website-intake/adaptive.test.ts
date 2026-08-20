@@ -10,7 +10,13 @@ import {
   pendingFollowUp,
   type ConversationState,
 } from "./adaptive";
-import { INTAKE_QUESTIONS, QUESTION_BY_KEY, type IntakeObjectiveKey } from "./questions";
+import {
+  ESSENTIAL_KEYS,
+  INTAKE_QUESTIONS,
+  QUESTION_BY_KEY,
+  type IntakeObjectiveKey,
+} from "./questions";
+
 import { deriveStructured } from "./structure";
 import { parseAttribution } from "./attribution";
 import type { VerbatimAnswer } from "./types";
