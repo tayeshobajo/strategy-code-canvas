@@ -228,7 +228,7 @@ function roomPhaseLabel(phase: string) {
 
 function TopBar(props: { phase: string; onClose: () => void; onReset?: () => void }) {
   return (
-    <header className="shrink-0 border-b border-ink/10 bg-paper/95 backdrop-blur">
+    <div className="shrink-0 border-b border-ink/10 bg-paper/95 backdrop-blur">
       <div className="flex items-center gap-4 px-5 py-4 sm:px-8">
         <TrustTaiLogo className="h-6 w-auto" />
         <span className="hidden h-5 w-px bg-ink/15 sm:block" />

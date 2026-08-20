@@ -469,16 +469,16 @@ function ArticleList() {
         </div>
 
         {/* Tabs */}
-        <div
-          role="tablist"
-          aria-label="Filter insights by category"
-          className="-mx-1 flex min-w-0 overflow-x-auto"
-        >
-          <ul className="flex min-w-max items-center gap-1 py-2 sm:gap-2">
+        <div className="-mx-1 flex min-w-0 overflow-x-auto">
+          <ul
+            role="tablist"
+            aria-label="Filter insights by category"
+            className="flex min-w-max items-center gap-1 py-2 sm:gap-2"
+          >
             {CATEGORIES.map((c, i) => {
               const isActive = c === active;
               return (
-                <li key={c}>
+                <li key={c} role="presentation">
                   <button
                     ref={(el) => { tabRefs.current[c] = el; }}
                     type="button"

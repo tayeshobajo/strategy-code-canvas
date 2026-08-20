@@ -535,12 +535,11 @@ function WalkRow({
   };
   return (
     <Reveal
-      as="article"
+      as="div"
       variant="fade-up"
       delay={index * 60}
       role="link"
       tabIndex={0}
-      aria-pressed={selected}
       aria-label={`View walk: ${walk.headline.join(" ")}`}
       data-selected={selected}
       onClick={handleActivate}

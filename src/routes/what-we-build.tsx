@@ -691,6 +691,7 @@ function Milestones({ activeIndex, onSelect }: { activeIndex: number; onSelect: 
               return (
                 <Reveal
                   as="li"
+                  role="presentation"
                   key={m.n}
                   variant="fade-up"
                   delay={i * 60}
