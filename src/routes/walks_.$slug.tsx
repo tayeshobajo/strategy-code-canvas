@@ -926,7 +926,7 @@ function WalkDetailPage() {
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
-      <main>
+      <main id="main">
         <DetailHero walk={walk} />
         <TheRoute points={walk.route} />
         <PointAndMilestones walk={walk} />

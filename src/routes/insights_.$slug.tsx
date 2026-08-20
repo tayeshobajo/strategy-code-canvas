@@ -481,7 +481,7 @@ function InsightArticlePage() {
       <PrintStyles />
       <ReadingProgressBar />
       <SiteHeader />
-      <main>
+      <main id="main">
         <article aria-labelledby="article-title">
           {/* -------- Back link + title block -------- */}
           <header className="pt-24 sm:pt-28 lg:pt-32 print:pt-0">

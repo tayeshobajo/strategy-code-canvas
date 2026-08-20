@@ -716,7 +716,7 @@ function WalksPage() {
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
-      <main>
+      <main id="main">
         <Hero />
         <div ref={filterAnchorRef}>
           <FilterRow

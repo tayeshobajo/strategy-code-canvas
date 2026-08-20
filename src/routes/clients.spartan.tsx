@@ -72,7 +72,7 @@ function SpartanRoadmap() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-      <main
+      <main id="main"
         className="spartan-deck relative w-full"
         style={{
           backgroundColor: "#ffffff",

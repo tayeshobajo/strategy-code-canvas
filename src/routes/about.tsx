@@ -229,7 +229,7 @@ function GhostLink({ to, children }: { to: string; children: React.ReactNode }) 
 
 function AboutPage() {
   return (
-    <main className="min-h-screen bg-paper text-ink">
+    <main id="main" className="min-h-screen bg-paper text-ink">
       <SiteHeader />
       <Hero />
       <OneMoment />

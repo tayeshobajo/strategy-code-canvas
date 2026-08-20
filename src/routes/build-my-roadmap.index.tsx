@@ -58,7 +58,7 @@ function BuildMyRoadmap() {
     <div className="min-h-screen bg-cream text-ink">
       <SiteHeader />
 
-      <main>
+      <main id="main">
         <IntakeLanding
           resuming={conversation.resuming}
           resumed={conversation.hasProgress}
