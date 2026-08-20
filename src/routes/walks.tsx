@@ -32,7 +32,7 @@ export const Route = createFileRoute("/walks")({
         { property: "og:image", content: "https://trusttai.com/og/og-walks.jpg" },
         {
           property: "og:image:alt",
-          content: "Trust Tai — The Walks. Real businesses. Real routes.",
+          content: "The Walks by Trust Tai. Real businesses. Real routes.",
         },
         { name: "twitter:image", content: "https://trusttai.com/og/og-walks.jpg" },
       ],

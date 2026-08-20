@@ -31,7 +31,7 @@ export const Route = createFileRoute("/build-my-roadmap/")({
         },
         {
           property: "og:image:alt",
-          content: "Trust Tai — Build Your Roadmap. A conversation, not a form.",
+          content: "Build Your Roadmap with Trust Tai. A conversation, not a form.",
         },
         {
           name: "twitter:image",
