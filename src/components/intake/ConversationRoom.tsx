@@ -522,23 +522,23 @@ function FounderBlock(props: {
 }) {
   const time = new Date(props.at);
   return (
-    <div className="group flex justify-end">
-      <div className="max-w-[92%] rounded-2xl border border-royal/15 bg-royal/[0.05] px-5 py-3 sm:max-w-[85%] sm:px-6 sm:py-3.5">
+    <div className="group relative flex justify-end">
+      <div className="max-w-[92%] rounded-2xl border border-royal/15 bg-royal/[0.05] px-5 py-2.5 sm:max-w-[85%] sm:px-6 sm:py-3">
         <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">{props.children}</p>
-        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/35">
+        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/35">
           {props.modality === "voice" ? "Spoken · " : ""}
           {Number.isNaN(time.getTime())
             ? ""
             : time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
         </p>
-        {props.messageId && (
-          <MessageActions
-            messageId={props.messageId}
-            text={typeof props.children === "string" ? props.children : ""}
-            align="end"
-          />
-        )}
       </div>
+      {props.messageId && (
+        <MessageActions
+          messageId={props.messageId}
+          text={typeof props.children === "string" ? props.children : ""}
+          align="end"
+        />
+      )}
     </div>
   );
 }
