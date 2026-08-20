@@ -77,7 +77,7 @@ export function MessageActions(props: {
 
   return (
     <div
-      className={`mt-3 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 motion-reduce:opacity-100 ${
+      className={`mt-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 motion-reduce:opacity-100 ${
         props.align === "end" ? "justify-end" : ""
       }`}
     >
