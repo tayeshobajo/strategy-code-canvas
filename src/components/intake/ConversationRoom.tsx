@@ -456,7 +456,7 @@ function ConversationBody(props: {
         )}
       </div>
 
-      <ThemeDrawer themes={props.themes} />
+      <PictureDrawer phases={props.c.journey} picture={props.picture} />
       <Composer c={c} voiceFirst={props.voiceFirst} />
     </>
 
