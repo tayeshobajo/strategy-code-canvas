@@ -98,8 +98,9 @@ export function ConversationRoom(props: {
 
   if (!props.open) return null;
 
-  const themes = conversationThemes(c.answers);
-  const showRail = c.phase === "conversation" && hasEnoughSignal(c.answers) && themes.length > 0;
+  const picture = c.picture;
+  const showRail = c.phase === "conversation";
+
 
   return (
     <div
