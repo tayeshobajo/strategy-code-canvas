@@ -26,7 +26,15 @@ import {
   objectiveCoverage,
   type ConversationState,
 } from "@/lib/website-intake/adaptive";
+import {
+  activePhase,
+  journeyPhases,
+  namedGaps,
+  pictureSoFar,
+  readyForPicture,
+} from "@/lib/website-intake/journey";
 import { classifyPosture, NON_SUBSTANTIVE } from "@/lib/website-intake/posture";
+
 import { buildReflection, type ReflectionStatement } from "@/lib/website-intake/reflection";
 import { logPacing } from "@/lib/website-intake/pacing";
 import type { FollowUpKey, IntakeObjectiveKey } from "@/lib/website-intake/questions";
