@@ -226,38 +226,33 @@ function roomPhaseLabel(phase: string) {
   return "Thank you";
 }
 
-function TopBar(props: { phase: string; onClose: () => void; onReset?: () => void }) {
+function TopBar(props: { onClose: () => void; onReset?: () => void }) {
   return (
     <div className="shrink-0 border-b border-ink/10 bg-paper/95 backdrop-blur">
-      <div className="flex items-center gap-4 px-5 py-4 sm:px-8">
-        <TrustTaiLogo className="h-6 w-auto" />
-        <span className="hidden h-5 w-px bg-ink/15 sm:block" />
-        <p className="hidden text-sm text-ink/70 sm:block">Build Your Roadmap</p>
-        <span className="hidden h-5 w-px bg-ink/15 lg:block" />
-        <span className="hidden items-center gap-2 lg:inline-flex">
-          <TaiAvatar className="h-7 w-7" alt="Tai" />
-          <span className="text-sm text-ink/70">You're talking with Tai</span>
-        </span>
-        <p className="ml-auto font-mono text-[10px] uppercase tracking-[0.24em] text-ink/70">
-          {props.phase}
-        </p>
-        {props.onReset && (
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 py-4 sm:px-8">
+        <div className="flex items-center gap-4">
+          <TrustTaiLogo className="h-6 w-auto" />
+        </div>
+        <p className="text-sm text-ink/70">Build Your Roadmap</p>
+        <div className="flex items-center justify-end gap-2">
+          {props.onReset && (
+            <button
+              type="button"
+              onClick={props.onReset}
+              className="inline-flex min-h-9 items-center gap-2 rounded-full border border-ink/15 bg-white px-3 text-xs text-ink/60 transition hover:text-ink"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Start over
+            </button>
+          )}
           <button
             type="button"
-            onClick={props.onReset}
-            className="inline-flex min-h-9 items-center gap-2 rounded-full border border-ink/15 bg-white px-3 text-xs text-ink/60 transition hover:text-ink"
+            onClick={props.onClose}
+            aria-label="Close the conversation"
+            className="grid h-10 w-10 place-items-center rounded-full text-ink/70 transition hover:bg-ink/5 hover:text-ink"
           >
-            <RotateCcw className="h-3.5 w-3.5" /> Start over
+            <X className="h-4.5 w-4.5" />
           </button>
-        )}
-        <button
-          type="button"
-          onClick={props.onClose}
-          aria-label="Close the conversation"
-          className="grid h-10 w-10 place-items-center rounded-full text-ink/70 transition hover:bg-ink/5 hover:text-ink"
-        >
-          <X className="h-4.5 w-4.5" />
-        </button>
+        </div>
       </div>
     </div>
   );
