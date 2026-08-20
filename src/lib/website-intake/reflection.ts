@@ -135,7 +135,7 @@ export function buildReflection(answers: VerbatimAnswer[]): ReflectionStatement[
       source: condensed === clean ? "verbatim" : "shortened",
     });
   }
-  return out.slice(0, 5);
+  return out.slice(0, 7);
 }
 
 
