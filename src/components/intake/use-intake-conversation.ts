@@ -30,6 +30,7 @@ import {
   activePhase,
   journeyPhases,
   namedGaps,
+  remainingCount,
   pictureSoFar,
   readyForPicture,
 } from "@/lib/website-intake/journey";
@@ -46,7 +47,7 @@ export const RESUME_KEY = "tt_intake_resume_v1";
 /** Key used for the founder-confirmed reflection so Scout can tell it apart. */
 export const CONFIRMED_REFLECTION_KEY = "founder_confirmed_reflection";
 
-export type RoomPhase = "conversation" | "reflection" | "contact" | "done";
+export type RoomPhase = "conversation" | "reflection" | "contact" | "review" | "done";
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
 export type ContactDetails = {
@@ -83,6 +84,15 @@ export function useIntakeConversation() {
   const [turn, setTurn] = React.useState<TurnResult | null>(null);
   /** Ground the posture layer judged already covered by the founder's words. */
   const [supported, setSupported] = React.useState<IntakeObjectiveKey[]>([]);
+  /** Contact details, held here so the review step can show and correct them. */
+  const [contact, setContact] = React.useState<ContactDetails>({
+    name: "",
+    email: "",
+    company: "",
+    website: "",
+    phone: "",
+    researchOk: true,
+  });
 
   const state: ConversationState = React.useMemo(
     () => ({ answers, skipped, followUpsAsked, supported }),
@@ -101,6 +111,8 @@ export function useIntakeConversation() {
   const ready = React.useMemo(() => readyForPicture(state), [state]);
   /** One or two important gaps left, named in plain language. */
   const gaps = React.useMemo(() => namedGaps(state), [state]);
+  /** How many essential things are still to cover. Zero means the asking is done. */
+  const remaining = React.useMemo(() => remainingCount(state), [state]);
 
 
   const answeredCount = answers.filter(
@@ -351,6 +363,45 @@ export function useIntakeConversation() {
     }
   }, [answers, followUpsAsked, persist, reflection, skipped]);
 
+  /** Correct one recorded answer in place, before anything is sent. */
+  const editAnswer = React.useCallback(
+    async (index: number, text: string) => {
+      const trimmed = text.trim();
+      const next = answers.map((a, i) => (i === index ? { ...a, answer: trimmed } : a));
+      setAnswers(next);
+      try {
+        await persist({ verbatim: next, skipped, followUpsAsked });
+      } catch {
+        /* retained locally; surfaced through saveState */
+      }
+    },
+    [answers, followUpsAsked, persist, skipped],
+  );
+
+  /** Clear everything in this browser and begin a fresh conversation. */
+  const resetConversation = React.useCallback(() => {
+    try {
+      window.localStorage.removeItem(RESUME_KEY);
+    } catch {
+      /* ignore */
+    }
+    setResumeToken(null);
+    setAnswers([]);
+    setSkipped([]);
+    setFollowUpsAsked([]);
+    setSupported([]);
+    setTurn(null);
+    setReflection([]);
+    setReflectionConfirmed(false);
+    setKeepTalking(false);
+    setDelivered(null);
+    setSaveState("idle");
+    setBusy(false);
+    setThinking(false);
+    setContact({ name: "", email: "", company: "", website: "", phone: "", researchOk: true });
+    setPhase("conversation");
+  }, []);
+
   const submitContact = React.useCallback(
     async (contact: ContactDetails) => {
       setBusy(true);
@@ -410,6 +461,11 @@ export function useIntakeConversation() {
     picture,
     ready,
     gaps,
+    remaining,
+    contact,
+    setContact,
+    editAnswer,
+    resetConversation,
 
     answeredCount,
     hasProgress,
