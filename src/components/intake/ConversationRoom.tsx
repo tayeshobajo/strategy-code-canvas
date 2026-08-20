@@ -259,7 +259,7 @@ function TopBar(props: { phase: string; onClose: () => void; onReset?: () => voi
           <X className="h-4.5 w-4.5" />
         </button>
       </div>
-    </header>
+    </div>
   );
 }
 
