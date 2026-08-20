@@ -19,6 +19,7 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
   return (
     <>
       <section
+        aria-label="Start your roadmap"
         className="relative overflow-hidden text-white"
         style={{ backgroundColor: NAVY }}
       >

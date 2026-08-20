@@ -608,7 +608,7 @@ function TheConductor() {
           </Reveal>
 
           <Reveal as="div" variant="fade-up" delay={200} className="lg:col-span-3">
-            <aside className="rounded-md border border-rule/70 bg-white/60 p-5 text-[12.5px] leading-[1.65] text-ink/75">
+            <div className="rounded-md border border-rule/70 bg-white/60 p-5 text-[12.5px] leading-[1.65] text-ink/75">
               <span className="block h-px w-8 bg-royal/70" />
               <div className="mt-3 flex items-start gap-2">
                 <Compass className="mt-0.5 h-4 w-4 flex-none text-royal" />
