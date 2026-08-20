@@ -76,7 +76,7 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
                 to="/build-my-roadmap"
                 className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-[12.5px] text-white/80 transition-colors hover:border-white/50 hover:text-white"
               >
-                Build my Roadmap
+                Build Your Roadmap
               </Link>
             </div>
           </div>

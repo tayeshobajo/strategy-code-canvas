@@ -829,7 +829,7 @@ type NextStep = {
 const NEXT_STEPS: NextStep[] = [
   {
     icon: <Compass className="h-4 w-4" />,
-    title: "Build your Roadmap",
+    title: "Build Your Roadmap",
     body: "A 30-minute conversation. We listen first, then map the work.",
     to: "/build-my-roadmap",
     cta: "Start the Roadmap",

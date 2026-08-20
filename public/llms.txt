@@ -11,7 +11,7 @@ Trust Tai works with founder-led businesses to produce a Business Operating Road
 - [The Walks](/walks): Selected case studies of founder-led businesses we have walked with.
 - [Investment](/investment): Pacing tiers (Accelerated, Balanced, Steady) and what each includes.
 - [About](/about): Tai Shobajo and the thesis behind Trust Tai.
-- [Build My Roadmap](/build-my-roadmap): Start the intake for a roadmap conversation.
+- [Build Your Roadmap](/build-my-roadmap): Start the intake for a roadmap conversation.
 
 ## Optional
 
