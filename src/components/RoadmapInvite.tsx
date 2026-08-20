@@ -139,18 +139,17 @@ export function RoadmapInvite() {
             </p>
 
 
-
-
             <Link
               to="/build-my-roadmap"
               data-invite-cta
               onClick={close}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-full px-6 text-[14.5px] font-semibold text-white transition-transform hover:-translate-y-[1px] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
-              style={{ backgroundColor: NAVY, height: "48px" }}
+              className="mt-5 flex w-full cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white transition-transform hover:-translate-y-[1px] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
+              style={{ backgroundColor: NAVY, height: "56px" }}
             >
-              {INVITE_COPY.cta}
-              <ArrowRight className="h-4 w-4" />
+              <span className="pointer-events-none">{INVITE_COPY.cta}</span>
+              <ArrowRight className="pointer-events-none h-4 w-4" />
             </Link>
+
 
             <div className="mt-3 flex items-center justify-center gap-2 text-[color:color-mix(in_oklab,var(--ink)_52%,transparent)]">
               <Clock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
