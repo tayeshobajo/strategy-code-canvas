@@ -218,12 +218,6 @@ export function ConversationRoom(props: {
   );
 }
 
-function roomPhaseLabel(phase: string) {
-  if (phase === "confirm") return "One last look";
-  if (phase === "reflection" || phase === "contact" || phase === "review")
-    return "Putting the picture together";
-  return "Thank you";
-}
 
 function TopBar(props: { onClose: () => void; onReset?: () => void }) {
   return (
