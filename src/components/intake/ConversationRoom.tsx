@@ -145,7 +145,6 @@ export function ConversationRoom(props: {
         }`}
       >
         <TopBar
-          phase={c.phase === "conversation" ? c.activePhaseLabel : roomPhaseLabel(c.phase)}
           onClose={requestClose}
           onReset={c.hasProgress && c.phase !== "done" ? () => setResetIntent(true) : undefined}
         />
