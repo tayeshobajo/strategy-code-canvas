@@ -29,7 +29,7 @@ export const INVITE_COPY = {
     "For founders and teams carrying something they want to make clearer, stronger, or easier to run.",
 };
 
-const CARD_ICONS = [User, LayoutGrid, ShieldCheck];
+
 
 const HEADLINE_LEAD = "Let's get clear on";
 const HEADLINE_ACCENT = "what comes next.";
