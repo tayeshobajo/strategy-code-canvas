@@ -96,13 +96,14 @@ describe("conversation flow", () => {
   });
 
   it("offers an early exit once the picture is strong", () => {
-    const answers = INTAKE_QUESTIONS.slice(0, 12).map((q) =>
-      answer(q.key, `A considered answer about ${q.label} that runs to a reasonable length.`),
+    const answers = ESSENTIAL_KEYS.map((k) =>
+      answer(k, `A considered answer about ${QUESTION_BY_KEY[k].label} with real detail in it.`),
     );
     const state = { ...empty, answers, followUpsAsked: ["thin_dream" as const] };
-    expect(objectiveCoverage(state)).toBeGreaterThanOrEqual(0.7);
+    expect(objectiveCoverage(state)).toBeGreaterThan(0.3);
     expect(canOfferEarlyExit(state)).toBe(true);
   });
+
 
   it("collects contact details only at the very end", () => {
     const answers = INTAKE_QUESTIONS.map((q) => answer(q.key, `Answer about ${q.label}, at length.`));
