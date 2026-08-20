@@ -492,23 +492,23 @@ function TaiBlock(props: {
   onReact?: (messageId: string, value: Reaction) => void;
 }) {
   return (
-    <div className="group flex items-start gap-3 sm:gap-4">
+    <div className="group relative flex items-start gap-3 sm:gap-4">
       {props.hideAvatar ? (
         <span className={`${AVATAR_SIZE} shrink-0`} aria-hidden />
       ) : (
         <TaiAvatar />
       )}
-      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%] sm:px-6 sm:py-5">
+      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-2.5 sm:max-w-[85%] sm:px-6 sm:py-3">
         {props.children}
-        {props.messageId && (
-          <MessageActions
-            messageId={props.messageId}
-            text={props.copyText ?? ""}
-            reaction={props.reaction}
-            onReact={props.onReact}
-          />
-        )}
       </div>
+      {props.messageId && (
+        <MessageActions
+          messageId={props.messageId}
+          text={props.copyText ?? ""}
+          reaction={props.reaction}
+          onReact={props.onReact}
+        />
+      )}
     </div>
   );
 }
@@ -522,23 +522,23 @@ function FounderBlock(props: {
 }) {
   const time = new Date(props.at);
   return (
-    <div className="group flex justify-end">
-      <div className="max-w-[92%] rounded-2xl border border-royal/15 bg-royal/[0.05] px-5 py-4 sm:max-w-[85%] sm:px-6 sm:py-5">
+    <div className="group relative flex justify-end">
+      <div className="max-w-[92%] rounded-2xl border border-royal/15 bg-royal/[0.05] px-5 py-2.5 sm:max-w-[85%] sm:px-6 sm:py-3">
         <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">{props.children}</p>
-        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/35">
+        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/35">
           {props.modality === "voice" ? "Spoken · " : ""}
           {Number.isNaN(time.getTime())
             ? ""
             : time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
         </p>
-        {props.messageId && (
-          <MessageActions
-            messageId={props.messageId}
-            text={typeof props.children === "string" ? props.children : ""}
-            align="end"
-          />
-        )}
       </div>
+      {props.messageId && (
+        <MessageActions
+          messageId={props.messageId}
+          text={typeof props.children === "string" ? props.children : ""}
+          align="end"
+        />
+      )}
     </div>
   );
 }
@@ -548,7 +548,7 @@ function Thinking() {
     <div className="flex items-start gap-3 sm:gap-4">
       <TaiAvatar />
       <div
-        className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-4"
+        className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-3"
         role="status"
         aria-label="Tai is replying"
       >
