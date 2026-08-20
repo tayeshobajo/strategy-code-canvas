@@ -13,6 +13,7 @@ import { PageViewTracker } from "@/components/PageViewTracker";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { RoadmapInvite } from "@/components/RoadmapInvite";
 
 
 function NotFoundComponent() {
