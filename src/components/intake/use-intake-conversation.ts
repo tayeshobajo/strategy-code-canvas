@@ -84,6 +84,16 @@ export function useIntakeConversation() {
   const coverage = React.useMemo(() => objectiveCoverage(state), [state]);
   const progress = React.useMemo(() => completeness(state), [state]);
   const offerExit = React.useMemo(() => canOfferEarlyExit(state), [state]);
+  /** The four quiet phases, with exactly one active until the picture is ready. */
+  const journey = React.useMemo(() => journeyPhases(state), [state]);
+  const activePhaseLabel = React.useMemo(() => activePhase(state).label, [state]);
+  /** Grounded categories, revealed only as they are actually heard. */
+  const picture = React.useMemo(() => pictureSoFar(answers), [answers]);
+  /** Enough understood to stop asking and show the picture back. */
+  const ready = React.useMemo(() => readyForPicture(state), [state]);
+  /** One or two important gaps left, named in plain language. */
+  const gaps = React.useMemo(() => namedGaps(state), [state]);
+
 
   const answeredCount = answers.filter(
     (a) => !a.key.includes("__followup_") && (a.key as string) !== CONFIRMED_REFLECTION_KEY,
