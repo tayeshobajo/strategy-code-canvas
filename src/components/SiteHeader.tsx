@@ -72,7 +72,7 @@ export function SiteHeader() {
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-3 py-2 text-[12px] font-medium text-paper transition-transform hover:scale-[1.02] sm:gap-2 sm:px-4 sm:text-[12.5px]"
             >
               <span className="sm:hidden">Build Roadmap</span>
-              <span className="hidden sm:inline">Build My Roadmap</span>
+              <span className="hidden sm:inline">Build Your Roadmap</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <button
@@ -113,7 +113,7 @@ export function SiteHeader() {
               to="/build-my-roadmap"
               className="mt-1 flex items-center justify-center gap-2 rounded-full bg-ink px-3 py-3 text-[15px] font-medium text-paper"
             >
-              Build My Roadmap
+              Build Your Roadmap
               <ArrowRight className="h-4 w-4" />
             </Link>
           </nav>

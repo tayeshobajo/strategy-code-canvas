@@ -321,7 +321,7 @@ function Hero() {
               href="/build-my-roadmap"
               className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
             >
-              Build My Roadmap
+              Build Your Roadmap
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
           </Reveal>
@@ -652,7 +652,7 @@ function DarkCta() {
             href="/build-my-roadmap"
             className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[13px] font-medium text-ink transition-all duration-300 hover:-translate-y-[1px]"
           >
-            Build My Roadmap
+            Build Your Roadmap
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </a>
           <p className="max-w-[42ch] text-[11.5px] leading-[1.75] text-white/55">

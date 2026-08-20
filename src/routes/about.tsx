@@ -195,7 +195,7 @@ function Eyebrow({ children, tone = "royal" }: { children: React.ReactNode; tone
 }
 
 function PrimaryCTA({
-  children = "Build My Roadmap",
+  children = "Build Your Roadmap",
   variant = "dark",
 }: {
   children?: React.ReactNode;
@@ -264,7 +264,7 @@ function Hero() {
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="/build-my-roadmap" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
-                Build My Roadmap
+                Build Your Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
               <Link to="/what-we-build" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
@@ -1033,7 +1033,7 @@ function CloseCTA() {
             </p>
           </div>
           <div className="mt-7 flex justify-center">
-            <PrimaryCTA variant="light">Build My Roadmap</PrimaryCTA>
+            <PrimaryCTA variant="light">Build Your Roadmap</PrimaryCTA>
           </div>
           <p className="mt-4 text-[12px] text-paper/55">
             A 30-minute conversation. No pitch. If the timing is right we should talk.

@@ -370,7 +370,7 @@ function Header() {
           ))}
         </nav>
         <div className="hidden sm:block">
-          <PrimaryButton href="/build-my-roadmap">Build My Roadmap</PrimaryButton>
+          <PrimaryButton href="/build-my-roadmap">Build Your Roadmap</PrimaryButton>
         </div>
       </div>
     </header>
@@ -438,7 +438,7 @@ function Hero() {
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="/build-my-roadmap" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
-                Build My Roadmap
+                Build Your Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
               <a href="/investment" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
@@ -1281,7 +1281,7 @@ function BottomCTA() {
           </Reveal>
           <Reveal variant="fade-up" delay={600} className="mt-[30px]">
             <PrimaryButton href="/build-my-roadmap" className="h-[54px] px-8 text-[14px]">
-              Build My Roadmap
+              Build Your Roadmap
             </PrimaryButton>
           </Reveal>
           <Reveal as="p" variant="fade-up" delay={780} className="mt-[18px] max-w-[360px] text-[14px] leading-[1.6] text-ink/65">

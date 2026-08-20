@@ -123,7 +123,7 @@ export function IntakeLanding(props: {
           <div className="flex items-center px-6 py-16 md:py-24 lg:pl-[max(1.5rem,calc((100vw-1280px)/2))] lg:pr-16">
             <Reveal className="max-w-xl">
               <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
-                Build my roadmap
+                Build your roadmap
               </p>
               <h1 className="mt-5 font-display text-[2.75rem] leading-[1.05] md:text-[4rem]">
                 Start with the business you want to build.
