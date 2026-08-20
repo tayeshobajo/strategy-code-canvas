@@ -492,23 +492,23 @@ function TaiBlock(props: {
   onReact?: (messageId: string, value: Reaction) => void;
 }) {
   return (
-    <div className="group flex items-start gap-3 sm:gap-4">
+    <div className="group relative flex items-start gap-3 sm:gap-4">
       {props.hideAvatar ? (
         <span className={`${AVATAR_SIZE} shrink-0`} aria-hidden />
       ) : (
         <TaiAvatar />
       )}
-      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-3 sm:max-w-[85%] sm:px-6 sm:py-3.5">
+      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-2.5 sm:max-w-[85%] sm:px-6 sm:py-3">
         {props.children}
-        {props.messageId && (
-          <MessageActions
-            messageId={props.messageId}
-            text={props.copyText ?? ""}
-            reaction={props.reaction}
-            onReact={props.onReact}
-          />
-        )}
       </div>
+      {props.messageId && (
+        <MessageActions
+          messageId={props.messageId}
+          text={props.copyText ?? ""}
+          reaction={props.reaction}
+          onReact={props.onReact}
+        />
+      )}
     </div>
   );
 }
