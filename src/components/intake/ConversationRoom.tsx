@@ -498,7 +498,7 @@ function TaiBlock(props: {
       ) : (
         <TaiAvatar />
       )}
-      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-4 sm:max-w-[85%] sm:px-6 sm:py-5">
+      <div className="max-w-[92%] rounded-2xl border border-ink/10 bg-white px-5 py-3 sm:max-w-[85%] sm:px-6 sm:py-3.5">
         {props.children}
         {props.messageId && (
           <MessageActions
