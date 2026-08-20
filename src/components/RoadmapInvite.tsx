@@ -112,10 +112,10 @@ export function RoadmapInvite() {
           }}
         >
 
-          <div className="flex items-start justify-between border-b border-[color:var(--rule-soft)] px-5 py-4 sm:px-7 sm:py-5">
+          <div className="flex items-start justify-between border-b border-[color:var(--rule-soft)] px-5 py-4">
             <div className="min-w-0">
               <TrustTaiLogo />
-              <p className="mt-1.5 font-mono text-[9.5px] uppercase tracking-[0.22em] text-[color:color-mix(in_oklab,var(--ink)_50%,transparent)]">
+              <p className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.22em] text-[color:color-mix(in_oklab,var(--ink)_50%,transparent)]">
                 {INVITE_COPY.marker}
               </p>
             </div>
@@ -129,42 +129,42 @@ export function RoadmapInvite() {
             </button>
           </div>
 
-          <div className="px-5 pb-6 pt-6 sm:px-7 sm:pb-7 sm:pt-7">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-royal">
+          <div className="px-5 pb-5 pt-5">
+            <p className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-royal">
               {INVITE_COPY.eyebrow}
             </p>
-            <h2 className="mt-3 font-display text-[30px] leading-[1.08] tracking-tight text-ink sm:text-[36px]">
+            <h2 className="mt-2.5 font-display text-[26px] leading-[1.1] tracking-tight text-ink">
               {HEADLINE_LEAD}{" "}
               <span className="italic text-royal">{HEADLINE_ACCENT}</span>
             </h2>
-            <p className="mt-4 text-[14px] leading-[1.6] text-[color:color-mix(in_oklab,var(--ink)_80%,transparent)] sm:text-[14.5px]">
+            <p className="mt-3 text-[13px] leading-[1.6] text-[color:color-mix(in_oklab,var(--ink)_80%,transparent)]">
               {INVITE_COPY.body}
             </p>
 
-            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-5 grid grid-cols-1 gap-2">
               {INVITE_COPY.cards.map((c, i) => {
                 const Icon = CARD_ICONS[i] ?? Users;
                 return (
                   <div
                     key={c.title}
-                    className="rounded-xl border border-[color:var(--rule)] bg-background p-3"
+                    className="flex items-start gap-2.5 rounded-xl border border-[color:var(--rule)] bg-background px-3 py-2.5"
                   >
-                    <div className="flex items-start gap-2.5">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[color:color-mix(in_oklab,var(--royal)_8%,transparent)]">
-                        <Icon className="h-3.5 w-3.5 text-royal" strokeWidth={1.6} />
-                      </span>
+                    <span className="mt-[1px] flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[color:color-mix(in_oklab,var(--royal)_8%,transparent)]">
+                      <Icon className="h-3.5 w-3.5 text-royal" strokeWidth={1.6} />
+                    </span>
+                    <div className="min-w-0">
                       <p className="text-[12.5px] font-semibold leading-tight text-ink">
                         {c.title}
                       </p>
+                      <p className="mt-1 text-[12px] leading-snug text-[color:color-mix(in_oklab,var(--ink)_62%,transparent)]">
+                        {c.note}
+                      </p>
                     </div>
-                    <div className="my-2.5 h-px bg-[color:var(--rule-soft)]" />
-                    <p className="text-[12px] leading-snug text-[color:color-mix(in_oklab,var(--ink)_62%,transparent)]">
-                      {c.note}
-                    </p>
                   </div>
                 );
               })}
             </div>
+
 
             <Link
               to="/build-my-roadmap"
