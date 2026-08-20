@@ -1084,6 +1084,39 @@ function DoneBody(props: { onClose: () => void }) {
   );
 }
 
+function ConfirmCard(props: {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="absolute inset-0 z-20 grid place-items-center bg-ink/40 px-6 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border border-ink/10 bg-paper p-7">
+        <h3 className="font-display text-2xl text-ink">{props.title}</h3>
+        <p className="mt-3 text-sm leading-relaxed text-ink/65">{props.body}</p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={props.onConfirm}
+            className="inline-flex min-h-11 items-center rounded-full bg-ink px-5 text-sm text-paper transition hover:bg-royal"
+          >
+            {props.confirmLabel}
+          </button>
+          <button
+            type="button"
+            onClick={props.onDismiss}
+            className="inline-flex min-h-11 items-center rounded-full border border-ink/15 bg-white px-5 text-sm text-ink/70 transition hover:text-ink"
+          >
+            Never mind
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ResumePrompt(props: { onDismiss: () => void; onLeave: () => void }) {
   return (
     <div className="absolute inset-0 z-10 grid place-items-center bg-ink/40 px-6 backdrop-blur-sm">
