@@ -423,7 +423,7 @@ function HeroConversation() {
   }, [reduced]);
 
   return (
-    <div className="relative flex h-full min-h-[320px] flex-col justify-center gap-3 px-6 py-12 md:px-10">
+    <div className="relative z-10 flex h-full min-h-[320px] flex-col justify-center gap-3 px-6 py-12 md:px-10">
       {HERO_LINES.slice(0, shown).map((line, i) => (
         <div key={line.text} className="flex flex-col gap-1">
           <Bubble mine={line.mine} animate={!reduced}>
