@@ -178,12 +178,11 @@ export function ConversationRoom(props: {
 }
 
 function roomPhaseLabel(phase: string) {
-  if (phase === "reflection") return "Finding the path";
-  if (phase === "contact") return "Finding the path";
+  if (phase === "reflection" || phase === "contact") return "Putting the picture together";
   return "Thank you";
 }
 
-function TopBar(props: { phase: string; progress: number; onClose: () => void }) {
+function TopBar(props: { phase: string; onClose: () => void }) {
   return (
     <header className="shrink-0 border-b border-ink/10 bg-paper/95 backdrop-blur">
       <div className="flex items-center gap-4 px-5 py-4 sm:px-8">
@@ -207,31 +206,70 @@ function TopBar(props: { phase: string; progress: number; onClose: () => void })
           <X className="h-4.5 w-4.5" />
         </button>
       </div>
-      <div className="h-[2px] w-full bg-ink/[0.06]">
-        <div
-          className="h-full bg-royal/70 transition-all duration-700"
-          style={{ width: `${Math.max(3, Math.round(props.progress * 100))}%` }}
-        />
-      </div>
     </header>
   );
 }
 
-function ThemeDrawer(props: { themes: { id: string; label: string; support: string }[] }) {
-  if (props.themes.length === 0) return null;
+/** Four quiet phases. One active at a time, finished ones carry a check. */
+function PhaseList(props: { phases: JourneyPhase[] }) {
+  return (
+    <ol className="space-y-3" aria-label="Where we are in the conversation">
+      {props.phases.map((p) => (
+        <li
+          key={p.key}
+          data-phase={p.key}
+          data-state={p.state}
+          aria-current={p.state === "active" ? "step" : undefined}
+          className="flex items-start gap-3"
+        >
+          <span
+            aria-hidden
+            className={`mt-[3px] grid h-4 w-4 shrink-0 place-items-center rounded-full border ${
+              p.state === "complete"
+                ? "border-royal bg-royal text-white"
+                : p.state === "active"
+                  ? "border-royal"
+                  : "border-ink/20"
+            }`}
+          >
+            {p.state === "complete" ? <Check className="h-2.5 w-2.5" /> : null}
+          </span>
+          <span
+            className={`text-sm leading-snug ${
+              p.state === "active"
+                ? "text-ink"
+                : p.state === "complete"
+                  ? "text-ink/55"
+                  : "text-ink/35"
+            }`}
+          >
+            {p.label}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function PictureDrawer(props: { phases: JourneyPhase[]; picture: PictureItem[] }) {
   return (
     <details className="shrink-0 border-t border-ink/10 bg-white/70 px-5 py-3 lg:hidden">
       <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
-        What I'm hearing
+        {PICTURE_TITLE}
       </summary>
-      <ul className="mt-4 space-y-4 pb-1">
-        {props.themes.map((t) => (
-          <li key={t.id}>
-            <p className="text-sm text-ink">{t.label}</p>
-            <p className="mt-1 text-sm leading-relaxed text-ink/55">{t.support}</p>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-4 pb-1">
+        <PhaseList phases={props.phases} />
+        {props.picture.length > 0 && (
+          <ul className="mt-5 space-y-4 border-t border-ink/10 pt-4">
+            {props.picture.map((p) => (
+              <li key={p.id}>
+                <p className="text-sm text-ink">{p.label}</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink/55">{p.text}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </details>
   );
 }
@@ -239,8 +277,9 @@ function ThemeDrawer(props: { themes: { id: string; label: string; support: stri
 function ConversationBody(props: {
   c: IntakeConversation;
   voiceFirst?: boolean;
-  themes: { id: string; label: string; support: string }[];
+  picture: PictureItem[];
 }) {
+
   const { c } = props;
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
