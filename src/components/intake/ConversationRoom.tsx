@@ -25,9 +25,14 @@ import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { VoiceCapture } from "@/components/intake/VoiceCapture";
 import {
   fileToBase64,
+  CONFIRMED_REFLECTION_KEY,
   type ContactDetails,
   type IntakeConversation,
 } from "@/components/intake/use-intake-conversation";
+import {
+  QUESTION_BY_KEY,
+  type IntakeObjectiveKey,
+} from "@/lib/website-intake/questions";
 import { attachIntakeFile } from "@/lib/website-intake.functions";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
