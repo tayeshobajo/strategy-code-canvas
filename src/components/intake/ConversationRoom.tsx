@@ -399,17 +399,19 @@ function ConversationBody(props: {
 
           {c.thinking && <Thinking />}
 
-          {nearingEnd && !c.thinking && (
+          {c.ready && !c.thinking && (
             <div className="rounded-2xl border border-royal/25 bg-royal/[0.04] p-5">
-              <p className="font-display text-xl text-ink">I think I have the picture.</p>
-              <p className="mt-2 text-sm leading-relaxed text-ink/70">{EARLY_EXIT_PROMPT}</p>
+              <p className="text-[15px] leading-relaxed text-ink">
+                I have enough to see the shape of the business now. Let me show you the picture I've
+                built from what you told me.
+              </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={c.openReflection}
                   className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm text-paper transition hover:bg-royal"
                 >
-                  Show me what you heard <ArrowRight className="h-4 w-4" />
+                  Show me the picture <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
@@ -419,23 +421,20 @@ function ConversationBody(props: {
                   There's more I want to say
                 </button>
               </div>
-              {c.keepTalking && (
-                <p className="mt-3 text-sm text-ink/55">
-                  Good. Keep going, I'm still here.
+            </div>
+          )}
+
+          {nearingEnd && !c.ready && !c.thinking && (
+            <div className="rounded-2xl border border-ink/12 bg-white/70 p-5">
+              <p className="text-[15px] leading-relaxed text-ink/75">{EARLY_EXIT_PROMPT}</p>
+              {c.gaps.length > 0 && (
+                <p className="mt-2 text-sm text-ink/55">
+                  Still worth hearing: {c.gaps.join(", ")}.
                 </p>
               )}
             </div>
           )}
 
-          {!nearingEnd && !c.thinking && c.answeredCount >= 5 && (
-            <button
-              type="button"
-              onClick={c.openReflection}
-              className="text-sm text-ink/45 underline-offset-4 transition hover:text-royal hover:underline"
-            >
-              That's the picture. Show me what you heard
-            </button>
-          )}
 
           <div ref={bottomRef} />
         </div>
