@@ -16,6 +16,7 @@ import {
   Loader2,
   Mic,
   Paperclip,
+  RotateCcw,
   SkipForward,
   X,
 } from "lucide-react";
@@ -35,7 +36,6 @@ import {
   type JourneyPhase,
   type PictureItem,
 } from "@/lib/website-intake/journey";
-import { EARLY_EXIT_PROMPT } from "@/lib/website-intake/adaptive";
 
 
 import { trackEvent } from "@/lib/website-intake/track";
@@ -49,6 +49,12 @@ import {
 const OPENING_LINE = "Let's start with your world.";
 const OPENING_SUPPORT = "There's no perfect answer. Start wherever feels natural.";
 const MAX_ATTACHMENT_BYTES = 6_500_000;
+
+/** "a, b and c" — readable in a sentence, unlike a bare comma list. */
+function joinPhrases(items: string[]) {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
 
 type Attachment = {
   id: string;
@@ -68,6 +74,7 @@ export function ConversationRoom(props: {
   const panelRef = React.useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const [closeIntent, setCloseIntent] = React.useState(false);
+  const [resetIntent, setResetIntent] = React.useState(false);
 
   useFocusTrap(panelRef, props.open);
 
@@ -127,6 +134,7 @@ export function ConversationRoom(props: {
         <TopBar
           phase={c.phase === "conversation" ? c.activePhaseLabel : roomPhaseLabel(c.phase)}
           onClose={requestClose}
+          onReset={c.hasProgress && c.phase !== "done" ? () => setResetIntent(true) : undefined}
         />
 
         <div className="flex min-h-0 flex-1">
@@ -136,12 +144,20 @@ export function ConversationRoom(props: {
             )}
             {c.phase === "reflection" && <ReflectionBody c={c} />}
             {c.phase === "contact" && <ContactBody c={c} />}
+            {c.phase === "review" && <ReviewBody c={c} />}
             {c.phase === "done" && <DoneBody onClose={props.onClose} />}
           </div>
 
           {showRail && (
             <aside className="hidden w-[30%] shrink-0 overflow-y-auto border-l border-ink/10 bg-white/60 p-6 lg:block">
               <PhaseList phases={c.journey} />
+              <p className="mt-5 border-t border-ink/10 pt-4 text-sm leading-relaxed text-ink/55">
+                {c.ready
+                  ? "That's everything I need to ask. You can keep talking, or move on to the picture."
+                  : c.remaining === 1
+                    ? "One more thing I'd like to understand."
+                    : `About ${c.remaining} more things I'd like to understand.`}
+              </p>
               {picture.length > 0 && (
                 <div className="mt-8 border-t border-ink/10 pt-6">
                   <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
@@ -163,6 +179,19 @@ export function ConversationRoom(props: {
 
       </div>
 
+      {resetIntent && (
+        <ConfirmCard
+          title="Start the conversation again?"
+          body="This clears everything you've told me so far in this browser and begins a fresh conversation. Nothing has been sent."
+          confirmLabel="Yes, start over"
+          onConfirm={() => {
+            setResetIntent(false);
+            c.resetConversation();
+          }}
+          onDismiss={() => setResetIntent(false)}
+        />
+      )}
+
       {closeIntent && (
         <ResumePrompt
           onDismiss={() => setCloseIntent(false)}
@@ -178,11 +207,12 @@ export function ConversationRoom(props: {
 }
 
 function roomPhaseLabel(phase: string) {
-  if (phase === "reflection" || phase === "contact") return "Putting the picture together";
+  if (phase === "reflection" || phase === "contact" || phase === "review")
+    return "Putting the picture together";
   return "Thank you";
 }
 
-function TopBar(props: { phase: string; onClose: () => void }) {
+function TopBar(props: { phase: string; onClose: () => void; onReset?: () => void }) {
   return (
     <header className="shrink-0 border-b border-ink/10 bg-paper/95 backdrop-blur">
       <div className="flex items-center gap-4 px-5 py-4 sm:px-8">
@@ -197,6 +227,15 @@ function TopBar(props: { phase: string; onClose: () => void }) {
         <p className="ml-auto font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
           {props.phase}
         </p>
+        {props.onReset && (
+          <button
+            type="button"
+            onClick={props.onReset}
+            className="inline-flex min-h-9 items-center gap-2 rounded-full border border-ink/15 bg-white px-3 text-xs text-ink/60 transition hover:text-ink"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Start over
+          </button>
+        )}
         <button
           type="button"
           onClick={props.onClose}
