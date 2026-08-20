@@ -426,14 +426,23 @@ function ConversationBody(props: {
 
           {nearingEnd && !c.ready && !c.thinking && (
             <div className="rounded-2xl border border-ink/12 bg-white/70 p-5">
-              <p className="text-[15px] leading-relaxed text-ink/75">{EARLY_EXIT_PROMPT}</p>
-              {c.gaps.length > 0 && (
-                <p className="mt-2 text-sm text-ink/55">
-                  Still worth hearing: {c.gaps.join(", ")}.
-                </p>
-              )}
+              <p className="text-[15px] leading-relaxed text-ink/75">
+                {c.gaps.length > 0
+                  ? `We're nearly there. Two things I'd still like to hear about: ${joinPhrases(c.gaps)}. Keep going, or stop here and I'll show you the picture.`
+                  : "We're nearly there. Keep going, or stop here and I'll show you the picture."}
+              </p>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={c.openReflection}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 bg-white px-5 text-sm text-ink/75 transition hover:text-ink"
+                >
+                  Stop here and show me the picture <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )}
+
 
 
           <div ref={bottomRef} />
