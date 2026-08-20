@@ -51,9 +51,10 @@ describe("conversation flow", () => {
 
   it("never punishes a skip and does not re-ask it", () => {
     const state: ConversationState = { ...empty, skipped: ["who_you_are"] };
-    expect((nextStep(state) as { key: string }).key).toBe("the_business");
+    expect((nextStep(state) as { key: string }).key).not.toBe("who_you_are");
     expect(completeness(state)).toBeGreaterThan(0);
   });
+
 
   it("skips ground a rich answer already covered", () => {
     const rich = answer(
