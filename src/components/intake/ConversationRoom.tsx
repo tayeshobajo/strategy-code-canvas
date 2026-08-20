@@ -523,7 +523,7 @@ function FounderBlock(props: {
   const time = new Date(props.at);
   return (
     <div className="group flex justify-end">
-      <div className="max-w-[92%] rounded-2xl border border-royal/15 bg-royal/[0.05] px-5 py-4 sm:max-w-[85%] sm:px-6 sm:py-5">
+      <div className="max-w-[92%] rounded-2xl border border-royal/15 bg-royal/[0.05] px-5 py-3 sm:max-w-[85%] sm:px-6 sm:py-3.5">
         <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">{props.children}</p>
         <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/35">
           {props.modality === "voice" ? "Spoken · " : ""}
