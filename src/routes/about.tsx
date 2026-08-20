@@ -615,7 +615,7 @@ function TheConductor() {
                 <p>We do the hard work so your mindset can lead the Roadmap.</p>
               </div>
               <p className="mt-3">Business runs better, and character builds what lasts.</p>
-            </aside>
+            </div>
           </Reveal>
         </div>
       </div>
