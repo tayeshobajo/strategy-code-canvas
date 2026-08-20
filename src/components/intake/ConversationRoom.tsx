@@ -293,7 +293,7 @@ function PhaseList(props: { phases: JourneyPhase[] }) {
                 ? "text-ink"
                 : p.state === "complete"
                   ? "text-ink/70"
-                  : "text-ink/35"
+                  : "text-ink/65"
             }`}
           >
             {p.label}
@@ -697,7 +697,7 @@ function FounderBlock(props: {
     <div className="group relative flex justify-end">
       <div className="max-w-[92%] rounded-2xl border border-royal/15 bg-royal/[0.05] px-5 py-2.5 sm:max-w-[85%] sm:px-6 sm:py-3">
         <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">{props.children}</p>
-        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/35">
+        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/65">
           {props.modality === "voice" ? "Spoken · " : ""}
           {Number.isNaN(time.getTime())
             ? ""
@@ -913,7 +913,7 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
 
                 placeholder="Type your answer…"
                 disabled={c.busy || transcribing}
-                className="w-full resize-none bg-transparent px-3 py-2 text-base leading-relaxed text-ink outline-none placeholder:text-ink/35"
+                className="w-full resize-none bg-transparent px-3 py-2 text-base leading-relaxed text-ink outline-none placeholder:text-ink/65"
               />
               <div className="flex items-center gap-2 px-1 pb-1">
                 <button
@@ -952,7 +952,7 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
                   </button>
                 )}
 
-                <span className="ml-auto hidden font-mono text-[10px] uppercase tracking-[0.2em] text-ink/30 sm:block">
+                <span className="ml-auto hidden font-mono text-[10px] uppercase tracking-[0.2em] text-ink/65 sm:block">
                   {transcribing
                     ? "Listening back…"
                     : c.saveState === "saving"
@@ -1491,7 +1491,7 @@ function DoneBody(props: { onClose: () => void }) {
             <li key={s.label} className="flex items-center gap-3">
               <span
                 className={`grid h-6 w-6 place-items-center rounded-full border ${
-                  s.state === "completed" ? "border-royal bg-royal text-white" : "border-ink/20 text-ink/30"
+                  s.state === "completed" ? "border-royal bg-royal text-white" : "border-ink/20 text-ink/65"
                 }`}
               >
                 {s.state === "completed" ? <Check className="h-3.5 w-3.5" /> : null}
