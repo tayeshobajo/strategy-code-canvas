@@ -150,19 +150,19 @@ export function ConversationRoom(props: {
             {c.phase === "reflection" && <ReflectionBody c={c} />}
             {c.phase === "contact" && <ContactBody c={c} />}
             {c.phase === "review" && <ReviewBody c={c} />}
+            {c.phase === "confirm" && <ConfirmBody c={c} />}
             {c.phase === "done" && <DoneBody onClose={props.onClose} />}
           </div>
 
           {showRail && (
             <aside className="hidden w-[30%] shrink-0 overflow-y-auto border-l border-ink/10 bg-white/60 p-6 lg:block">
               <PhaseList phases={c.journey} />
-              <p className="mt-5 border-t border-ink/10 pt-4 text-sm leading-relaxed text-ink/55">
-                {c.ready
-                  ? "That's everything I need to ask. You can keep talking, or move on to the picture."
-                  : c.remaining === 1
-                    ? "One more thing I'd like to understand."
-                    : `About ${c.remaining} more things I'd like to understand.`}
-              </p>
+              <ProgressMeter
+                counts={c.checklistCounts}
+                items={c.checklist}
+                ready={c.ready}
+                className="mt-5 border-t border-ink/10 pt-4"
+              />
               {picture.length > 0 && (
                 <div className="mt-8 border-t border-ink/10 pt-6">
                   <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
@@ -212,6 +212,7 @@ export function ConversationRoom(props: {
 }
 
 function roomPhaseLabel(phase: string) {
+  if (phase === "confirm") return "One last look";
   if (phase === "reflection" || phase === "contact" || phase === "review")
     return "Putting the picture together";
   return "Thank you";
@@ -295,7 +296,13 @@ function PhaseList(props: { phases: JourneyPhase[] }) {
   );
 }
 
-function PictureDrawer(props: { phases: JourneyPhase[]; picture: PictureItem[] }) {
+function PictureDrawer(props: {
+  phases: JourneyPhase[];
+  picture: PictureItem[];
+  counts?: ChecklistCounts;
+  items?: ChecklistItem[];
+  ready?: boolean;
+}) {
   return (
     <details className="shrink-0 border-t border-ink/10 bg-white/70 px-5 py-3 lg:hidden">
       <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
@@ -303,6 +310,14 @@ function PictureDrawer(props: { phases: JourneyPhase[]; picture: PictureItem[] }
       </summary>
       <div className="mt-4 pb-1">
         <PhaseList phases={props.phases} />
+        {props.counts && props.items && (
+          <ProgressMeter
+            counts={props.counts}
+            items={props.items}
+            ready={props.ready ?? false}
+            className="mt-4 border-t border-ink/10 pt-4"
+          />
+        )}
         {props.picture.length > 0 && (
           <ul className="mt-5 space-y-4 border-t border-ink/10 pt-4">
             {props.picture.map((p) => (
