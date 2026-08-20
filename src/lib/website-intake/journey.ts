@@ -87,6 +87,26 @@ export function readyForPicture(state: ConversationState): boolean {
 }
 
 /**
+ * Plain-language ways of naming ground we have not covered yet. Bare labels
+ * read like fragments out of context, so each gap gets a spoken phrase.
+ */
+const GAP_PHRASES: Partial<Record<IntakeObjectiveKey, string>> = {
+  who_you_are: "who you are and your role in the business",
+  the_business: "what the business actually does",
+  who_you_serve: "who you serve",
+  who_carries_the_work: "who carries the work with you",
+  your_own_day: "what a normal day looks like for you",
+  how_work_arrives: "how new work arrives",
+  how_work_gets_delivered: "how the work gets delivered",
+  recurring_problem: "the problem that keeps coming back",
+  existing_assets: "what you already have to build on",
+  whats_in_the_way: "what's getting in the way",
+  cost_of_standing_still: "what standing still would cost you",
+  ninety_day_wish: "what the next ninety days should look like",
+  future_day: "where you want the business to be in two years",
+};
+
+/**
  * One or two pieces of important ground still missing. Named out loud so the
  * conversation never ends abruptly on a gap.
  */
@@ -94,7 +114,12 @@ export function namedGaps(state: ConversationState): string[] {
   if (readyForPicture(state)) return [];
   const missing = remainingEssentials(state);
   if (missing.length === 0 || missing.length > 2) return [];
-  return missing.map((k) => QUESTION_BY_KEY[k].label.toLowerCase());
+  return missing.map((k) => GAP_PHRASES[k] ?? QUESTION_BY_KEY[k].label.toLowerCase());
+}
+
+/** How much essential ground is left, for a quiet honest status line. */
+export function remainingCount(state: ConversationState): number {
+  return remainingEssentials(state).length;
 }
 
 export const PICTURE_TITLE = "The picture so far";
