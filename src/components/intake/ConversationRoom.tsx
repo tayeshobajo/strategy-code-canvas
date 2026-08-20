@@ -1153,12 +1153,20 @@ function packetLabel(key: string, question: string): string {
 
 /**
  * The last gate before anything leaves the browser: every field of the packet
- * in plain language, each one correctable.
+ * in plain language, each one correctable, with gentle inline correction.
  */
 function ReviewBody(props: { c: IntakeConversation }) {
   const { c } = props;
   const [editing, setEditing] = React.useState<number | null>(null);
   const [draft, setDraft] = React.useState("");
+  const [draftError, setDraftError] = React.useState<string | null>(null);
+  const [touched, setTouched] = React.useState<Partial<Record<FieldKey, boolean>>>({});
+  const [showAll, setShowAll] = React.useState(false);
+
+  const errors = validateContact(c.contact);
+  const shown = (k: FieldKey) => ((touched[k] || showAll) && errors[k]) || null;
+  const setField = (k: FieldKey) => (v: string) => c.setContact((f) => ({ ...f, [k]: v }));
+  const blur = (k: FieldKey) => () => setTouched((t) => ({ ...t, [k]: true }));
 
   const rows = c.answers
     .map((a, index) => ({ a, index }))
@@ -1178,6 +1186,14 @@ function ReviewBody(props: { c: IntakeConversation }) {
           page until you send it.
         </p>
 
+        <ProgressMeter
+          counts={c.checklistCounts}
+          items={c.checklist}
+          ready={c.ready}
+          dense
+          className="mt-7 rounded-2xl border border-ink/10 bg-white p-5"
+        />
+
         <section className="mt-8">
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
             How to reach you
@@ -1186,31 +1202,46 @@ function ReviewBody(props: { c: IntakeConversation }) {
             <Field
               label="Your name"
               value={c.contact.name}
-              onChange={(v) => c.setContact((f) => ({ ...f, name: v }))}
+              hint={FIELD_HINTS.name}
+              error={shown("name")}
+              onBlur={blur("name")}
+              onChange={setField("name")}
             />
             <Field
               label="Email"
               type="email"
               required
               value={c.contact.email}
-              onChange={(v) => c.setContact((f) => ({ ...f, email: v }))}
+              hint={FIELD_HINTS.email}
+              error={shown("email")}
+              onBlur={blur("email")}
+              onChange={setField("email")}
             />
             <Field
               label="Company"
               value={c.contact.company}
-              onChange={(v) => c.setContact((f) => ({ ...f, company: v }))}
+              hint={FIELD_HINTS.company}
+              error={shown("company")}
+              onBlur={blur("company")}
+              onChange={setField("company")}
             />
             <Field
               label="Website"
               optional
               value={c.contact.website}
-              onChange={(v) => c.setContact((f) => ({ ...f, website: v }))}
+              hint={FIELD_HINTS.website}
+              error={shown("website")}
+              onBlur={blur("website")}
+              onChange={setField("website")}
             />
             <Field
               label="Phone"
               optional
               value={c.contact.phone}
-              onChange={(v) => c.setContact((f) => ({ ...f, phone: v }))}
+              hint={FIELD_HINTS.phone}
+              error={shown("phone")}
+              onBlur={blur("phone")}
+              onChange={setField("phone")}
             />
           </div>
           <label className="mt-5 flex items-start gap-3 text-sm leading-relaxed text-ink/70">
@@ -1239,14 +1270,33 @@ function ReviewBody(props: { c: IntakeConversation }) {
                     <textarea
                       value={draft}
                       rows={4}
-                      onChange={(e) => setDraft(e.target.value)}
-                      className="mt-3 w-full rounded-xl border border-ink/15 bg-paper p-3 text-base leading-relaxed text-ink outline-none focus:border-royal"
+                      aria-invalid={Boolean(draftError) || undefined}
+                      onChange={(e) => {
+                        setDraft(e.target.value);
+                        if (draftError) setDraftError(validateAnswer(e.target.value));
+                      }}
+                      className={`mt-3 w-full rounded-xl border bg-paper p-3 text-base leading-relaxed text-ink outline-none focus:border-royal ${
+                        draftError ? "border-red-400" : "border-ink/15"
+                      }`}
                     />
+                    <p
+                      className={`mt-1.5 text-[13px] leading-snug ${
+                        draftError ? "text-red-600" : "text-ink/45"
+                      }`}
+                    >
+                      {draftError ?? "Say it however you'd say it out loud. Your words are kept as written."}
+                    </p>
                     <div className="mt-3 flex flex-wrap gap-3">
                       <button
                         type="button"
                         onClick={async () => {
+                          const message = validateAnswer(draft);
+                          if (message) {
+                            setDraftError(message);
+                            return;
+                          }
                           await c.editAnswer(index, draft);
+                          setDraftError(null);
                           setEditing(null);
                         }}
                         className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-sm text-paper transition hover:bg-royal"
@@ -1255,7 +1305,10 @@ function ReviewBody(props: { c: IntakeConversation }) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setEditing(null)}
+                        onClick={() => {
+                          setDraftError(null);
+                          setEditing(null);
+                        }}
                         className="inline-flex min-h-10 items-center rounded-full border border-ink/15 px-4 text-sm text-ink/70"
                       >
                         Cancel
@@ -1271,6 +1324,7 @@ function ReviewBody(props: { c: IntakeConversation }) {
                       type="button"
                       onClick={() => {
                         setDraft(a.answer);
+                        setDraftError(null);
                         setEditing(index);
                       }}
                       className="mt-3 text-sm text-royal underline-offset-4 hover:underline"
@@ -1287,10 +1341,103 @@ function ReviewBody(props: { c: IntakeConversation }) {
         <div className="mt-10 flex flex-wrap gap-3">
           <button
             type="button"
+            onClick={() => {
+              const found = validateContact(c.contact);
+              if (Object.keys(found).length > 0) {
+                setShowAll(true);
+                toast.error("One or two details need a small correction first.");
+                return;
+              }
+              c.setPhase("confirm");
+            }}
+            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-7 text-sm text-paper transition hover:bg-royal"
+          >
+            One last look <ArrowRight className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => c.setPhase("contact")}
+            className="inline-flex min-h-12 items-center rounded-full border border-ink/15 bg-white px-6 text-sm text-ink/70 transition hover:text-ink"
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The final gate: the edited packet in plain language, with a way back. */
+function ConfirmBody(props: { c: IntakeConversation }) {
+  const { c } = props;
+  const contact: Array<[string, string]> = [
+    ["Name", c.contact.name.trim() || "Not given"],
+    ["Email", c.contact.email.trim()],
+    ["Company", c.contact.company.trim() || "Not given"],
+    ["Website", c.contact.website.trim() || "Not given"],
+    ["Phone", c.contact.phone.trim() || "Not given"],
+    [
+      "Public research",
+      c.contact.researchOk
+        ? "Yes, Trust Tai may review my public business presence"
+        : "No, please don't research my business",
+    ],
+  ];
+  const rows = c.answers.filter((a) => (a.answer ?? "").trim().length > 0);
+
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-10 sm:px-10">
+      <div className="mx-auto max-w-2xl pb-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
+          Nothing has been sent yet
+        </p>
+        <h2 className="mt-4 font-display text-3xl leading-snug text-ink sm:text-[2.4rem]">
+          Ready to send this to Trust Tai?
+        </h2>
+        <p className="mt-3 text-sm leading-relaxed text-ink/55">
+          {rows.length} {rows.length === 1 ? "answer" : "answers"} and your contact details, exactly
+          as you corrected them. Go back if anything still reads wrong.
+        </p>
+
+        <section className="mt-8 rounded-2xl border border-ink/10 bg-white p-6">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+            How we'll reach you
+          </p>
+          <dl className="mt-4 space-y-3">
+            {contact.map(([label, value]) => (
+              <div key={label} className="flex flex-wrap items-baseline gap-x-3">
+                <dt className="w-36 shrink-0 text-sm text-ink/50">{label}</dt>
+                <dd className="text-base text-ink/85">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-ink/10 bg-white p-6">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+            What you told me
+          </p>
+          <ul className="mt-4 space-y-5">
+            {rows.map((a, i) => (
+              <li key={`${a.key}-${i}`}>
+                <p className="text-sm text-ink/50">{packetLabel(String(a.key), a.question)}</p>
+                <p className="mt-1 whitespace-pre-line text-base leading-relaxed text-ink/85">
+                  {a.answer}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <div className="mt-10 flex flex-wrap gap-3">
+          <button
+            type="button"
             disabled={c.busy}
             onClick={async () => {
-              if (!c.contact.email.trim()) {
-                toast.error("An email address is the one thing I need.");
+              const found = validateField("email", c.contact.email);
+              if (found) {
+                toast.error(found);
+                c.setPhase("review");
                 return;
               }
               const ok = await c.submitContact(c.contact);
@@ -1305,16 +1452,17 @@ function ReviewBody(props: { c: IntakeConversation }) {
           </button>
           <button
             type="button"
-            onClick={() => c.setPhase("contact")}
+            onClick={() => c.setPhase("review")}
             className="inline-flex min-h-12 items-center rounded-full border border-ink/15 bg-white px-6 text-sm text-ink/70 transition hover:text-ink"
           >
-            Back
+            Go back and edit
           </button>
         </div>
       </div>
     </div>
   );
 }
+
 
 
 
