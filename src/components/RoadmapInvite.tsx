@@ -9,7 +9,7 @@ const CUE_KEY = "tt_roadmap_invite_cue_v1";
 
 export const INVITE_COPY = {
   pill: "Need clarity?",
-  marker: "BUILD MY ROADMAP",
+  marker: "BUILD YOUR ROADMAP",
   eyebrow: "START WITH THE PICTURE",
   headline: "Let's get clear on what comes next.",
   body: "You do not need to have everything figured out before you begin. Tell us where the business is today, what you are trying to build, and what feels harder than it should. We'll use the conversation to understand the full picture before deciding what deserves attention next.",
@@ -166,7 +166,7 @@ export function RoadmapInvite() {
           ref={panelRef}
           role="dialog"
           aria-modal="false"
-          aria-label="Build my roadmap invitation"
+          aria-label="Build your roadmap invitation"
           className={`pointer-events-auto max-h-[82vh] w-full max-w-none origin-bottom-right overflow-y-auto overscroll-contain rounded-[20px] border border-[color:var(--rule)] bg-[color:var(--paper-soft)] text-ink transition-[opacity,transform] duration-[280ms] ease-out motion-reduce:transition-none motion-reduce:translate-y-0 motion-reduce:scale-100 motion-reduce:opacity-100 sm:max-w-[404px] ${
             visible
               ? "translate-y-0 scale-100 opacity-100"

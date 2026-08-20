@@ -1,5 +1,5 @@
 /**
- * The Build My Roadmap conversation room.
+ * The Build Your Roadmap conversation room.
  *
  * One quiet room over the landing page: conversation, reflection, identity
  * and completion all live here. No second visual system — paper surfaces,
@@ -126,7 +126,7 @@ export function ConversationRoom(props: {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Build my roadmap conversation"
+      aria-label="Build your roadmap conversation"
       className="fixed inset-0 z-50 flex items-stretch justify-center sm:items-center sm:p-6"
     >
       <button
@@ -232,7 +232,7 @@ function TopBar(props: { phase: string; onClose: () => void; onReset?: () => voi
       <div className="flex items-center gap-4 px-5 py-4 sm:px-8">
         <TrustTaiLogo className="h-6 w-auto" />
         <span className="hidden h-5 w-px bg-ink/15 sm:block" />
-        <p className="hidden text-sm text-ink/70 sm:block">Build My Roadmap</p>
+        <p className="hidden text-sm text-ink/70 sm:block">Build Your Roadmap</p>
         <span className="hidden h-5 w-px bg-ink/15 lg:block" />
         <span className="hidden items-center gap-2 lg:inline-flex">
           <TaiAvatar className="h-7 w-7" alt="Tai" />

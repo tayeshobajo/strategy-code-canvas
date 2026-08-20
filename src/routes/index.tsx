@@ -609,7 +609,7 @@ function Header() {
           ))}
         </nav>
         <Link to="/build-my-roadmap" className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-paper transition-transform hover:scale-[1.02]">
-          Build My Roadmap <ArrowRight className="h-3.5 w-3.5" />
+          Build Your Roadmap <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
     </header>
@@ -634,7 +634,7 @@ function Hero() {
             </Reveal>
             <Reveal immediate variant="fade-up" delay={400} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link to="/build-my-roadmap" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90">
-                Build My Roadmap
+                Build Your Roadmap
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <a href="#pricing" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 text-[13.5px] font-medium text-ink transition-colors hover:border-ink/40">
@@ -1027,7 +1027,7 @@ function Pricing() {
             to="/build-my-roadmap"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-[13.5px] font-medium text-paper transition-all hover:bg-ink/90"
           >
-            Build My Roadmap
+            Build Your Roadmap
             <ArrowRight className="h-4 w-4" />
           </Link>
           <a
@@ -1197,7 +1197,7 @@ function CTABand() {
             to="/build-my-roadmap"
             className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-paper px-7 text-[13.5px] font-semibold text-ink shadow-[0_0_40px_-10px_oklch(0.85_0.18_252/0.55)] transition-transform hover:scale-[1.02] sm:w-auto"
           >
-            Build My Roadmap <ArrowRight className="h-4 w-4" />
+            Build Your Roadmap <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>

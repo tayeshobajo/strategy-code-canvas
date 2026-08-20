@@ -694,7 +694,7 @@ function InsightArticlePage() {
                     to="/build-my-roadmap"
                     className="group mt-6 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-all duration-300 ease-out hover:-translate-y-[1px]"
                   >
-                    Build My Roadmap
+                    Build Your Roadmap
                     <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
                   </Link>
                 </div>

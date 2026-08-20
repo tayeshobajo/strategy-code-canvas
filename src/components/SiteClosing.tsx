@@ -42,7 +42,7 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
               to="/build-my-roadmap"
               className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 text-[13.5px] font-semibold text-[#0A0F1F] transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.4)]"
             >
-              Build My Roadmap
+              Build Your Roadmap
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
             <p className="mx-auto max-w-[56ch] text-center text-[12px] leading-[1.75] text-white/50">

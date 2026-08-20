@@ -703,7 +703,7 @@ function FooterCTA() {
             href="/build-my-roadmap"
             className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[13px] font-medium text-ink transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)]"
           >
-            Build My Roadmap
+            Build Your Roadmap
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
           </a>
           <p className="mx-auto max-w-[52ch] text-[11.5px] leading-[1.75] text-white/45">
