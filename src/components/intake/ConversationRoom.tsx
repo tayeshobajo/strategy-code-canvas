@@ -31,15 +31,12 @@ import { attachIntakeFile } from "@/lib/website-intake.functions";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import {
-  journeyPhases,
-  namedGaps,
-  pictureSoFar,
-  readyForPicture,
   PICTURE_TITLE,
   type JourneyPhase,
   type PictureItem,
 } from "@/lib/website-intake/journey";
 import { EARLY_EXIT_PROMPT } from "@/lib/website-intake/adaptive";
+
 
 import { trackEvent } from "@/lib/website-intake/track";
 import taiHeadshot from "@/assets/tai-headshot.png.asset.json";
