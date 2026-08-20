@@ -102,82 +102,95 @@ export function RoadmapInvite() {
           role="dialog"
           aria-modal="false"
           aria-label="Build my roadmap invitation"
-          className="pointer-events-auto max-h-[85vh] w-full max-w-none overflow-y-auto rounded-[22px] border border-[color:var(--rule)] bg-[color:var(--paper-soft)] text-ink sm:w-full sm:max-w-[760px] lg:max-w-[860px]"
+          className="pointer-events-auto max-h-[86vh] w-full max-w-none overflow-y-auto rounded-[22px] border border-[color:var(--rule)] bg-[color:var(--paper-soft)] text-ink sm:max-w-[600px]"
           style={{
             boxShadow:
               "0 1px 0 rgba(255,255,255,.7) inset, 0 18px 44px -34px rgba(10,15,31,.30), 0 0 0 10px color-mix(in oklab, var(--royal) 4%, transparent)",
           }}
         >
-          <div className="flex items-center justify-between border-b border-[color:var(--rule-soft)] px-4 py-3 sm:px-8">
-            <div className="flex items-center gap-3">
+          <div className="flex items-start justify-between border-b border-[color:var(--rule-soft)] px-5 py-4 sm:px-7 sm:py-5">
+            <div className="min-w-0">
               <TrustTaiLogo />
-              <span className="hidden font-mono text-[9.5px] uppercase tracking-[0.2em] text-[color:color-mix(in_oklab,var(--ink)_55%,transparent)] sm:inline">
+              <p className="mt-1.5 font-mono text-[9.5px] uppercase tracking-[0.22em] text-[color:color-mix(in_oklab,var(--ink)_50%,transparent)]">
                 {INVITE_COPY.marker}
-              </span>
+              </p>
             </div>
             <button
               type="button"
               onClick={close}
               aria-label="Close invitation"
-              className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-[color:var(--row-hover-bg)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
+              className="shrink-0 rounded-[10px] border border-[color:var(--rule)] bg-background p-2 text-[color:color-mix(in_oklab,var(--ink)_65%,transparent)] transition-colors hover:bg-[color:var(--row-hover-bg)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="px-4 pb-7 pt-6 sm:px-10 sm:pb-9 sm:pt-8">
+          <div className="px-5 pb-6 pt-6 sm:px-7 sm:pb-7 sm:pt-7">
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-royal">
               {INVITE_COPY.eyebrow}
             </p>
-            <h2 className="mt-3.5 max-w-[22ch] font-display text-[30px] leading-[1.1] tracking-tight text-ink sm:text-[38px]">
-              {INVITE_COPY.headline}
+            <h2 className="mt-3 font-display text-[30px] leading-[1.08] tracking-tight text-ink sm:text-[36px]">
+              {HEADLINE_LEAD}{" "}
+              <span className="italic text-royal">{HEADLINE_ACCENT}</span>
             </h2>
-            <p className="mt-4 max-w-[62ch] text-[14px] leading-[1.65] text-[color:color-mix(in_oklab,var(--ink)_80%,transparent)] sm:text-[15px]">
+            <p className="mt-4 text-[14px] leading-[1.6] text-[color:color-mix(in_oklab,var(--ink)_80%,transparent)] sm:text-[14.5px]">
               {INVITE_COPY.body}
             </p>
 
-            <div className="mt-7 grid grid-cols-1 gap-x-6 gap-y-4 border-y border-[color:var(--rule-soft)] py-5 sm:grid-cols-3 sm:divide-x sm:divide-[color:var(--rule-soft)] sm:gap-0">
+            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {INVITE_COPY.cards.map((c, i) => {
                 const Icon = CARD_ICONS[i] ?? Users;
                 return (
-                  <div key={c.title} className="flex gap-3 sm:px-5 sm:first:pl-0 sm:last:pr-0">
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-royal" strokeWidth={1.5} />
-                    <div>
+                  <div
+                    key={c.title}
+                    className="rounded-xl border border-[color:var(--rule)] bg-background p-3"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[color:color-mix(in_oklab,var(--royal)_8%,transparent)]">
+                        <Icon className="h-3.5 w-3.5 text-royal" strokeWidth={1.6} />
+                      </span>
                       <p className="text-[12.5px] font-semibold leading-tight text-ink">
                         {c.title}
                       </p>
-                      <p className="mt-1 text-[12px] leading-snug text-[color:color-mix(in_oklab,var(--ink)_62%,transparent)]">
-                        {c.note}
-                      </p>
                     </div>
+                    <div className="my-2.5 h-px bg-[color:var(--rule-soft)]" />
+                    <p className="text-[12px] leading-snug text-[color:color-mix(in_oklab,var(--ink)_62%,transparent)]">
+                      {c.note}
+                    </p>
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-7 flex flex-col items-center">
-              <Link
-                to="/build-my-roadmap"
-                data-invite-cta
-                onClick={close}
-                className="inline-flex h-12 w-full max-w-[360px] items-center justify-center gap-2 rounded-full px-8 text-[14.5px] font-semibold text-white transition-transform hover:-translate-y-[1px] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
-                style={{ backgroundColor: NAVY }}
-              >
-                {INVITE_COPY.cta}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <p className="mt-3 text-center text-[12px] text-[color:color-mix(in_oklab,var(--ink)_60%,transparent)]">
+            <Link
+              to="/build-my-roadmap"
+              data-invite-cta
+              onClick={close}
+              className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-full px-8 text-[15px] font-semibold text-white transition-transform hover:-translate-y-[1px] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
+              style={{ backgroundColor: NAVY, height: "52px" }}
+            >
+              {INVITE_COPY.cta}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+
+            <div className="mt-3 flex items-center justify-center gap-2 text-[color:color-mix(in_oklab,var(--ink)_52%,transparent)]">
+              <Clock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em]">
                 {INVITE_COPY.time}
               </p>
             </div>
-
-            <div className="mt-7 flex items-start justify-center gap-2 border-t border-[color:var(--rule-soft)] pt-4">
-              <Users className="mt-[2px] h-3.5 w-3.5 shrink-0 text-[color:color-mix(in_oklab,var(--ink)_45%,transparent)]" strokeWidth={1.5} />
-              <p className="max-w-[58ch] text-center text-[11.5px] leading-snug text-[color:color-mix(in_oklab,var(--ink)_58%,transparent)]">
-                {INVITE_COPY.footer}
-              </p>
-            </div>
           </div>
+
+          <div className="flex items-start gap-2.5 border-t border-[color:var(--rule-soft)] px-5 py-4 sm:px-7">
+            <Users
+              className="mt-[2px] h-4 w-4 shrink-0 text-royal"
+              strokeWidth={1.5}
+            />
+            <p className="text-[12px] leading-snug text-[color:color-mix(in_oklab,var(--ink)_62%,transparent)]">
+              {INVITE_COPY.footer}
+            </p>
+          </div>
+
         </div>
       ) : (
         <button
