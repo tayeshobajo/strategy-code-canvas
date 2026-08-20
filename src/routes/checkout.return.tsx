@@ -111,7 +111,7 @@ function Success({ email, sessionId }: { email: string | null; sessionId: string
           Tell Tai about your business
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
-        <p className="flex items-center gap-2 text-[12px] text-ink/50">
+        <p className="flex items-center gap-2 text-[12px] text-ink/70">
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
           Your payment is secure and your information is protected.
         </p>
@@ -129,10 +129,10 @@ function Success({ email, sessionId }: { email: string | null; sessionId: string
             </div>
           </div>
           <div className="mt-6 space-y-3 border-t border-rule-soft pt-6 text-[13.5px]">
-            <Row icon={<Mail className="h-4 w-4 text-ink/50" />} label="Billing email" value={email ?? "—"} />
-            <Row icon={<Calendar className="h-4 w-4 text-ink/50" />} label="Status" value="Payment confirmed" />
+            <Row icon={<Mail className="h-4 w-4 text-ink/70" />} label="Billing email" value={email ?? "—"} />
+            <Row icon={<Calendar className="h-4 w-4 text-ink/70" />} label="Status" value="Payment confirmed" />
             <Row
-              icon={<ShieldCheck className="h-4 w-4 text-ink/50" />}
+              icon={<ShieldCheck className="h-4 w-4 text-ink/70" />}
               label="Reference"
               value={<span className="font-mono text-[11.5px] text-ink/60">{shortenSession(sessionId)}</span>}
             />

@@ -52,6 +52,12 @@ export const Route = createFileRoute("/insights")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: ogDescription },
+        { property: "og:image", content: "https://trusttai.com/og/og-insights.jpg" },
+        {
+          property: "og:image:alt",
+          content: "Trust Tai Insights. Positions, not trends.",
+        },
+        { name: "twitter:image", content: "https://trusttai.com/og/og-insights.jpg" },
       ],
       links: [{ rel: "canonical", href: "/insights" }],
       scripts: [
@@ -436,17 +442,17 @@ function ArticleList() {
         <div className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
           <label className="relative block w-full sm:max-w-[360px]">
             <span className="sr-only">Search insights</span>
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/70" aria-hidden="true" />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search insights"
-              className="w-full rounded-full border border-rule/80 bg-paper py-2.5 pl-10 pr-4 text-[13px] text-ink placeholder:text-ink/40 focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/20"
+              className="w-full rounded-full border border-rule/80 bg-paper py-2.5 pl-10 pr-4 text-[13px] text-ink placeholder:text-ink/70 focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/20"
             />
           </label>
           <div className="flex items-center gap-3">
-            <label className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55" htmlFor="insights-sort">
+            <label className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/70" htmlFor="insights-sort">
               Sort
             </label>
             <select
@@ -463,16 +469,16 @@ function ArticleList() {
         </div>
 
         {/* Tabs */}
-        <div
-          role="tablist"
-          aria-label="Filter insights by category"
-          className="-mx-1 flex min-w-0 overflow-x-auto"
-        >
-          <ul className="flex min-w-max items-center gap-1 py-2 sm:gap-2">
+        <div className="-mx-1 flex min-w-0 overflow-x-auto">
+          <ul
+            role="tablist"
+            aria-label="Filter insights by category"
+            className="flex min-w-max items-center gap-1 py-2 sm:gap-2"
+          >
             {CATEGORIES.map((c, i) => {
               const isActive = c === active;
               return (
-                <li key={c}>
+                <li key={c} role="presentation">
                   <button
                     ref={(el) => { tabRefs.current[c] = el; }}
                     type="button"
@@ -507,7 +513,7 @@ function ArticleList() {
           }`}
         >
           {shown.length === 0 ? (
-            <p className="py-16 text-center text-[13.5px] text-ink/55">
+            <p className="py-16 text-center text-[13.5px] text-ink/70">
               No insights match that search yet.
             </p>
           ) : (
@@ -573,10 +579,10 @@ function ArticleList() {
                               <h3 className="font-display text-[20px] font-normal leading-[1.25] tracking-[-0.015em] text-ink transition-colors group-hover:text-royal sm:text-[22px]">
                                 {a.title}
                               </h3>
-                              <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.65] text-ink/55">{a.blurb}</p>
+                              <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.65] text-ink/70">{a.blurb}</p>
                             </div>
                             {/* Col 3: meta */}
-                            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/45 sm:pt-[10px] sm:text-right">
+                            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/70 sm:pt-[10px] sm:text-right">
                               <p>{a.read.replace(" read", "").toUpperCase()} READ</p>
                             </div>
                             {/* Col 4: arrow */}
@@ -601,7 +607,7 @@ function ArticleList() {
           )}
 
           <div
-            className="pb-8 pt-2 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/50"
+            className="pb-8 pt-2 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/70"
             aria-live="polite"
             role="status"
           >
@@ -706,7 +712,7 @@ function FooterCTA() {
             Build Your Roadmap
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
           </a>
-          <p className="mx-auto max-w-[52ch] text-[11.5px] leading-[1.75] text-white/45">
+          <p className="mx-auto max-w-[52ch] text-[11.5px] leading-[1.75] text-white/75">
             A 30-minute conversation. No pitch. If the timing is right, we should talk. If it is not, the work is waiting when it is.
           </p>
         </Reveal>
@@ -722,7 +728,7 @@ function InsightsPage() {
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
-      <main>
+      <main id="main">
         <Hero />
         <ArticleList />
       </main>

@@ -229,7 +229,7 @@ function GhostLink({ to, children }: { to: string; children: React.ReactNode }) 
 
 function AboutPage() {
   return (
-    <main className="min-h-screen bg-paper text-ink">
+    <main id="main" className="min-h-screen bg-paper text-ink">
       <SiteHeader />
       <Hero />
       <OneMoment />
@@ -351,7 +351,7 @@ function OneMoment() {
         <div className="mt-12 grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-14">
           <Reveal as="div" variant="fade-up" className="lg:col-span-4">
             <MiniBrowserCard />
-            <p className="mt-3 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
+            <p className="mt-3 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/70">
               Putting people first
             </p>
           </Reveal>
@@ -608,14 +608,14 @@ function TheConductor() {
           </Reveal>
 
           <Reveal as="div" variant="fade-up" delay={200} className="lg:col-span-3">
-            <aside className="rounded-md border border-rule/70 bg-white/60 p-5 text-[12.5px] leading-[1.65] text-ink/75">
+            <div className="rounded-md border border-rule/70 bg-white/60 p-5 text-[12.5px] leading-[1.65] text-ink/75">
               <span className="block h-px w-8 bg-royal/70" />
               <div className="mt-3 flex items-start gap-2">
                 <Compass className="mt-0.5 h-4 w-4 flex-none text-royal" />
                 <p>We do the hard work so your mindset can lead the Roadmap.</p>
               </div>
               <p className="mt-3">Business runs better, and character builds what lasts.</p>
-            </aside>
+            </div>
           </Reveal>
         </div>
       </div>

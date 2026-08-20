@@ -159,7 +159,7 @@ export function IntakeLanding(props: {
                 </button>
               </div>
 
-              <p className="mt-6 inline-flex items-center gap-2 text-sm text-ink/50">
+              <p className="mt-6 inline-flex items-center gap-2 text-sm text-ink/70">
                 <Lock className="h-3.5 w-3.5" />
                 About 7 to 12 minutes. You can stop anytime.
               </p>
@@ -431,13 +431,13 @@ function HeroConversation() {
           </Bubble>
           <span
             className={[
-              "px-1 font-mono text-[10px] tracking-wide text-ink/40",
+              "px-1 font-mono text-[10px] tracking-wide text-ink/70",
               line.mine ? "ml-auto" : "",
             ].join(" ")}
           >
             {stamps[i] ?? ""}
             {line.mine && receipt !== "none" ? (
-              <span className="ml-1.5 text-ink/45">
+              <span className="ml-1.5 text-ink/70">
                 · {receipt === "seen" ? "Seen" : "Delivered"}
               </span>
             ) : null}

@@ -50,7 +50,7 @@ export function DefaultErrorComponent({
 export function DefaultNotFoundComponent() {
   return (
     <div className="mx-auto max-w-xl my-16 text-center">
-      <FileQuestion className="w-10 h-10 mx-auto text-ink/40" />
+      <FileQuestion className="w-10 h-10 mx-auto text-ink/70" />
       <h2 className="font-display text-2xl text-ink mt-3">Nothing here</h2>
       <p className="text-sm text-ink/60 mt-2">
         The page you're looking for doesn't exist or you don't have access.

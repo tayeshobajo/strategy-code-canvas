@@ -691,6 +691,7 @@ function Milestones({ activeIndex, onSelect }: { activeIndex: number; onSelect: 
               return (
                 <Reveal
                   as="li"
+                  role="presentation"
                   key={m.n}
                   variant="fade-up"
                   delay={i * 60}
@@ -704,7 +705,7 @@ function Milestones({ activeIndex, onSelect }: { activeIndex: number; onSelect: 
                     className="ms-item grid w-full grid-cols-[20px_28px_minmax(0,1fr)_auto] items-center gap-x-4 py-5 text-left"
                   >
                     <span className="ms-dot inline-block size-2.5 rounded-full bg-royal" aria-hidden="true" />
-                    <span className="font-mono text-[11px] tracking-wider text-ink/40 sm:text-[12px]">{m.n}</span>
+                    <span className="font-mono text-[11px] tracking-wider text-ink/70 sm:text-[12px]">{m.n}</span>
                     <span className="text-[15px] font-medium leading-snug text-ink">{m.name}</span>
                     {m.tag ? (
                       <span className="hidden sm:inline-flex w-fit items-center rounded-sm border border-royal/15 bg-[oklch(0.97_0.02_260)] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-royal justify-self-end">
@@ -724,7 +725,7 @@ function Milestones({ activeIndex, onSelect }: { activeIndex: number; onSelect: 
           >
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-royal">
               Milestone {active.n}
-              {active.tag ? <span className="ml-2 text-ink/40">· {active.tag}</span> : null}
+              {active.tag ? <span className="ml-2 text-ink/70">· {active.tag}</span> : null}
             </p>
             <h3 className="mt-3 font-display text-[26px] leading-[1.15] tracking-[-0.01em] text-ink sm:text-[30px]">
               {active.name}
@@ -735,9 +736,9 @@ function Milestones({ activeIndex, onSelect }: { activeIndex: number; onSelect: 
             <div className="mt-6 space-y-3.5">
               {active.impact.map((b) => (
                 <div key={b.label}>
-                  <div className="mb-1.5 flex items-center justify-between text-[11.5px] font-mono uppercase tracking-[0.14em] text-ink/55">
+                  <div className="mb-1.5 flex items-center justify-between text-[11.5px] font-mono uppercase tracking-[0.14em] text-ink/70">
                     <span>{b.label}</span>
-                    <span className="tabular-nums text-ink/45">{b.value}</span>
+                    <span className="tabular-nums text-ink/70">{b.value}</span>
                   </div>
                   <div className="ms-bar-track">
                     <div className="ms-bar-fill" style={{ width: `${b.value}%` }} />
@@ -1192,7 +1193,7 @@ function BeforeAfter() {
             <TrendChart revealed={inView} />
           </ChartCard>
           <div className="absolute left-[-32px] top-1/2 hidden -translate-y-1/2 lg:block" style={{ opacity: inView ? 1 : 0, transform: `translate(${inView ? 0 : -8}px, -50%)`, transition: "opacity 600ms ease 600ms, transform 600ms ease 600ms" }}>
-            <ArrowRight className="size-5 text-ink/40" strokeWidth={1.5} />
+            <ArrowRight className="size-5 text-ink/70" strokeWidth={1.5} />
           </div>
         </Reveal>
       </div>
@@ -1203,7 +1204,7 @@ function BeforeAfter() {
 function ChartCard({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="rounded-md border border-rule/70 bg-white p-6">
-      <p className="mb-4 text-[12.5px] font-medium text-ink/55">{label}</p>
+      <p className="mb-4 text-[12.5px] font-medium text-ink/70">{label}</p>
       <div className="aspect-[16/9]">{children}</div>
     </div>
   );

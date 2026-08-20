@@ -19,6 +19,7 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
   return (
     <>
       <section
+        aria-label="Start your roadmap"
         className="relative overflow-hidden text-white"
         style={{ backgroundColor: NAVY }}
       >
@@ -45,7 +46,7 @@ export function SiteClosing({ headline, supporting }: SiteClosingProps) {
               Build Your Roadmap
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
-            <p className="mx-auto max-w-[56ch] text-center text-[12px] leading-[1.75] text-white/50">
+            <p className="mx-auto max-w-[56ch] text-center text-[12px] leading-[1.75] text-white/75">
               A 30-minute conversation. If the timing is right, we should talk. If it is not, the work is waiting when it is.
             </p>
           </div>
@@ -259,7 +260,7 @@ function RouteAnimation() {
 
       {/* POINT A label, thin mono */}
       <div className="pointer-events-none absolute left-0 top-1/2 -translate-y-[calc(50%+18px)] select-none">
-        <span className="block font-mono text-[9px] uppercase tracking-[0.32em] text-white/45">
+        <span className="block font-mono text-[9px] uppercase tracking-[0.32em] text-white/75">
           Point A
         </span>
       </div>

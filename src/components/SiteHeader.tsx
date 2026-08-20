@@ -43,9 +43,19 @@ export function SiteHeader() {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-2 sm:top-5 sm:px-6">
+      <a
+        href="#main"
+        className="pointer-events-auto sr-only focus:not-sr-only focus:absolute focus:left-1/2 focus:top-0 focus:-translate-x-1/2 focus:rounded-full focus:bg-ink focus:px-5 focus:py-2 focus:text-[13px] focus:font-medium focus:text-paper"
+      >
+        Skip to main content
+      </a>
       <header className="pointer-events-auto w-full max-w-[1200px] rounded-full border border-rule/60 bg-paper/80 px-3 py-2 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_10px_30px_-12px_rgba(10,23,51,0.18)] backdrop-blur-xl sm:px-6">
         <div className="flex h-11 items-center justify-between gap-3 sm:h-12 sm:gap-6">
-          <Link to="/" className="flex min-w-0 shrink items-center text-ink">
+          <Link
+            to="/"
+            aria-label="Trust Tai — home"
+            className="flex min-w-0 shrink items-center text-ink"
+          >
             <TrustTaiLogo variant="dark" />
           </Link>
           <nav className="hidden items-center gap-8 text-[13px] text-ink/75 lg:flex">

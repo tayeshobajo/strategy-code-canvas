@@ -38,12 +38,12 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
         <div className="grid grid-cols-1 gap-10 md:grid-cols-4 md:gap-0 md:divide-x md:divide-white/10">
           <div className="md:pr-8">
             <img src={logoWhite.url} alt="Trust Tai" className="h-7 w-auto" />
-            <p className="mt-4 text-[13px] leading-[1.6] text-white/55">
+            <p className="mt-4 text-[13px] leading-[1.6] text-white/75">
               The system behind the system.
             </p>
           </div>
           <div className="md:px-8">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Navigate</p>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-white/75">Navigate</p>
             <ul className="mt-4 space-y-2 text-[13px] text-white/70">
               {NAV.map((n) => (
                 <li key={n.to}>
@@ -55,7 +55,7 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
             </ul>
           </div>
           <div className="md:px-8">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Connect</p>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-white/75">Connect</p>
             <ul className="mt-4 space-y-2 text-[13px] text-white/70">
               <li>
                 2615 Medical Center Pkwy
@@ -70,7 +70,7 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
             </ul>
           </div>
           <div className="md:pl-8">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Start</p>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-white/75">Start</p>
             <div className="mt-4">
               <Link
                 to="/build-my-roadmap"
@@ -82,7 +82,7 @@ export function SiteFooter({ withTopTexture = true }: { withTopTexture?: boolean
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-6 text-[12px] text-white/45 sm:flex-row sm:items-center">
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-6 text-[12px] text-white/75 sm:flex-row sm:items-center">
           <p>© 2026 Trust Tai. All rights reserved.</p>
         </div>
       </div>

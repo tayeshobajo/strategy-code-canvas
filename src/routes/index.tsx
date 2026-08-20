@@ -448,7 +448,7 @@ function AnimatedWalksChart() {
                 <div className="mt-1 font-display text-[1.05rem] leading-none text-royal">
                   {w.price}
                 </div>
-                <div className="mt-1.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink/50">
+                <div className="mt-1.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink/70">
                   {w.total}
                 </div>
               </div>
@@ -514,7 +514,7 @@ function AnimatedWalksChart() {
                     </span>
                   ) : (
                     <span
-                      className="absolute font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink/55 whitespace-nowrap"
+                      className="absolute font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink/70 whitespace-nowrap"
                       style={{ left: `${pct}%`, top: "-38px", transform: "translateX(-50%)" }}
                     >
                       Point B
@@ -565,7 +565,7 @@ function AnimatedWalksChart() {
               style={{ left: `${(m / 24) * 100}%` }}
             >
               <span className="h-1.5 w-px bg-rule" />
-              <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink/55">
+              <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink/70">
                 {m} months
               </span>
             </div>
@@ -737,7 +737,7 @@ function RoadmapPanel() {
       <div className="flex flex-col gap-3 border-b border-rule px-4 py-3.5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="shrink-0">
           <div className="font-display text-lg text-ink">Trust Tai</div>
-          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/55">Roadmap</div>
+          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/70">Roadmap</div>
         </div>
         <div className="grid grid-cols-1 gap-3 text-[11px] sm:grid-cols-3 sm:gap-6 lg:gap-10">
           {[
@@ -783,7 +783,7 @@ function RoadmapPanel() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 border-t border-rule/70 pt-3.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/55 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="mt-6 flex flex-col gap-3 border-t border-rule/70 pt-3.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink/70 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
 
             <div>24 Month Roadmap · 8 Quarters, Sequenced</div>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -810,7 +810,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
   const rows = TAB_DATA[active].rows;
   return (
     <TooltipProvider delayDuration={120} skipDelayDuration={200}>
-      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">
+      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/70">
         Example build orders by business type
       </div>
       <div className="mb-5 inline-flex w-auto items-center gap-9 border-b border-rule/40 pr-2 text-[12.5px]">
@@ -837,7 +837,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
       </div>
       <div
         key={active}
-        className="roadmap-rows grid min-w-[540px] grid-cols-[130px_repeat(8,minmax(38px,1fr))] gap-y-3.5 text-[11px] text-ink/55 sm:grid-cols-[170px_repeat(8,1fr)]"
+        className="roadmap-rows grid min-w-[540px] grid-cols-[130px_repeat(8,minmax(38px,1fr))] gap-y-3.5 text-[11px] text-ink/70 sm:grid-cols-[170px_repeat(8,1fr)]"
         data-animate="true"
       >
 
@@ -860,7 +860,7 @@ function BuildOrderChart({ statusColor }: { statusColor: Record<Status, string> 
         </div>
         <div className="relative col-span-8 mt-2.5 h-7">
           <div className="absolute inset-x-0 top-1/2 h-5 -translate-y-1/2 rounded-full border border-royal-soft/25 bg-royal-soft/10" />
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10.5px] tracking-normal text-ink/55">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10.5px] tracking-normal text-ink/70">
             Continuous across every milestone
           </span>
         </div>
@@ -909,11 +909,11 @@ function RoadmapRow({
           >
             <div className="font-medium text-ink">{row.name}</div>
             <div className="mt-1 grid grid-cols-[58px_1fr] gap-x-2 gap-y-0.5 text-ink/70">
-              <span className="font-mono uppercase tracking-[0.12em] text-[9.5px] text-ink/45">Phase</span>
+              <span className="font-mono uppercase tracking-[0.12em] text-[9.5px] text-ink/70">Phase</span>
               <span>{phase} · Q{span.start}–Q{span.end}</span>
-              <span className="font-mono uppercase tracking-[0.12em] text-[9.5px] text-ink/45">Owner</span>
+              <span className="font-mono uppercase tracking-[0.12em] text-[9.5px] text-ink/70">Owner</span>
               <span>{owner}</span>
-              <span className="font-mono uppercase tracking-[0.12em] text-[9.5px] text-ink/45">Status</span>
+              <span className="font-mono uppercase tracking-[0.12em] text-[9.5px] text-ink/70">Status</span>
               <span>{STATUS_LABEL[overall]}</span>
             </div>
           </TooltipContent>
@@ -953,7 +953,7 @@ function RoadmapRow({
                 <div className="flex items-center gap-2">
                   <span className={`h-2 w-2 rounded-full ${statusColor[s.status]}`} />
                   <span className="font-medium">{STATUS_LABEL[s.status]}</span>
-                  <span className="text-ink/55">·</span>
+                  <span className="text-ink/70">·</span>
                   <span className="font-mono text-[10px] text-ink/65">Q{s.start}{s.end !== s.start ? `–Q${s.end}` : ""}</span>
                 </div>
                 <div className="mt-0.5 text-ink/60">{segPhase} · {ownerFor(row.name)}</div>
@@ -997,7 +997,7 @@ function Pricing() {
                   The master plan that maps your journey from Point A to Point B to Point C.
                 </p>
                 <div className="mt-4 font-display text-[1.5rem] leading-none text-royal">$10,000 to $25,000</div>
-                <p className="mt-3 text-[12.5px] leading-relaxed text-ink/55">
+                <p className="mt-3 text-[12.5px] leading-relaxed text-ink/70">
                   One engagement. 1 to 2 weeks. Credited into the build if we walk together.
                 </p>
               </div>
@@ -1010,7 +1010,7 @@ function Pricing() {
 
 
         {/* Caption */}
-        <p className="mt-6 max-w-3xl text-[12.5px] leading-relaxed text-ink/55">
+        <p className="mt-6 max-w-3xl text-[12.5px] leading-relaxed text-ink/70">
           Faster costs more in total and arrives sooner. Your map's economics section models what arriving early is worth in your numbers.
         </p>
 

@@ -439,6 +439,12 @@ export const Route = createFileRoute("/walks_/$slug")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
+        { property: "og:image", content: "https://trusttai.com/og/og-walks.jpg" },
+        {
+          property: "og:image:alt",
+          content: "The Walks by Trust Tai. Real businesses. Real routes.",
+        },
+        { name: "twitter:image", content: "https://trusttai.com/og/og-walks.jpg" },
       ],
       links: [{ rel: "canonical", href: url }],
       scripts: [
@@ -588,7 +594,7 @@ function TheRoute({ points }: { points: RoutePoint[] }) {
               const isLast = i === points.length - 1;
               return (
                 <div key={`h-${i}`} className="text-left">
-                  <p className={`font-mono text-[10.5px] uppercase tracking-[0.18em] ${isFirst || isLast ? "text-royal" : "text-ink/55"}`}>
+                  <p className={`font-mono text-[10.5px] uppercase tracking-[0.18em] ${isFirst || isLast ? "text-royal" : "text-ink/70"}`}>
                     {p.title.includes("\n") || (!isFirst && !isLast) ? p.key : p.title}
                   </p>
                 </div>
@@ -745,7 +751,7 @@ function WhereTheyStandNow({ walk }: { walk: WalkDetail }) {
               );
             })}
           </div>
-          <p className="mt-5 text-[11.5px] italic text-ink/45">{walk.now.asOf}</p>
+          <p className="mt-5 text-[11.5px] italic text-ink/70">{walk.now.asOf}</p>
         </div>
       </div>
     </section>
@@ -785,7 +791,7 @@ function QuoteBlock({ walk }: { walk: WalkDetail }) {
             <p className="mt-6 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/65">
               {walk.quote.attrib}
             </p>
-            <p className="mt-1 text-[12.5px] text-ink/55">{walk.quote.org}</p>
+            <p className="mt-1 text-[12.5px] text-ink/70">{walk.quote.org}</p>
           </div>
         </div>
       </div>
@@ -840,7 +846,7 @@ function DarkCta() {
             Build Your Roadmap
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </a>
-          <p className="max-w-[42ch] text-[11.5px] leading-[1.75] text-white/55">
+          <p className="max-w-[42ch] text-[11.5px] leading-[1.75] text-white/75">
             A 30-minute conversation. No pitch.<br />
             If the timing is right, we should talk.<br />
             If it is not, the work is waiting when it is.
@@ -865,10 +871,10 @@ function ContinueWalking({ slugs }: { slugs: string[] }) {
             return (
               <article key={s} className="flex flex-col gap-3">
                 <p className="eyebrow leading-tight">{sum.category}</p>
-                <p className="text-[11.5px] text-ink/55">{sum.subcategory}</p>
+                <p className="text-[11.5px] text-ink/70">{sum.subcategory}</p>
                 <MiniRoute count={sum.milestonesCount} />
                 <p className="mt-2 text-[12.5px] leading-[1.6] text-ink/75">{sum.blurb}</p>
-                <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink/50">
+                <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink/70">
                   {sum.milestonesCount} milestones · {sum.walkingSince}
                 </p>
                 <Link
@@ -920,7 +926,7 @@ function WalkDetailPage() {
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
-      <main>
+      <main id="main">
         <DetailHero walk={walk} />
         <TheRoute points={walk.route} />
         <PointAndMilestones walk={walk} />

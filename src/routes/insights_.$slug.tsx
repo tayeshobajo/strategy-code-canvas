@@ -116,6 +116,12 @@ export const Route = createFileRoute("/insights_/$slug")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: insight.title },
         { name: "twitter:description", content: description },
+        { property: "og:image", content: "https://trusttai.com/og/og-insights.jpg" },
+        {
+          property: "og:image:alt",
+          content: "Trust Tai Insights. Positions, not trends.",
+        },
+        { name: "twitter:image", content: "https://trusttai.com/og/og-insights.jpg" },
       ],
       links: [{ rel: "canonical", href: url }],
       scripts: [{ type: "application/ld+json", id: "jsonld-insight", children: JSON.stringify(ld) }],
@@ -475,7 +481,7 @@ function InsightArticlePage() {
       <PrintStyles />
       <ReadingProgressBar />
       <SiteHeader />
-      <main>
+      <main id="main">
         <article aria-labelledby="article-title">
           {/* -------- Back link + title block -------- */}
           <header className="pt-24 sm:pt-28 lg:pt-32 print:pt-0">
@@ -528,7 +534,7 @@ function InsightArticlePage() {
                       By Tai Shobajo
                     </span>
                     <span className="text-ink/30" aria-hidden="true">·</span>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/55">
+                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/70">
                       {insight.read}
                     </span>
                   </div>
@@ -720,7 +726,7 @@ function InsightArticlePage() {
                         className="flex items-start gap-5 py-5 pl-6 pr-2"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/55">
+                          <p className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/70">
                             {r.category}
                           </p>
                           <p className="mt-2 font-display text-[17px] leading-[1.35] tracking-[-0.005em] text-ink transition-colors group-hover:text-royal">

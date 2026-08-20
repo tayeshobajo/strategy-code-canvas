@@ -302,7 +302,7 @@ function MapSection() {
                 {tier.price}
               </p>
               <p className="mt-4 text-[13px] text-ink/65">{tier.tagline}</p>
-              <p className="mt-1.5 text-[12px] text-ink/50">Credited in full toward the build if we walk together.</p>
+              <p className="mt-1.5 text-[12px] text-ink/70">Credited in full toward the build if we walk together.</p>
             </div>
 
             {/* Step row - included steps highlighted */}
@@ -311,7 +311,7 @@ function MapSection() {
                 const isIn = includedSet.has(id);
                 return (
                   <div key={id} className="relative flex flex-col items-center text-center transition-opacity" style={{ opacity: isIn ? 1 : 0.35 }}>
-                    <Icon className={`h-5 w-5 ${isIn ? "text-royal" : "text-ink/40"}`} strokeWidth={1.5} />
+                    <Icon className={`h-5 w-5 ${isIn ? "text-royal" : "text-ink/70"}`} strokeWidth={1.5} />
                     {i < mapSteps.length - 1 && (
                       <span className="absolute top-2.5 left-[58%] hidden h-px w-[84%] border-t border-dashed border-rule sm:block" />
                     )}
@@ -398,7 +398,7 @@ function WalkRow({ walk }: { walk: Walk }) {
         </div>
         <div className="col-span-12 sm:col-span-5">
           <div className="relative">
-            <div className="mb-2 flex items-center justify-between text-[10.5px] tracking-[0.18em] text-ink/45">
+            <div className="mb-2 flex items-center justify-between text-[10.5px] tracking-[0.18em] text-ink/70">
               <span>START</span><span>{walk.months} MONTHS</span><span>POINT B</span>
             </div>
             <div className="relative flex items-center">
@@ -415,9 +415,9 @@ function WalkRow({ walk }: { walk: Walk }) {
         </div>
         <div className="col-span-12 sm:col-span-3 sm:text-right">
           <p className="text-[20px] font-medium text-ink">
-            {walk.price} <span className="text-[11.5px] font-normal text-ink/55">per month</span>
+            {walk.price} <span className="text-[11.5px] font-normal text-ink/70">per month</span>
           </p>
-          <p className="text-[12px] text-ink/55">{walk.months} months</p>
+          <p className="text-[12px] text-ink/70">{walk.months} months</p>
           <Link
             to="/checkout/walk/$pace"
             params={{ pace: walk.slug }}
@@ -431,19 +431,19 @@ function WalkRow({ walk }: { walk: Walk }) {
       {/* Per-tier breakdown */}
       <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-rule/50 pt-5 sm:grid-cols-4">
         <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Pace</dt>
+          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/70">Pace</dt>
           <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.months} months to Point B</dd>
         </div>
         <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Monthly investment</dt>
+          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/70">Monthly investment</dt>
           <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.price} per month</dd>
         </div>
         <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Team capacity</dt>
+          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/70">Team capacity</dt>
           <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.team}</dd>
         </div>
         <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/45">Implementation timing</dt>
+          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/70">Implementation timing</dt>
           <dd className="mt-1.5 text-[13px] leading-snug text-ink/80">{walk.timing}</dd>
         </div>
       </dl>
@@ -610,13 +610,13 @@ function Quarterly() {
               <div className="grid grid-cols-5 gap-2">
                 {quarters.map((q, i) => (
                   <div key={q.label} className="flex flex-col items-center text-center">
-                    <span className="mb-2 text-[10.5px] tracking-[0.18em] text-ink/55">{q.label}</span>
+                    <span className="mb-2 text-[10.5px] tracking-[0.18em] text-ink/70">{q.label}</span>
                     <span
                       className={`relative z-10 mb-6 h-3.5 w-3.5 rounded-full ${
                         i === 0 ? "bg-white ring-1 ring-rule" : "bg-royal ring-4 ring-royal/15"
                       }`}
                     />
-                    <div className="grid h-14 w-full place-items-center text-ink/40">
+                    <div className="grid h-14 w-full place-items-center text-ink/70">
                       <svg viewBox="0 0 64 32" className="h-9 w-16 fill-none stroke-royal/45" strokeWidth="1.2">
                         {i === 0 && <path d="M4 28 L20 10 L32 22 L48 6 L60 22" />}
                         {i === 1 && <><circle cx="14" cy="16" r="3" /><circle cx="32" cy="10" r="3" /><circle cx="50" cy="20" r="3" /><path d="M14 16 L32 10 L50 20" /></>}
@@ -687,7 +687,7 @@ function FooterCTA() {
               Start with the map <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
           </div>
-          <p className="mt-6 max-w-[52ch] text-[11.5px] leading-[1.75] text-white/50 animate-fade-in [animation-delay:460ms] opacity-0 [animation-fill-mode:forwards]">
+          <p className="mt-6 max-w-[52ch] text-[11.5px] leading-[1.75] text-white/75 animate-fade-in [animation-delay:460ms] opacity-0 [animation-fill-mode:forwards]">
             A 30-minute conversation. No pitch. If the timing is right, we should talk. If it is not, the work is waiting when it is.
           </p>
 
@@ -703,7 +703,7 @@ function InvestmentPage() {
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
-      <main>
+      <main id="main">
         <Hero />
         <Bridge />
         <MapSection />
