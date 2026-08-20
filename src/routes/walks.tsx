@@ -29,6 +29,12 @@ export const Route = createFileRoute("/walks")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
+        { property: "og:image", content: "https://trusttai.com/og/og-walks.jpg" },
+        {
+          property: "og:image:alt",
+          content: "Trust Tai — The Walks. Real businesses. Real routes.",
+        },
+        { name: "twitter:image", content: "https://trusttai.com/og/og-walks.jpg" },
       ],
       links: [{ rel: "canonical", href: "https://trusttai.com/walks" }],
       scripts: [

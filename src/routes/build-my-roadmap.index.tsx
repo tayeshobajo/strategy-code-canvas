@@ -25,6 +25,18 @@ export const Route = createFileRoute("/build-my-roadmap/")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
+        {
+          property: "og:image",
+          content: "https://trusttai.com/og/og-build-your-roadmap.jpg",
+        },
+        {
+          property: "og:image:alt",
+          content: "Trust Tai — Build Your Roadmap. A conversation, not a form.",
+        },
+        {
+          name: "twitter:image",
+          content: "https://trusttai.com/og/og-build-your-roadmap.jpg",
+        },
       ],
       links: [{ rel: "canonical", href: "https://trusttai.com/build-my-roadmap" }],
     };

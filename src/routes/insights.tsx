@@ -52,6 +52,12 @@ export const Route = createFileRoute("/insights")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: ogDescription },
+        { property: "og:image", content: "https://trusttai.com/og/og-insights.jpg" },
+        {
+          property: "og:image:alt",
+          content: "Trust Tai — Insights. Positions, not trends.",
+        },
+        { name: "twitter:image", content: "https://trusttai.com/og/og-insights.jpg" },
       ],
       links: [{ rel: "canonical", href: "/insights" }],
       scripts: [

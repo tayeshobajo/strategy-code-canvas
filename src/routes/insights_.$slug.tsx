@@ -116,6 +116,12 @@ export const Route = createFileRoute("/insights_/$slug")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: insight.title },
         { name: "twitter:description", content: description },
+        { property: "og:image", content: "https://trusttai.com/og/og-insights.jpg" },
+        {
+          property: "og:image:alt",
+          content: "Trust Tai — Insights. Positions, not trends.",
+        },
+        { name: "twitter:image", content: "https://trusttai.com/og/og-insights.jpg" },
       ],
       links: [{ rel: "canonical", href: url }],
       scripts: [{ type: "application/ld+json", id: "jsonld-insight", children: JSON.stringify(ld) }],
