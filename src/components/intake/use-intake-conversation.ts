@@ -405,6 +405,12 @@ export function useIntakeConversation() {
     coverage,
     progress,
     offerExit,
+    journey,
+    activePhaseLabel,
+    picture,
+    ready,
+    gaps,
+
     answeredCount,
     hasProgress,
     busy,
