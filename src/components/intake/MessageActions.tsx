@@ -54,6 +54,7 @@ export function MessageActions(props: {
   align?: "start" | "end";
   reaction?: Reaction;
   onReact?: (messageId: string, value: Reaction) => void;
+  className?: string;
 }) {
   const [copied, setCopied] = React.useState(false);
 
