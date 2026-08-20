@@ -70,6 +70,12 @@ export type IntakeCompany = {
 export type IntakeConsent = {
   contact_ok: boolean;
   marketing_ok: boolean;
+  /**
+   * Explicit permission to review the visitor's public business presence.
+   * true = yes, false = no, null = never asked. Never inferred from
+   * marketing consent, and never defaulted either way.
+   */
+  research_ok?: boolean | null;
   agreed_at: string | null;
 };
 
