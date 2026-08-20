@@ -170,8 +170,8 @@ export function RoadmapInvite() {
               to="/build-my-roadmap"
               data-invite-cta
               onClick={close}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full px-8 text-[15px] font-semibold text-white transition-transform hover:-translate-y-[1px] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
-              style={{ backgroundColor: NAVY, height: "52px" }}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-full px-6 text-[14.5px] font-semibold text-white transition-transform hover:-translate-y-[1px] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
+              style={{ backgroundColor: NAVY, height: "48px" }}
             >
               {INVITE_COPY.cta}
               <ArrowRight className="h-4 w-4" />
@@ -179,13 +179,14 @@ export function RoadmapInvite() {
 
             <div className="mt-3 flex items-center justify-center gap-2 text-[color:color-mix(in_oklab,var(--ink)_52%,transparent)]">
               <Clock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em]">
+              <p className="font-mono text-[9.5px] uppercase tracking-[0.14em]">
                 {INVITE_COPY.time}
               </p>
             </div>
           </div>
 
-          <div className="flex items-start gap-2.5 border-t border-[color:var(--rule-soft)] px-5 py-4 sm:px-7">
+          <div className="flex items-start gap-2.5 border-t border-[color:var(--rule-soft)] px-5 py-3.5">
+
             <Users
               className="mt-[2px] h-4 w-4 shrink-0 text-royal"
               strokeWidth={1.5}
