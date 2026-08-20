@@ -13,6 +13,7 @@ import { PageViewTracker } from "@/components/PageViewTracker";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { RoadmapInvite } from "@/components/RoadmapInvite";
 
 
 function NotFoundComponent() {
@@ -186,6 +187,7 @@ function RootComponent() {
       <PageViewTracker />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <RoadmapInvite />
       <Toaster position="bottom-center" richColors />
     </QueryClientProvider>
   );
