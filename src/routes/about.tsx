@@ -351,7 +351,7 @@ function OneMoment() {
         <div className="mt-12 grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-14">
           <Reveal as="div" variant="fade-up" className="lg:col-span-4">
             <MiniBrowserCard />
-            <p className="mt-3 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
+            <p className="mt-3 text-center font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/70">
               Putting people first
             </p>
           </Reveal>

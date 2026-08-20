@@ -534,7 +534,7 @@ function InsightArticlePage() {
                       By Tai Shobajo
                     </span>
                     <span className="text-ink/30" aria-hidden="true">·</span>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/55">
+                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink/70">
                       {insight.read}
                     </span>
                   </div>
@@ -726,7 +726,7 @@ function InsightArticlePage() {
                         className="flex items-start gap-5 py-5 pl-6 pr-2"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/55">
+                          <p className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink/70">
                             {r.category}
                           </p>
                           <p className="mt-2 font-display text-[17px] leading-[1.35] tracking-[-0.005em] text-ink transition-colors group-hover:text-royal">

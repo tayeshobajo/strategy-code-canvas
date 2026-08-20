@@ -246,7 +246,7 @@ function HeroSection({
               Book the roadmap walkthrough
               <ArrowRight size={16} strokeWidth={2.4} />
             </button>
-            <span className="text-[11px] font-medium tracking-[0.14em] text-white/55">
+            <span className="text-[11px] font-medium tracking-[0.14em] text-white/75">
               Free · 30 minutes · No pitch
             </span>
           </div>

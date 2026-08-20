@@ -318,7 +318,7 @@ function Hero() {
             as="p"
             variant="fade-up"
             delay={340}
-            className="mt-5 text-[13px] italic leading-[1.7] text-ink/55"
+            className="mt-5 text-[13px] italic leading-[1.7] text-ink/70"
           >
             A selection. Most of our work stays private.
           </Reveal>
@@ -385,11 +385,11 @@ function FilterRow({
           })}
         </div>
         <div className="flex items-center gap-3 pb-1">
-          <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/70">
             {resultCount} {resultCount === 1 ? "walk" : "walks"}
           </span>
           <label className="flex items-center gap-2 text-[12px] text-ink/65">
-            <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/70">
               Sort
             </span>
             <select
@@ -568,11 +568,11 @@ function WalkRow({
         {/* Category + headline + blurb */}
         <div className="min-w-0">
           <p className="eyebrow leading-tight">{walk.category}</p>
-          <p className="mt-1 text-[12.5px] text-ink/55">{walk.subcategory}</p>
+          <p className="mt-1 text-[12.5px] text-ink/70">{walk.subcategory}</p>
           <p className="mt-5 font-display text-[28px] leading-[1.08] tracking-[-0.02em] text-ink transition-colors group-hover:text-royal group-data-[selected=true]:text-royal sm:text-[32px] lg:text-[30px] xl:text-[34px]">
             {walk.headline.join(" ")}
           </p>
-          <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/55">
+          <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink/70">
             Verified outcome
           </p>
           <p className="mt-4 max-w-[40ch] text-[12.5px] leading-[1.7] text-ink/65">
@@ -590,7 +590,7 @@ function WalkRow({
         <div className="flex flex-col justify-between gap-6 md:col-span-2 md:flex-row md:items-center md:justify-between lg:col-span-1 lg:flex-col lg:items-end lg:text-right">
           <div className="font-mono text-[11px] leading-[1.8] tracking-[0.16em] text-ink/65">
             <p className="uppercase">{walk.stat}</p>
-            <p className="mt-1 uppercase text-ink/50">{walk.walkingSince}</p>
+            <p className="mt-1 uppercase text-ink/70">{walk.walkingSince}</p>
           </div>
           <Link
             to="/walks/$slug"
@@ -660,7 +660,7 @@ function DarkCta() {
             Build Your Roadmap
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </a>
-          <p className="max-w-[42ch] text-[11.5px] leading-[1.75] text-white/55">
+          <p className="max-w-[42ch] text-[11.5px] leading-[1.75] text-white/75">
             A 30-minute conversation. No pitch.<br />
             If the timing is right, we should talk.<br />
             If it is not, the work is waiting when it is.

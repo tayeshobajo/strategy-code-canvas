@@ -149,7 +149,7 @@ function CheckoutWalk() {
                   <Footprints className="h-5 w-5 text-royal" aria-hidden="true" />
                 </div>
                 <div>
-                  <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink/50">
+                  <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink/70">
                     Selected Walk
                   </div>
                   <div className="mt-2 font-display text-2xl font-light text-ink">
@@ -160,14 +160,14 @@ function CheckoutWalk() {
                   </p>
                 </div>
                 <div className="sm:text-right">
-                  <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink/50">
+                  <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink/70">
                     Monthly investment
                   </div>
                   <div className="mt-2 font-display text-2xl font-light text-ink">
                     {config.monthly}
                   </div>
-                  <div className="text-[12px] text-ink/50">{config.cadence}</div>
-                  <div className="mt-4 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink/50">
+                  <div className="text-[12px] text-ink/70">{config.cadence}</div>
+                  <div className="mt-4 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink/70">
                     Timeline
                   </div>
                   <div className="mt-1 text-[13.5px] font-medium text-ink">
@@ -177,7 +177,7 @@ function CheckoutWalk() {
               </div>
 
               <div className="mt-6 border-t border-rule-soft pt-6">
-                <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink/50">
+                <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink/70">
                   What's included
                 </div>
                 <ul className="mt-4 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
@@ -193,7 +193,7 @@ function CheckoutWalk() {
 
             {/* What happens next */}
             <div className="rounded-2xl border border-rule-soft bg-paper-soft p-6 sm:p-8">
-              <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink/50">
+              <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink/70">
                 What happens next
               </div>
               <ol className="mt-4 grid gap-4 sm:grid-cols-4">
@@ -211,7 +211,7 @@ function CheckoutWalk() {
                   </li>
                 ))}
               </ol>
-              <p className="mt-6 flex items-start gap-2 text-[12px] leading-[1.5] text-ink/50">
+              <p className="mt-6 flex items-start gap-2 text-[12px] leading-[1.5] text-ink/70">
                 <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>
                   After payment, we confirm everything by email using the
@@ -231,7 +231,7 @@ function CheckoutWalk() {
                   </h2>
                   <p className="mt-1 text-[13.5px] text-ink/70">
                     <span className="font-medium text-ink">{config.title}</span>
-                    <span className="text-ink/50"> — {config.monthly} {config.cadence}</span>
+                    <span className="text-ink/70"> — {config.monthly} {config.cadence}</span>
                   </p>
                 </div>
                 <span className="flex items-center gap-1.5 rounded-full border border-rule-soft bg-paper-soft px-2.5 py-1 text-[11px] text-ink/60">
@@ -255,12 +255,12 @@ function CheckoutWalk() {
                 />
               </div>
 
-              <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-rule-soft bg-paper-soft px-6 py-4 text-[11.5px] text-ink/55 sm:px-8">
+              <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-rule-soft bg-paper-soft px-6 py-4 text-[11.5px] text-ink/70 sm:px-8">
                 <span className="inline-flex items-center gap-1.5">
                   <Lock className="h-3.5 w-3.5" aria-hidden="true" />
                   Secure payments powered by Stripe
                 </span>
-                <span className="text-ink/40">Terms · Privacy</span>
+                <span className="text-ink/70">Terms · Privacy</span>
               </footer>
             </div>
           </section>

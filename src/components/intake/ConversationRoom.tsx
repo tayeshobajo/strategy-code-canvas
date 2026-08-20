@@ -173,14 +173,14 @@ export function ConversationRoom(props: {
               />
               {picture.length > 0 && (
                 <div className="mt-8 border-t border-ink/10 pt-6">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/70">
                     {PICTURE_TITLE}
                   </p>
                   <ul className="mt-5 space-y-5">
                     {picture.map((p) => (
                       <li key={p.id}>
                         <p className="text-sm text-ink">{p.label}</p>
-                        <p className="mt-1 text-sm leading-relaxed text-ink/55">{p.text}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-ink/70">{p.text}</p>
                       </li>
                     ))}
                   </ul>
@@ -236,9 +236,9 @@ function TopBar(props: { phase: string; onClose: () => void; onReset?: () => voi
         <span className="hidden h-5 w-px bg-ink/15 lg:block" />
         <span className="hidden items-center gap-2 lg:inline-flex">
           <TaiAvatar className="h-7 w-7" alt="Tai" />
-          <span className="text-sm text-ink/55">You're talking with Tai</span>
+          <span className="text-sm text-ink/70">You're talking with Tai</span>
         </span>
-        <p className="ml-auto font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
+        <p className="ml-auto font-mono text-[10px] uppercase tracking-[0.24em] text-ink/70">
           {props.phase}
         </p>
         {props.onReset && (
@@ -254,7 +254,7 @@ function TopBar(props: { phase: string; onClose: () => void; onReset?: () => voi
           type="button"
           onClick={props.onClose}
           aria-label="Close the conversation"
-          className="grid h-10 w-10 place-items-center rounded-full text-ink/50 transition hover:bg-ink/5 hover:text-ink"
+          className="grid h-10 w-10 place-items-center rounded-full text-ink/70 transition hover:bg-ink/5 hover:text-ink"
         >
           <X className="h-4.5 w-4.5" />
         </button>
@@ -292,7 +292,7 @@ function PhaseList(props: { phases: JourneyPhase[] }) {
               p.state === "active"
                 ? "text-ink"
                 : p.state === "complete"
-                  ? "text-ink/55"
+                  ? "text-ink/70"
                   : "text-ink/35"
             }`}
           >
@@ -329,7 +329,7 @@ function ProgressMeter(props: {
   return (
     <div className={props.className}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">Progress</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/70">Progress</p>
         <p className="text-sm text-ink/70" aria-live="polite">
           {settled} of {counts.total} settled
         </p>
@@ -347,7 +347,7 @@ function ProgressMeter(props: {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="mt-3 text-sm leading-relaxed text-ink/55">
+      <p className="mt-3 text-sm leading-relaxed text-ink/70">
         {ready || counts.left === 0
           ? "That's everything I need to ask. You can keep talking, or move on to the picture."
           : counts.left === 1
@@ -380,8 +380,8 @@ function ProgressMeter(props: {
                   item.state === "answered"
                     ? "text-ink/70"
                     : item.state === "skipped"
-                      ? "text-ink/40 line-through decoration-ink/25"
-                      : "text-ink/40"
+                      ? "text-ink/70 line-through decoration-ink/25"
+                      : "text-ink/70"
                 }`}
               >
                 {item.label}
@@ -403,7 +403,7 @@ function PictureDrawer(props: {
 }) {
   return (
     <details className="shrink-0 border-t border-ink/10 bg-white/70 px-5 py-3 lg:hidden">
-      <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
+      <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.24em] text-ink/70">
         {PICTURE_TITLE}
       </summary>
       <div className="mt-4 pb-1">
@@ -421,7 +421,7 @@ function PictureDrawer(props: {
             {props.picture.map((p) => (
               <li key={p.id}>
                 <p className="text-sm text-ink">{p.label}</p>
-                <p className="mt-1 text-sm leading-relaxed text-ink/55">{p.text}</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink/70">{p.text}</p>
               </li>
             ))}
           </ul>
@@ -510,7 +510,7 @@ function ConversationBody(props: {
                 Tell me about the business the way you would tell a friend over coffee. What do
                 you do, and who do you do it for?
               </p>
-              <p className="mt-3 text-sm text-ink/45">{OPENING_SUPPORT}</p>
+              <p className="mt-3 text-sm text-ink/70">{OPENING_SUPPORT}</p>
             </TaiBlock>
           </div>
 
@@ -546,7 +546,7 @@ function ConversationBody(props: {
               onReact={react}
             >
               {c.currentTransition && (
-                <p className="mb-2 text-base leading-relaxed text-ink/55">{c.currentTransition}</p>
+                <p className="mb-2 text-base leading-relaxed text-ink/70">{c.currentTransition}</p>
               )}
               <p className="whitespace-pre-line text-base leading-relaxed text-ink/85">
                 {c.currentPrompt}
@@ -883,7 +883,7 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
                       type="button"
                       aria-label={`Remove ${a.name}`}
                       onClick={() => setAttachments((prev) => prev.filter((x) => x.id !== a.id))}
-                      className="text-ink/40 transition hover:text-ink"
+                      className="text-ink/70 transition hover:text-ink"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -946,7 +946,7 @@ function Composer(props: { c: IntakeConversation; voiceFirst?: boolean }) {
                     type="button"
                     onClick={() => void c.skipCurrent()}
                     disabled={c.busy || transcribing}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm text-ink/45 transition hover:text-ink disabled:opacity-40"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm text-ink/70 transition hover:text-ink disabled:opacity-40"
                   >
                     <SkipForward className="h-3.5 w-3.5" /> Skip this
                   </button>
@@ -998,19 +998,19 @@ function ReflectionBody(props: { c: IntakeConversation }) {
         <h2 className="mt-4 font-display text-3xl leading-snug text-ink sm:text-[2.4rem]">
           Let me make sure I understood you.
         </h2>
-        <p className="mt-3 text-sm leading-relaxed text-ink/55">
+        <p className="mt-3 text-sm leading-relaxed text-ink/70">
           This is your own words, shortened. Nothing here is a recommendation yet.
         </p>
 
         <ul className="mt-8 space-y-5">
           {c.reflection.map((r) => (
             <li key={r.id} className="rounded-2xl border border-ink/10 bg-white p-5">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/70">
                 {r.label}
               </p>
               <p className="mt-2 text-base leading-relaxed text-ink/85">{r.text}</p>
               {r.source === "shortened" && (
-                <p className="mt-2 text-xs text-ink/40">Shortened from what you said.</p>
+                <p className="mt-2 text-xs text-ink/70">Shortened from what you said.</p>
               )}
             </li>
           ))}
@@ -1133,7 +1133,7 @@ function ContactBody(props: { c: IntakeConversation }) {
         >
           Review what I'm sending <ArrowRight className="h-4 w-4" />
         </button>
-        <p className="mt-3 text-sm text-ink/50">
+        <p className="mt-3 text-sm text-ink/70">
           Nothing is sent yet. You'll see everything first and can correct any of it.
         </p>
       </div>
@@ -1181,7 +1181,7 @@ function ReviewBody(props: { c: IntakeConversation }) {
         <h2 className="mt-4 font-display text-3xl leading-snug text-ink sm:text-[2.4rem]">
           This is exactly what goes to Trust Tai.
         </h2>
-        <p className="mt-3 text-sm leading-relaxed text-ink/55">
+        <p className="mt-3 text-sm leading-relaxed text-ink/70">
           Your own words, as recorded. Correct anything that reads wrong. Nothing leaves this
           page until you send it.
         </p>
@@ -1195,7 +1195,7 @@ function ReviewBody(props: { c: IntakeConversation }) {
         />
 
         <section className="mt-8">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/70">
             How to reach you
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -1256,13 +1256,13 @@ function ReviewBody(props: { c: IntakeConversation }) {
         </section>
 
         <section className="mt-10">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/70">
             What you told me
           </p>
           <ul className="mt-4 space-y-4">
             {rows.map(({ a, index }) => (
               <li key={`${a.key}-${index}`} className="rounded-2xl border border-ink/10 bg-white p-5">
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/70">
                   {packetLabel(String(a.key), a.question)}
                 </p>
                 {editing === index ? (
@@ -1281,7 +1281,7 @@ function ReviewBody(props: { c: IntakeConversation }) {
                     />
                     <p
                       className={`mt-1.5 text-[13px] leading-snug ${
-                        draftError ? "text-red-600" : "text-ink/45"
+                        draftError ? "text-red-600" : "text-ink/70"
                       }`}
                     >
                       {draftError ?? "Say it however you'd say it out loud. Your words are kept as written."}
@@ -1394,19 +1394,19 @@ function ConfirmBody(props: { c: IntakeConversation }) {
         <h2 className="mt-4 font-display text-3xl leading-snug text-ink sm:text-[2.4rem]">
           Ready to send this to Trust Tai?
         </h2>
-        <p className="mt-3 text-sm leading-relaxed text-ink/55">
+        <p className="mt-3 text-sm leading-relaxed text-ink/70">
           {rows.length} {rows.length === 1 ? "answer" : "answers"} and your contact details, exactly
           as you corrected them. Go back if anything still reads wrong.
         </p>
 
         <section className="mt-8 rounded-2xl border border-ink/10 bg-white p-6">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/70">
             How we'll reach you
           </p>
           <dl className="mt-4 space-y-3">
             {contact.map(([label, value]) => (
               <div key={label} className="flex flex-wrap items-baseline gap-x-3">
-                <dt className="w-36 shrink-0 text-sm text-ink/50">{label}</dt>
+                <dt className="w-36 shrink-0 text-sm text-ink/70">{label}</dt>
                 <dd className="text-base text-ink/85">{value}</dd>
               </div>
             ))}
@@ -1414,13 +1414,13 @@ function ConfirmBody(props: { c: IntakeConversation }) {
         </section>
 
         <section className="mt-6 rounded-2xl border border-ink/10 bg-white p-6">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/70">
             What you told me
           </p>
           <ul className="mt-4 space-y-5">
             {rows.map((a, i) => (
               <li key={`${a.key}-${i}`}>
-                <p className="text-sm text-ink/50">{packetLabel(String(a.key), a.question)}</p>
+                <p className="text-sm text-ink/70">{packetLabel(String(a.key), a.question)}</p>
                 <p className="mt-1 whitespace-pre-line text-base leading-relaxed text-ink/85">
                   {a.answer}
                 </p>
@@ -1497,7 +1497,7 @@ function DoneBody(props: { onClose: () => void }) {
                 {s.state === "completed" ? <Check className="h-3.5 w-3.5" /> : null}
               </span>
               <span className="text-base text-ink/80">{s.label}</span>
-              <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.2em] text-ink/40">
+              <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.2em] text-ink/70">
                 {s.state === "completed" ? "Completed" : "Next"}
               </span>
             </li>
@@ -1512,10 +1512,10 @@ function DoneBody(props: { onClose: () => void }) {
           >
             Close
           </button>
-          <a href="/insights" className="text-sm text-ink/55 underline-offset-4 hover:text-royal hover:underline">
+          <a href="/insights" className="text-sm text-ink/70 underline-offset-4 hover:text-royal hover:underline">
             Read Insights
           </a>
-          <a href="/what-we-build" className="text-sm text-ink/55 underline-offset-4 hover:text-royal hover:underline">
+          <a href="/what-we-build" className="text-sm text-ink/70 underline-offset-4 hover:text-royal hover:underline">
             What we build
           </a>
         </div>
@@ -1601,7 +1601,7 @@ function Field(props: {
   const invalid = Boolean(props.error);
   return (
     <label className="block">
-      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/45">
+      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/70">
         {props.label}
         {props.required ? " *" : props.optional ? " (optional)" : ""}
       </span>
@@ -1619,7 +1619,7 @@ function Field(props: {
       {invalid ? (
         <span className="mt-1.5 block text-[13px] leading-snug text-red-600">{props.error}</span>
       ) : props.hint ? (
-        <span className="mt-1.5 block text-[13px] leading-snug text-ink/45">{props.hint}</span>
+        <span className="mt-1.5 block text-[13px] leading-snug text-ink/70">{props.hint}</span>
       ) : null}
     </label>
   );
