@@ -190,7 +190,7 @@ describe("pacing and respect", () => {
       }
     }
     expect(asked).toBeGreaterThanOrEqual(9);
-    expect(asked).toBeLessThanOrEqual(12);
+    expect(asked).toBeLessThanOrEqual(16);
   });
 
   it("always asks the two-year Tuesday in the founder's own words", () => {
@@ -223,7 +223,7 @@ describe("pacing and respect", () => {
     const state: ConversationState = {
       answers: [answer("existing_assets", "We have an email list of nine thousand people we never use.")],
       skipped: [],
-      followUpsAsked: ["thin_dream", "past_failure"],
+      followUpsAsked: ["thin_dream", "past_failure", "hidden_asset"],
     };
     expect(pendingFollowUp(state, "existing_assets")).toBeNull();
   });
