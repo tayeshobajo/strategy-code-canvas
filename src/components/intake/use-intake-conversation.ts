@@ -31,6 +31,8 @@ import {
   journeyPhases,
   namedGaps,
   remainingCount,
+  essentialChecklist,
+  checklistProgress,
   pictureSoFar,
   readyForPicture,
 } from "@/lib/website-intake/journey";
@@ -47,7 +49,13 @@ export const RESUME_KEY = "tt_intake_resume_v1";
 /** Key used for the founder-confirmed reflection so Scout can tell it apart. */
 export const CONFIRMED_REFLECTION_KEY = "founder_confirmed_reflection";
 
-export type RoomPhase = "conversation" | "reflection" | "contact" | "review" | "done";
+export type RoomPhase =
+  | "conversation"
+  | "reflection"
+  | "contact"
+  | "review"
+  | "confirm"
+  | "done";
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
 export type ContactDetails = {
@@ -113,6 +121,10 @@ export function useIntakeConversation() {
   const gaps = React.useMemo(() => namedGaps(state), [state]);
   /** How many essential things are still to cover. Zero means the asking is done. */
   const remaining = React.useMemo(() => remainingCount(state), [state]);
+  /** Every essential question with its answered / skipped / to-come state. */
+  const checklist = React.useMemo(() => essentialChecklist(state), [state]);
+  /** Counts behind the "x of y" progress read. */
+  const checklistCounts = React.useMemo(() => checklistProgress(state), [state]);
 
 
   const answeredCount = answers.filter(
@@ -462,6 +474,8 @@ export function useIntakeConversation() {
     ready,
     gaps,
     remaining,
+    checklist,
+    checklistCounts,
     contact,
     setContact,
     editAnswer,

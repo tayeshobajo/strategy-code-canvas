@@ -38,9 +38,17 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import {
   PICTURE_TITLE,
+  type ChecklistItem,
   type JourneyPhase,
   type PictureItem,
 } from "@/lib/website-intake/journey";
+import {
+  FIELD_HINTS,
+  validateAnswer,
+  validateContact,
+  validateField,
+  type FieldKey,
+} from "@/lib/website-intake/packet-validation";
 
 
 import { trackEvent } from "@/lib/website-intake/track";
@@ -150,19 +158,19 @@ export function ConversationRoom(props: {
             {c.phase === "reflection" && <ReflectionBody c={c} />}
             {c.phase === "contact" && <ContactBody c={c} />}
             {c.phase === "review" && <ReviewBody c={c} />}
+            {c.phase === "confirm" && <ConfirmBody c={c} />}
             {c.phase === "done" && <DoneBody onClose={props.onClose} />}
           </div>
 
           {showRail && (
             <aside className="hidden w-[30%] shrink-0 overflow-y-auto border-l border-ink/10 bg-white/60 p-6 lg:block">
               <PhaseList phases={c.journey} />
-              <p className="mt-5 border-t border-ink/10 pt-4 text-sm leading-relaxed text-ink/55">
-                {c.ready
-                  ? "That's everything I need to ask. You can keep talking, or move on to the picture."
-                  : c.remaining === 1
-                    ? "One more thing I'd like to understand."
-                    : `About ${c.remaining} more things I'd like to understand.`}
-              </p>
+              <ProgressMeter
+                counts={c.checklistCounts}
+                items={c.checklist}
+                ready={c.ready}
+                className="mt-5 border-t border-ink/10 pt-4"
+              />
               {picture.length > 0 && (
                 <div className="mt-8 border-t border-ink/10 pt-6">
                   <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
@@ -212,6 +220,7 @@ export function ConversationRoom(props: {
 }
 
 function roomPhaseLabel(phase: string) {
+  if (phase === "confirm") return "One last look";
   if (phase === "reflection" || phase === "contact" || phase === "review")
     return "Putting the picture together";
   return "Thank you";
@@ -295,7 +304,103 @@ function PhaseList(props: { phases: JourneyPhase[] }) {
   );
 }
 
-function PictureDrawer(props: { phases: JourneyPhase[]; picture: PictureItem[] }) {
+export type ChecklistCounts = {
+  answered: number;
+  skipped: number;
+  total: number;
+  left: number;
+};
+
+/**
+ * The honest progress read: how many essential questions are settled, which
+ * ones they were, and what is still to come.
+ */
+function ProgressMeter(props: {
+  counts: ChecklistCounts;
+  items: ChecklistItem[];
+  ready: boolean;
+  className?: string;
+  dense?: boolean;
+}) {
+  const { counts, items, ready } = props;
+  const settled = counts.answered + counts.skipped;
+  const pct = counts.total === 0 ? 100 : Math.round((settled / counts.total) * 100);
+
+  return (
+    <div className={props.className}>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">Progress</p>
+        <p className="text-sm text-ink/70" aria-live="polite">
+          {settled} of {counts.total} settled
+        </p>
+      </div>
+      <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={counts.total}
+        aria-valuenow={settled}
+        aria-label="Questions settled"
+        className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-ink/10"
+      >
+        <div
+          className="h-full rounded-full bg-royal transition-[width] duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-ink/55">
+        {ready || counts.left === 0
+          ? "That's everything I need to ask. You can keep talking, or move on to the picture."
+          : counts.left === 1
+            ? "One more thing I'd like to understand."
+            : `${counts.left} more things I'd like to understand.`}
+      </p>
+      {!props.dense && (
+        <ul className="mt-4 space-y-2">
+          {items.map((item) => (
+            <li
+              key={item.key}
+              data-objective={item.key}
+              data-state={item.state}
+              className="flex items-start gap-2.5"
+            >
+              <span
+                aria-hidden
+                className={`mt-[3px] grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full border ${
+                  item.state === "answered"
+                    ? "border-royal bg-royal text-white"
+                    : item.state === "skipped"
+                      ? "border-ink/25 bg-ink/10"
+                      : "border-ink/20"
+                }`}
+              >
+                {item.state === "answered" ? <Check className="h-2 w-2" /> : null}
+              </span>
+              <span
+                className={`text-[13px] leading-snug ${
+                  item.state === "answered"
+                    ? "text-ink/70"
+                    : item.state === "skipped"
+                      ? "text-ink/40 line-through decoration-ink/25"
+                      : "text-ink/40"
+                }`}
+              >
+                {item.label}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function PictureDrawer(props: {
+  phases: JourneyPhase[];
+  picture: PictureItem[];
+  counts?: ChecklistCounts;
+  items?: ChecklistItem[];
+  ready?: boolean;
+}) {
   return (
     <details className="shrink-0 border-t border-ink/10 bg-white/70 px-5 py-3 lg:hidden">
       <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
@@ -303,6 +408,14 @@ function PictureDrawer(props: { phases: JourneyPhase[]; picture: PictureItem[] }
       </summary>
       <div className="mt-4 pb-1">
         <PhaseList phases={props.phases} />
+        {props.counts && props.items && (
+          <ProgressMeter
+            counts={props.counts}
+            items={props.items}
+            ready={props.ready ?? false}
+            className="mt-4 border-t border-ink/10 pt-4"
+          />
+        )}
         {props.picture.length > 0 && (
           <ul className="mt-5 space-y-4 border-t border-ink/10 pt-4">
             {props.picture.map((p) => (
@@ -509,7 +622,13 @@ function ConversationBody(props: {
         )}
       </div>
 
-      <PictureDrawer phases={props.c.journey} picture={props.picture} />
+      <PictureDrawer
+        phases={props.c.journey}
+        picture={props.picture}
+        counts={props.c.checklistCounts}
+        items={props.c.checklist}
+        ready={props.c.ready}
+      />
       <Composer c={c} voiceFirst={props.voiceFirst} />
     </>
 
@@ -1034,12 +1153,20 @@ function packetLabel(key: string, question: string): string {
 
 /**
  * The last gate before anything leaves the browser: every field of the packet
- * in plain language, each one correctable.
+ * in plain language, each one correctable, with gentle inline correction.
  */
 function ReviewBody(props: { c: IntakeConversation }) {
   const { c } = props;
   const [editing, setEditing] = React.useState<number | null>(null);
   const [draft, setDraft] = React.useState("");
+  const [draftError, setDraftError] = React.useState<string | null>(null);
+  const [touched, setTouched] = React.useState<Partial<Record<FieldKey, boolean>>>({});
+  const [showAll, setShowAll] = React.useState(false);
+
+  const errors = validateContact(c.contact);
+  const shown = (k: FieldKey) => ((touched[k] || showAll) && errors[k]) || null;
+  const setField = (k: FieldKey) => (v: string) => c.setContact((f) => ({ ...f, [k]: v }));
+  const blur = (k: FieldKey) => () => setTouched((t) => ({ ...t, [k]: true }));
 
   const rows = c.answers
     .map((a, index) => ({ a, index }))
@@ -1059,6 +1186,14 @@ function ReviewBody(props: { c: IntakeConversation }) {
           page until you send it.
         </p>
 
+        <ProgressMeter
+          counts={c.checklistCounts}
+          items={c.checklist}
+          ready={c.ready}
+          dense
+          className="mt-7 rounded-2xl border border-ink/10 bg-white p-5"
+        />
+
         <section className="mt-8">
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
             How to reach you
@@ -1067,31 +1202,46 @@ function ReviewBody(props: { c: IntakeConversation }) {
             <Field
               label="Your name"
               value={c.contact.name}
-              onChange={(v) => c.setContact((f) => ({ ...f, name: v }))}
+              hint={FIELD_HINTS.name}
+              error={shown("name")}
+              onBlur={blur("name")}
+              onChange={setField("name")}
             />
             <Field
               label="Email"
               type="email"
               required
               value={c.contact.email}
-              onChange={(v) => c.setContact((f) => ({ ...f, email: v }))}
+              hint={FIELD_HINTS.email}
+              error={shown("email")}
+              onBlur={blur("email")}
+              onChange={setField("email")}
             />
             <Field
               label="Company"
               value={c.contact.company}
-              onChange={(v) => c.setContact((f) => ({ ...f, company: v }))}
+              hint={FIELD_HINTS.company}
+              error={shown("company")}
+              onBlur={blur("company")}
+              onChange={setField("company")}
             />
             <Field
               label="Website"
               optional
               value={c.contact.website}
-              onChange={(v) => c.setContact((f) => ({ ...f, website: v }))}
+              hint={FIELD_HINTS.website}
+              error={shown("website")}
+              onBlur={blur("website")}
+              onChange={setField("website")}
             />
             <Field
               label="Phone"
               optional
               value={c.contact.phone}
-              onChange={(v) => c.setContact((f) => ({ ...f, phone: v }))}
+              hint={FIELD_HINTS.phone}
+              error={shown("phone")}
+              onBlur={blur("phone")}
+              onChange={setField("phone")}
             />
           </div>
           <label className="mt-5 flex items-start gap-3 text-sm leading-relaxed text-ink/70">
@@ -1120,14 +1270,33 @@ function ReviewBody(props: { c: IntakeConversation }) {
                     <textarea
                       value={draft}
                       rows={4}
-                      onChange={(e) => setDraft(e.target.value)}
-                      className="mt-3 w-full rounded-xl border border-ink/15 bg-paper p-3 text-base leading-relaxed text-ink outline-none focus:border-royal"
+                      aria-invalid={Boolean(draftError) || undefined}
+                      onChange={(e) => {
+                        setDraft(e.target.value);
+                        if (draftError) setDraftError(validateAnswer(e.target.value));
+                      }}
+                      className={`mt-3 w-full rounded-xl border bg-paper p-3 text-base leading-relaxed text-ink outline-none focus:border-royal ${
+                        draftError ? "border-red-400" : "border-ink/15"
+                      }`}
                     />
+                    <p
+                      className={`mt-1.5 text-[13px] leading-snug ${
+                        draftError ? "text-red-600" : "text-ink/45"
+                      }`}
+                    >
+                      {draftError ?? "Say it however you'd say it out loud. Your words are kept as written."}
+                    </p>
                     <div className="mt-3 flex flex-wrap gap-3">
                       <button
                         type="button"
                         onClick={async () => {
+                          const message = validateAnswer(draft);
+                          if (message) {
+                            setDraftError(message);
+                            return;
+                          }
                           await c.editAnswer(index, draft);
+                          setDraftError(null);
                           setEditing(null);
                         }}
                         className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-sm text-paper transition hover:bg-royal"
@@ -1136,7 +1305,10 @@ function ReviewBody(props: { c: IntakeConversation }) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setEditing(null)}
+                        onClick={() => {
+                          setDraftError(null);
+                          setEditing(null);
+                        }}
                         className="inline-flex min-h-10 items-center rounded-full border border-ink/15 px-4 text-sm text-ink/70"
                       >
                         Cancel
@@ -1152,6 +1324,7 @@ function ReviewBody(props: { c: IntakeConversation }) {
                       type="button"
                       onClick={() => {
                         setDraft(a.answer);
+                        setDraftError(null);
                         setEditing(index);
                       }}
                       className="mt-3 text-sm text-royal underline-offset-4 hover:underline"
@@ -1168,10 +1341,103 @@ function ReviewBody(props: { c: IntakeConversation }) {
         <div className="mt-10 flex flex-wrap gap-3">
           <button
             type="button"
+            onClick={() => {
+              const found = validateContact(c.contact);
+              if (Object.keys(found).length > 0) {
+                setShowAll(true);
+                toast.error("One or two details need a small correction first.");
+                return;
+              }
+              c.setPhase("confirm");
+            }}
+            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-7 text-sm text-paper transition hover:bg-royal"
+          >
+            One last look <ArrowRight className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => c.setPhase("contact")}
+            className="inline-flex min-h-12 items-center rounded-full border border-ink/15 bg-white px-6 text-sm text-ink/70 transition hover:text-ink"
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The final gate: the edited packet in plain language, with a way back. */
+function ConfirmBody(props: { c: IntakeConversation }) {
+  const { c } = props;
+  const contact: Array<[string, string]> = [
+    ["Name", c.contact.name.trim() || "Not given"],
+    ["Email", c.contact.email.trim()],
+    ["Company", c.contact.company.trim() || "Not given"],
+    ["Website", c.contact.website.trim() || "Not given"],
+    ["Phone", c.contact.phone.trim() || "Not given"],
+    [
+      "Public research",
+      c.contact.researchOk
+        ? "Yes, Trust Tai may review my public business presence"
+        : "No, please don't research my business",
+    ],
+  ];
+  const rows = c.answers.filter((a) => (a.answer ?? "").trim().length > 0);
+
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-10 sm:px-10">
+      <div className="mx-auto max-w-2xl pb-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
+          Nothing has been sent yet
+        </p>
+        <h2 className="mt-4 font-display text-3xl leading-snug text-ink sm:text-[2.4rem]">
+          Ready to send this to Trust Tai?
+        </h2>
+        <p className="mt-3 text-sm leading-relaxed text-ink/55">
+          {rows.length} {rows.length === 1 ? "answer" : "answers"} and your contact details, exactly
+          as you corrected them. Go back if anything still reads wrong.
+        </p>
+
+        <section className="mt-8 rounded-2xl border border-ink/10 bg-white p-6">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+            How we'll reach you
+          </p>
+          <dl className="mt-4 space-y-3">
+            {contact.map(([label, value]) => (
+              <div key={label} className="flex flex-wrap items-baseline gap-x-3">
+                <dt className="w-36 shrink-0 text-sm text-ink/50">{label}</dt>
+                <dd className="text-base text-ink/85">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-ink/10 bg-white p-6">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+            What you told me
+          </p>
+          <ul className="mt-4 space-y-5">
+            {rows.map((a, i) => (
+              <li key={`${a.key}-${i}`}>
+                <p className="text-sm text-ink/50">{packetLabel(String(a.key), a.question)}</p>
+                <p className="mt-1 whitespace-pre-line text-base leading-relaxed text-ink/85">
+                  {a.answer}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <div className="mt-10 flex flex-wrap gap-3">
+          <button
+            type="button"
             disabled={c.busy}
             onClick={async () => {
-              if (!c.contact.email.trim()) {
-                toast.error("An email address is the one thing I need.");
+              const found = validateField("email", c.contact.email);
+              if (found) {
+                toast.error(found);
+                c.setPhase("review");
                 return;
               }
               const ok = await c.submitContact(c.contact);
@@ -1186,16 +1452,17 @@ function ReviewBody(props: { c: IntakeConversation }) {
           </button>
           <button
             type="button"
-            onClick={() => c.setPhase("contact")}
+            onClick={() => c.setPhase("review")}
             className="inline-flex min-h-12 items-center rounded-full border border-ink/15 bg-white px-6 text-sm text-ink/70 transition hover:text-ink"
           >
-            Back
+            Go back and edit
           </button>
         </div>
       </div>
     </div>
   );
 }
+
 
 
 
@@ -1327,7 +1594,11 @@ function Field(props: {
   type?: string;
   required?: boolean;
   optional?: boolean;
+  hint?: string;
+  error?: string | null;
+  onBlur?: () => void;
 }) {
+  const invalid = Boolean(props.error);
   return (
     <label className="block">
       <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/45">
@@ -1338,9 +1609,18 @@ function Field(props: {
         type={props.type ?? "text"}
         value={props.value}
         required={props.required}
+        aria-invalid={invalid || undefined}
+        onBlur={props.onBlur}
         onChange={(e) => props.onChange(e.target.value)}
-        className="mt-2 min-h-12 w-full rounded-xl border border-ink/15 bg-white px-4 text-base text-ink outline-none transition focus:border-royal"
+        className={`mt-2 min-h-12 w-full rounded-xl border bg-white px-4 text-base text-ink outline-none transition focus:border-royal ${
+          invalid ? "border-red-400" : "border-ink/15"
+        }`}
       />
+      {invalid ? (
+        <span className="mt-1.5 block text-[13px] leading-snug text-red-600">{props.error}</span>
+      ) : props.hint ? (
+        <span className="mt-1.5 block text-[13px] leading-snug text-ink/45">{props.hint}</span>
+      ) : null}
     </label>
   );
 }

@@ -122,6 +122,52 @@ export function remainingCount(state: ConversationState): number {
   return remainingEssentials(state).length;
 }
 
+export type ChecklistItem = {
+  key: IntakeObjectiveKey;
+  label: string;
+  phase: IntakePhaseKey;
+  state: "answered" | "skipped" | "todo";
+};
+
+/**
+ * Every essential piece of ground, in order, with whether it is answered,
+ * skipped, or still to come. This is the honest progress indicator.
+ */
+export function essentialChecklist(state: ConversationState): ChecklistItem[] {
+  const covered = coveredObjectives(state);
+  const out: ChecklistItem[] = [];
+  for (const phase of PHASE_ORDER) {
+    for (const key of keysForPhase(phase)) {
+      const q = QUESTION_BY_KEY[key];
+      if (!q.essential) continue;
+      out.push({
+        key,
+        label: GAP_PHRASES[key] ?? q.label,
+        phase,
+        state: covered.has(key)
+          ? "answered"
+          : state.skipped.includes(key)
+            ? "skipped"
+            : "todo",
+      });
+    }
+  }
+  return out;
+}
+
+/** Counts for a one-line "x of y" progress read. */
+export function checklistProgress(state: ConversationState): {
+  answered: number;
+  skipped: number;
+  total: number;
+  left: number;
+} {
+  const items = essentialChecklist(state);
+  const answered = items.filter((i) => i.state === "answered").length;
+  const skipped = items.filter((i) => i.state === "skipped").length;
+  return { answered, skipped, total: items.length, left: items.length - answered - skipped };
+}
+
 export const PICTURE_TITLE = "The picture so far";
 
 export type PictureItem = {
