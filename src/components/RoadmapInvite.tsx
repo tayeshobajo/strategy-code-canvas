@@ -112,18 +112,15 @@ export function RoadmapInvite() {
           }}
         >
 
-          <div className="flex items-start justify-between border-b border-[color:var(--rule-soft)] px-5 py-4">
+          <div className="flex items-center justify-between border-b border-[color:var(--rule-soft)] px-5 py-4">
             <div className="min-w-0">
               <TrustTaiLogo />
-              <p className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.22em] text-[color:color-mix(in_oklab,var(--ink)_50%,transparent)]">
-                {INVITE_COPY.marker}
-              </p>
             </div>
             <button
               type="button"
               onClick={close}
               aria-label="Close invitation"
-              className="shrink-0 rounded-[10px] border border-[color:var(--rule)] bg-background p-2 text-[color:color-mix(in_oklab,var(--ink)_65%,transparent)] transition-colors hover:bg-[color:var(--row-hover-bg)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-[color:var(--rule)] bg-background text-[color:color-mix(in_oklab,var(--ink)_65%,transparent)] transition-colors hover:bg-[color:var(--row-hover-bg)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
             >
               <X className="h-4 w-4" />
             </button>
@@ -141,29 +138,7 @@ export function RoadmapInvite() {
               {INVITE_COPY.body}
             </p>
 
-            <div className="mt-5 grid grid-cols-1 gap-2">
-              {INVITE_COPY.cards.map((c, i) => {
-                const Icon = CARD_ICONS[i] ?? Users;
-                return (
-                  <div
-                    key={c.title}
-                    className="flex items-start gap-2.5 rounded-xl border border-[color:var(--rule)] bg-background px-3 py-2.5"
-                  >
-                    <span className="mt-[1px] flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[color:color-mix(in_oklab,var(--royal)_8%,transparent)]">
-                      <Icon className="h-3.5 w-3.5 text-royal" strokeWidth={1.6} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-[12.5px] font-semibold leading-tight text-ink">
-                        {c.title}
-                      </p>
-                      <p className="mt-1 text-[12px] leading-snug text-[color:color-mix(in_oklab,var(--ink)_62%,transparent)]">
-                        {c.note}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+
 
 
             <Link
