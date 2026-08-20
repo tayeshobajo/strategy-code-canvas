@@ -288,7 +288,11 @@ function ConversationBody(props: {
   const { reactions, react } = useMessageReactions(c.resumeToken);
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
-    bottomRef.current?.scrollIntoView({ block: "end", behavior });
+    const el = scrollerRef.current;
+    if (!el) return;
+    // Scroll the transcript itself. scrollIntoView can move an ancestor and
+    // leave the transcript stranded, which is how the trap started.
+    el.scrollTo({ top: el.scrollHeight, behavior });
   }, []);
 
   // Follow the conversation only while the founder is reading the latest lines.
@@ -309,16 +313,8 @@ function ConversationBody(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.answers.length, c.thinking, c.currentPrompt]);
 
-
-  // Nothing left worth asking — move to reflection rather than a dead end.
-  React.useEffect(() => {
-    const done = c.turn ? c.turn.should_end : c.step.kind === "contact";
-    if (done && c.hasProgress && !c.busy) c.openReflection();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c.turn, c.step.kind, c.hasProgress, c.busy]);
-
   const visible = c.answers.filter((a) => a.key !== ("founder_confirmed_reflection" as never));
-  const nearingEnd = c.offerExit;
+  const nearingEnd = c.offerExit && !c.keepTalking;
   const messageCount = visible.length * 2 + (c.currentPrompt ? 1 : 0);
 
   React.useEffect(() => {
@@ -332,9 +328,16 @@ function ConversationBody(props: {
       <div className="relative flex min-h-0 flex-1 flex-col">
       <div
         ref={scrollerRef}
-        className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto px-5 py-8 sm:px-10 sm:py-10"
+        role="log"
+        aria-label="Conversation transcript"
+        aria-live="polite"
+        tabIndex={0}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-8 outline-none sm:px-10 sm:py-10"
       >
-        <div className="mx-auto w-full max-w-2xl space-y-11">
+        {/* mt-auto keeps short conversations anchored low without the
+            justify-end flex trap that made older turns unreachable. */}
+        <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-end space-y-11">
+
 
           <div>
             <TaiBlock
