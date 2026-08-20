@@ -16,6 +16,7 @@ import {
   Loader2,
   Mic,
   Paperclip,
+  RotateCcw,
   SkipForward,
   X,
 } from "lucide-react";
@@ -24,9 +25,14 @@ import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { VoiceCapture } from "@/components/intake/VoiceCapture";
 import {
   fileToBase64,
+  CONFIRMED_REFLECTION_KEY,
   type ContactDetails,
   type IntakeConversation,
 } from "@/components/intake/use-intake-conversation";
+import {
+  QUESTION_BY_KEY,
+  type IntakeObjectiveKey,
+} from "@/lib/website-intake/questions";
 import { attachIntakeFile } from "@/lib/website-intake.functions";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -35,7 +41,6 @@ import {
   type JourneyPhase,
   type PictureItem,
 } from "@/lib/website-intake/journey";
-import { EARLY_EXIT_PROMPT } from "@/lib/website-intake/adaptive";
 
 
 import { trackEvent } from "@/lib/website-intake/track";
@@ -49,6 +54,12 @@ import {
 const OPENING_LINE = "Let's start with your world.";
 const OPENING_SUPPORT = "There's no perfect answer. Start wherever feels natural.";
 const MAX_ATTACHMENT_BYTES = 6_500_000;
+
+/** "a, b and c" — readable in a sentence, unlike a bare comma list. */
+function joinPhrases(items: string[]) {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
 
 type Attachment = {
   id: string;
@@ -68,6 +79,7 @@ export function ConversationRoom(props: {
   const panelRef = React.useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const [closeIntent, setCloseIntent] = React.useState(false);
+  const [resetIntent, setResetIntent] = React.useState(false);
 
   useFocusTrap(panelRef, props.open);
 
@@ -127,6 +139,7 @@ export function ConversationRoom(props: {
         <TopBar
           phase={c.phase === "conversation" ? c.activePhaseLabel : roomPhaseLabel(c.phase)}
           onClose={requestClose}
+          onReset={c.hasProgress && c.phase !== "done" ? () => setResetIntent(true) : undefined}
         />
 
         <div className="flex min-h-0 flex-1">
@@ -136,12 +149,20 @@ export function ConversationRoom(props: {
             )}
             {c.phase === "reflection" && <ReflectionBody c={c} />}
             {c.phase === "contact" && <ContactBody c={c} />}
+            {c.phase === "review" && <ReviewBody c={c} />}
             {c.phase === "done" && <DoneBody onClose={props.onClose} />}
           </div>
 
           {showRail && (
             <aside className="hidden w-[30%] shrink-0 overflow-y-auto border-l border-ink/10 bg-white/60 p-6 lg:block">
               <PhaseList phases={c.journey} />
+              <p className="mt-5 border-t border-ink/10 pt-4 text-sm leading-relaxed text-ink/55">
+                {c.ready
+                  ? "That's everything I need to ask. You can keep talking, or move on to the picture."
+                  : c.remaining === 1
+                    ? "One more thing I'd like to understand."
+                    : `About ${c.remaining} more things I'd like to understand.`}
+              </p>
               {picture.length > 0 && (
                 <div className="mt-8 border-t border-ink/10 pt-6">
                   <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
@@ -163,6 +184,19 @@ export function ConversationRoom(props: {
 
       </div>
 
+      {resetIntent && (
+        <ConfirmCard
+          title="Start the conversation again?"
+          body="This clears everything you've told me so far in this browser and begins a fresh conversation. Nothing has been sent."
+          confirmLabel="Yes, start over"
+          onConfirm={() => {
+            setResetIntent(false);
+            c.resetConversation();
+          }}
+          onDismiss={() => setResetIntent(false)}
+        />
+      )}
+
       {closeIntent && (
         <ResumePrompt
           onDismiss={() => setCloseIntent(false)}
@@ -178,11 +212,12 @@ export function ConversationRoom(props: {
 }
 
 function roomPhaseLabel(phase: string) {
-  if (phase === "reflection" || phase === "contact") return "Putting the picture together";
+  if (phase === "reflection" || phase === "contact" || phase === "review")
+    return "Putting the picture together";
   return "Thank you";
 }
 
-function TopBar(props: { phase: string; onClose: () => void }) {
+function TopBar(props: { phase: string; onClose: () => void; onReset?: () => void }) {
   return (
     <header className="shrink-0 border-b border-ink/10 bg-paper/95 backdrop-blur">
       <div className="flex items-center gap-4 px-5 py-4 sm:px-8">
@@ -197,6 +232,15 @@ function TopBar(props: { phase: string; onClose: () => void }) {
         <p className="ml-auto font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
           {props.phase}
         </p>
+        {props.onReset && (
+          <button
+            type="button"
+            onClick={props.onReset}
+            className="inline-flex min-h-9 items-center gap-2 rounded-full border border-ink/15 bg-white px-3 text-xs text-ink/60 transition hover:text-ink"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Start over
+          </button>
+        )}
         <button
           type="button"
           onClick={props.onClose}
@@ -426,14 +470,23 @@ function ConversationBody(props: {
 
           {nearingEnd && !c.ready && !c.thinking && (
             <div className="rounded-2xl border border-ink/12 bg-white/70 p-5">
-              <p className="text-[15px] leading-relaxed text-ink/75">{EARLY_EXIT_PROMPT}</p>
-              {c.gaps.length > 0 && (
-                <p className="mt-2 text-sm text-ink/55">
-                  Still worth hearing: {c.gaps.join(", ")}.
-                </p>
-              )}
+              <p className="text-[15px] leading-relaxed text-ink/75">
+                {c.gaps.length > 0
+                  ? `We're nearly there. Two things I'd still like to hear about: ${joinPhrases(c.gaps)}. Keep going, or stop here and I'll show you the picture.`
+                  : "We're nearly there. Keep going, or stop here and I'll show you the picture."}
+              </p>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={c.openReflection}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 bg-white px-5 text-sm text-ink/75 transition hover:text-ink"
+                >
+                  Stop here and show me the picture <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )}
+
 
 
           <div ref={bottomRef} />
@@ -914,17 +967,10 @@ function ReflectionBody(props: { c: IntakeConversation }) {
 
 function ContactBody(props: { c: IntakeConversation }) {
   const { c } = props;
-  const [form, setForm] = React.useState<ContactDetails>({
-    name: "",
-    email: "",
-    company: "",
-    website: "",
-    phone: "",
-    researchOk: true,
-  });
+  const form = c.contact;
 
   const set = (k: keyof ContactDetails) => (v: string | boolean) =>
-    setForm((f) => ({ ...f, [k]: v }));
+    c.setContact((f) => ({ ...f, [k]: v }));
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-5 py-10 sm:px-10">
@@ -957,26 +1003,201 @@ function ContactBody(props: { c: IntakeConversation }) {
 
         <button
           type="button"
-          disabled={c.busy}
-          onClick={async () => {
+          onClick={() => {
             if (!form.email.trim()) {
               toast.error("An email address is the one thing I need.");
               return;
             }
-            const ok = await c.submitContact(form);
-            if (!ok) {
-              toast.error("That didn't send. Nothing is lost. Try once more in a moment.");
-            }
+            c.setPhase("review");
           }}
           className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-7 text-sm text-paper transition hover:bg-royal disabled:opacity-50"
         >
-          {c.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-          Send my conversation
+          Review what I'm sending <ArrowRight className="h-4 w-4" />
         </button>
+        <p className="mt-3 text-sm text-ink/50">
+          Nothing is sent yet. You'll see everything first and can correct any of it.
+        </p>
       </div>
     </div>
   );
 }
+
+/** Plain-language name for one recorded line of the packet. */
+function packetLabel(key: string, question: string): string {
+  if (key === CONFIRMED_REFLECTION_KEY) return "The summary you confirmed";
+  if (key.startsWith("aside__")) return "Something you said along the way";
+  const base = key.split("__followup_")[0] as IntakeObjectiveKey;
+  const q = QUESTION_BY_KEY[base];
+  if (!q) return question;
+  return key.includes("__followup_") ? `${q.label} (more detail)` : q.label;
+}
+
+/**
+ * The last gate before anything leaves the browser: every field of the packet
+ * in plain language, each one correctable.
+ */
+function ReviewBody(props: { c: IntakeConversation }) {
+  const { c } = props;
+  const [editing, setEditing] = React.useState<number | null>(null);
+  const [draft, setDraft] = React.useState("");
+
+  const rows = c.answers
+    .map((a, index) => ({ a, index }))
+    .filter(({ a }) => (a.answer ?? "").trim().length > 0);
+
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-10 sm:px-10">
+      <div className="mx-auto max-w-2xl pb-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
+          Before anything is sent
+        </p>
+        <h2 className="mt-4 font-display text-3xl leading-snug text-ink sm:text-[2.4rem]">
+          This is exactly what goes to Trust Tai.
+        </h2>
+        <p className="mt-3 text-sm leading-relaxed text-ink/55">
+          Your own words, as recorded. Correct anything that reads wrong. Nothing leaves this
+          page until you send it.
+        </p>
+
+        <section className="mt-8">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+            How to reach you
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Your name"
+              value={c.contact.name}
+              onChange={(v) => c.setContact((f) => ({ ...f, name: v }))}
+            />
+            <Field
+              label="Email"
+              type="email"
+              required
+              value={c.contact.email}
+              onChange={(v) => c.setContact((f) => ({ ...f, email: v }))}
+            />
+            <Field
+              label="Company"
+              value={c.contact.company}
+              onChange={(v) => c.setContact((f) => ({ ...f, company: v }))}
+            />
+            <Field
+              label="Website"
+              optional
+              value={c.contact.website}
+              onChange={(v) => c.setContact((f) => ({ ...f, website: v }))}
+            />
+            <Field
+              label="Phone"
+              optional
+              value={c.contact.phone}
+              onChange={(v) => c.setContact((f) => ({ ...f, phone: v }))}
+            />
+          </div>
+          <label className="mt-5 flex items-start gap-3 text-sm leading-relaxed text-ink/70">
+            <input
+              type="checkbox"
+              checked={c.contact.researchOk}
+              onChange={(e) => c.setContact((f) => ({ ...f, researchOk: e.target.checked }))}
+              className="mt-1 h-4 w-4"
+            />
+            Trust Tai may review my public business presence.
+          </label>
+        </section>
+
+        <section className="mt-10">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+            What you told me
+          </p>
+          <ul className="mt-4 space-y-4">
+            {rows.map(({ a, index }) => (
+              <li key={`${a.key}-${index}`} className="rounded-2xl border border-ink/10 bg-white p-5">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/40">
+                  {packetLabel(String(a.key), a.question)}
+                </p>
+                {editing === index ? (
+                  <>
+                    <textarea
+                      value={draft}
+                      rows={4}
+                      onChange={(e) => setDraft(e.target.value)}
+                      className="mt-3 w-full rounded-xl border border-ink/15 bg-paper p-3 text-base leading-relaxed text-ink outline-none focus:border-royal"
+                    />
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await c.editAnswer(index, draft);
+                          setEditing(null);
+                        }}
+                        className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-sm text-paper transition hover:bg-royal"
+                      >
+                        Save correction
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditing(null)}
+                        className="inline-flex min-h-10 items-center rounded-full border border-ink/15 px-4 text-sm text-ink/70"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-2 whitespace-pre-line text-base leading-relaxed text-ink/85">
+                      {a.answer}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraft(a.answer);
+                        setEditing(index);
+                      }}
+                      className="mt-3 text-sm text-royal underline-offset-4 hover:underline"
+                    >
+                      Edit this
+                    </button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <div className="mt-10 flex flex-wrap gap-3">
+          <button
+            type="button"
+            disabled={c.busy}
+            onClick={async () => {
+              if (!c.contact.email.trim()) {
+                toast.error("An email address is the one thing I need.");
+                return;
+              }
+              const ok = await c.submitContact(c.contact);
+              if (!ok) {
+                toast.error("That didn't send. Nothing is lost. Try once more in a moment.");
+              }
+            }}
+            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-7 text-sm text-paper transition hover:bg-royal disabled:opacity-50"
+          >
+            {c.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+            Send my conversation
+          </button>
+          <button
+            type="button"
+            onClick={() => c.setPhase("contact")}
+            className="inline-flex min-h-12 items-center rounded-full border border-ink/15 bg-white px-6 text-sm text-ink/70 transition hover:text-ink"
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 function DoneBody(props: { onClose: () => void }) {
   const steps = [
@@ -1030,6 +1251,39 @@ function DoneBody(props: { onClose: () => void }) {
           <a href="/what-we-build" className="text-sm text-ink/55 underline-offset-4 hover:text-royal hover:underline">
             What we build
           </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmCard(props: {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="absolute inset-0 z-20 grid place-items-center bg-ink/40 px-6 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border border-ink/10 bg-paper p-7">
+        <h3 className="font-display text-2xl text-ink">{props.title}</h3>
+        <p className="mt-3 text-sm leading-relaxed text-ink/65">{props.body}</p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={props.onConfirm}
+            className="inline-flex min-h-11 items-center rounded-full bg-ink px-5 text-sm text-paper transition hover:bg-royal"
+          >
+            {props.confirmLabel}
+          </button>
+          <button
+            type="button"
+            onClick={props.onDismiss}
+            className="inline-flex min-h-11 items-center rounded-full border border-ink/15 bg-white px-5 text-sm text-ink/70 transition hover:text-ink"
+          >
+            Never mind
+          </button>
         </div>
       </div>
     </div>
