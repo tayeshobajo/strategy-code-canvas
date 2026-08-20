@@ -172,6 +172,8 @@ export const completeIntakeSession = createServerFn({ method: "POST" })
         consent: z.object({
           contact_ok: z.boolean(),
           marketing_ok: z.boolean(),
+          // Absent means the question was never put to them: stays null.
+          research_ok: z.boolean().nullish().transform((v) => v ?? null),
           agreed_at: z.string().nullable(),
         }),
       })

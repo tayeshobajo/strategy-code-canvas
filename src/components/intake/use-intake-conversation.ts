@@ -434,7 +434,10 @@ export function useIntakeConversation() {
             },
             consent: {
               contact_ok: true,
-              marketing_ok: contact.researchOk,
+              // The room has no marketing opt-in control, so this is never
+              // implied by the research permission below.
+              marketing_ok: false,
+              research_ok: contact.researchOk,
               agreed_at: new Date().toISOString(),
             },
           },

@@ -189,7 +189,11 @@ export function buildScoutPayload(row: {
     company: row.company,
     verbatim: row.verbatim,
     structured: { ...EMPTY_STRUCTURED, ...deriveStructured(row.verbatim) },
-    signals: buildSignals(row.verbatim, coverage, done),
+    signals: {
+      ...buildSignals(row.verbatim, coverage, done),
+      // Explicit yes/no from the room. Never asked stays null.
+      authorizes_research: row.consent?.research_ok ?? null,
+    },
     consent: row.consent,
   };
 }
