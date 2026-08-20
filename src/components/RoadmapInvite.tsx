@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { X, ArrowRight } from "lucide-react";
+import { X, ArrowRight, Compass, Map, Users, UserCheck } from "lucide-react";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { showRoadmapInvite } from "@/lib/roadmap-invite-visibility";
 
@@ -28,6 +28,9 @@ export const INVITE_COPY = {
   footer:
     "For founders and teams carrying something they want to make clearer, stronger, or easier to run.",
 };
+
+const CARD_ICONS = [Compass, Map, UserCheck];
+
 
 const NAVY = "#0A0F1F";
 
