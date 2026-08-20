@@ -206,21 +206,22 @@ export function RoadmapInvite() {
             setOpen(true);
             writeSession("open");
           }}
-          className="pointer-events-auto inline-flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-4 text-[13.5px] font-medium text-white transition-transform hover:-translate-y-[1px] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
+          className="pointer-events-auto inline-flex min-h-[44px] cursor-pointer touch-manipulation select-none items-center gap-2.5 rounded-full py-2 pl-2 pr-5 text-[13.5px] font-medium text-white transition-transform hover:-translate-y-[1px] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
           style={{
             backgroundColor: NAVY,
             boxShadow:
               "0 0 0 1px color-mix(in oklab, var(--royal) 35%, transparent), 0 12px 28px -18px rgba(10,15,31,.65)",
           }}
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--paper)]">
+          <span className="pointer-events-none flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--paper)]">
             <img src="/favicon-32x32.png" alt="" aria-hidden="true" className="h-3.5 w-3.5" />
           </span>
-          <span>{INVITE_COPY.pill}</span>
-          <span className="relative ml-0.5 flex h-1.5 w-1.5">
+          <span className="pointer-events-none">{INVITE_COPY.pill}</span>
+          <span className="pointer-events-none relative ml-0.5 flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#34C4EB] opacity-60 motion-reduce:hidden" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#34C4EB]" />
           </span>
+
         </button>
       )}
 
