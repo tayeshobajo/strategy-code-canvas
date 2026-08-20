@@ -91,8 +91,8 @@ export function RoadmapInvite() {
       className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-end"
       style={{
         paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
-        paddingRight: "max(1rem, env(safe-area-inset-right))",
-        paddingLeft: "max(1rem, env(safe-area-inset-left))",
+        paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
       }}
       data-testid="roadmap-invite"
     >
@@ -102,7 +102,7 @@ export function RoadmapInvite() {
           role="dialog"
           aria-modal="false"
           aria-label="Build my roadmap invitation"
-          className="pointer-events-auto max-h-[85vh] w-[calc(100vw-24px)] max-w-none overflow-y-auto rounded-[22px] border border-[color:var(--rule)] bg-[color:var(--paper-soft)] text-ink sm:w-full sm:max-w-[760px] lg:max-w-[860px]"
+          className="pointer-events-auto max-h-[85vh] w-full max-w-none overflow-y-auto rounded-[22px] border border-[color:var(--rule)] bg-[color:var(--paper-soft)] text-ink sm:w-full sm:max-w-[760px] lg:max-w-[860px]"
           style={{
             boxShadow:
               "0 1px 0 rgba(255,255,255,.7) inset, 0 18px 44px -34px rgba(10,15,31,.30), 0 0 0 10px color-mix(in oklab, var(--royal) 4%, transparent)",
@@ -110,7 +110,7 @@ export function RoadmapInvite() {
         >
           <div className="flex items-center justify-between border-b border-[color:var(--rule-soft)] px-4 py-3 sm:px-8">
             <div className="flex items-center gap-3">
-              <TrustTaiLogo className="h-5 w-auto sm:h-5" />
+              <TrustTaiLogo />
               <span className="hidden font-mono text-[9.5px] uppercase tracking-[0.2em] text-[color:color-mix(in_oklab,var(--ink)_55%,transparent)] sm:inline">
                 {INVITE_COPY.marker}
               </span>
