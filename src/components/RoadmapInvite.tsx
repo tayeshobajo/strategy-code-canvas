@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { X, ArrowRight, Compass, Map, Users, UserCheck } from "lucide-react";
+import { X, ArrowRight, Users, User, LayoutGrid, ShieldCheck, Clock } from "lucide-react";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { showRoadmapInvite } from "@/lib/roadmap-invite-visibility";
 
@@ -29,7 +29,10 @@ export const INVITE_COPY = {
     "For founders and teams carrying something they want to make clearer, stronger, or easier to run.",
 };
 
-const CARD_ICONS = [Compass, Map, UserCheck];
+const CARD_ICONS = [User, LayoutGrid, ShieldCheck];
+
+const HEADLINE_LEAD = "Let's get clear on";
+const HEADLINE_ACCENT = "what comes next.";
 
 
 const NAVY = "#0A0F1F";
@@ -166,7 +169,7 @@ export function RoadmapInvite() {
               to="/build-my-roadmap"
               data-invite-cta
               onClick={close}
-              className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-full px-8 text-[15px] font-semibold text-white transition-transform hover:-translate-y-[1px] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full px-8 text-[15px] font-semibold text-white transition-transform hover:-translate-y-[1px] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
               style={{ backgroundColor: NAVY, height: "52px" }}
             >
               {INVITE_COPY.cta}
