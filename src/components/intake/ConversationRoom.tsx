@@ -31,11 +31,13 @@ import { attachIntakeFile } from "@/lib/website-intake.functions";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import {
-  conversationThemes,
-  hasEnoughSignal,
-  phaseLabel,
-} from "@/lib/website-intake/reflection";
+  PICTURE_TITLE,
+  type JourneyPhase,
+  type PictureItem,
+} from "@/lib/website-intake/journey";
 import { EARLY_EXIT_PROMPT } from "@/lib/website-intake/adaptive";
+
+
 import { trackEvent } from "@/lib/website-intake/track";
 import taiHeadshot from "@/assets/tai-headshot.png.asset.json";
 import {
@@ -96,8 +98,9 @@ export function ConversationRoom(props: {
 
   if (!props.open) return null;
 
-  const themes = conversationThemes(c.answers);
-  const showRail = c.phase === "conversation" && hasEnoughSignal(c.answers) && themes.length > 0;
+  const picture = c.picture;
+  const showRail = c.phase === "conversation";
+
 
   return (
     <div
@@ -122,15 +125,14 @@ export function ConversationRoom(props: {
         }`}
       >
         <TopBar
-          phase={c.phase === "conversation" ? phaseLabel(c.coverage) : roomPhaseLabel(c.phase)}
-          progress={c.progress}
+          phase={c.phase === "conversation" ? c.activePhaseLabel : roomPhaseLabel(c.phase)}
           onClose={requestClose}
         />
 
         <div className="flex min-h-0 flex-1">
           <div className="flex min-h-0 flex-1 flex-col">
             {c.phase === "conversation" && (
-              <ConversationBody c={c} voiceFirst={props.voiceFirst} themes={showRail ? themes : []} />
+              <ConversationBody c={c} voiceFirst={props.voiceFirst} picture={picture} />
             )}
             {c.phase === "reflection" && <ReflectionBody c={c} />}
             {c.phase === "contact" && <ContactBody c={c} />}
@@ -138,37 +140,27 @@ export function ConversationRoom(props: {
           </div>
 
           {showRail && (
-            <aside className="hidden w-[28%] shrink-0 border-l border-ink/10 bg-white/60 p-6 lg:block">
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
-                What I'm hearing
-              </p>
-              <ul className="mt-5 space-y-5">
-                {themes.map((t) => (
-                  <li key={t.id}>
-                    <p className="text-sm text-ink">{t.label}</p>
-                    <p className="mt-1 text-sm leading-relaxed text-ink/55">{t.support}</p>
-                  </li>
-                ))}
-              </ul>
-              {c.offerExit && (
-                <div className="mt-8 border-t border-ink/10 pt-5">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
-                    Almost there
+            <aside className="hidden w-[30%] shrink-0 overflow-y-auto border-l border-ink/10 bg-white/60 p-6 lg:block">
+              <PhaseList phases={c.journey} />
+              {picture.length > 0 && (
+                <div className="mt-8 border-t border-ink/10 pt-6">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
+                    {PICTURE_TITLE}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-ink/60">
-                    I have most of what I need. A little more only if you want to give it.
-                  </p>
-                  <div className="mt-4 h-[3px] w-full overflow-hidden rounded-full bg-ink/10">
-                    <div
-                      className="h-full bg-royal"
-                      style={{ width: `${Math.round(Math.min(1, c.coverage) * 100)}%` }}
-                    />
-                  </div>
+                  <ul className="mt-5 space-y-5">
+                    {picture.map((p) => (
+                      <li key={p.id}>
+                        <p className="text-sm text-ink">{p.label}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-ink/55">{p.text}</p>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </aside>
           )}
         </div>
+
       </div>
 
       {closeIntent && (
@@ -186,12 +178,11 @@ export function ConversationRoom(props: {
 }
 
 function roomPhaseLabel(phase: string) {
-  if (phase === "reflection") return "Finding the path";
-  if (phase === "contact") return "Finding the path";
+  if (phase === "reflection" || phase === "contact") return "Putting the picture together";
   return "Thank you";
 }
 
-function TopBar(props: { phase: string; progress: number; onClose: () => void }) {
+function TopBar(props: { phase: string; onClose: () => void }) {
   return (
     <header className="shrink-0 border-b border-ink/10 bg-paper/95 backdrop-blur">
       <div className="flex items-center gap-4 px-5 py-4 sm:px-8">
@@ -215,31 +206,70 @@ function TopBar(props: { phase: string; progress: number; onClose: () => void })
           <X className="h-4.5 w-4.5" />
         </button>
       </div>
-      <div className="h-[2px] w-full bg-ink/[0.06]">
-        <div
-          className="h-full bg-royal/70 transition-all duration-700"
-          style={{ width: `${Math.max(3, Math.round(props.progress * 100))}%` }}
-        />
-      </div>
     </header>
   );
 }
 
-function ThemeDrawer(props: { themes: { id: string; label: string; support: string }[] }) {
-  if (props.themes.length === 0) return null;
+/** Four quiet phases. One active at a time, finished ones carry a check. */
+function PhaseList(props: { phases: JourneyPhase[] }) {
+  return (
+    <ol className="space-y-3" aria-label="Where we are in the conversation">
+      {props.phases.map((p) => (
+        <li
+          key={p.key}
+          data-phase={p.key}
+          data-state={p.state}
+          aria-current={p.state === "active" ? "step" : undefined}
+          className="flex items-start gap-3"
+        >
+          <span
+            aria-hidden
+            className={`mt-[3px] grid h-4 w-4 shrink-0 place-items-center rounded-full border ${
+              p.state === "complete"
+                ? "border-royal bg-royal text-white"
+                : p.state === "active"
+                  ? "border-royal"
+                  : "border-ink/20"
+            }`}
+          >
+            {p.state === "complete" ? <Check className="h-2.5 w-2.5" /> : null}
+          </span>
+          <span
+            className={`text-sm leading-snug ${
+              p.state === "active"
+                ? "text-ink"
+                : p.state === "complete"
+                  ? "text-ink/55"
+                  : "text-ink/35"
+            }`}
+          >
+            {p.label}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function PictureDrawer(props: { phases: JourneyPhase[]; picture: PictureItem[] }) {
   return (
     <details className="shrink-0 border-t border-ink/10 bg-white/70 px-5 py-3 lg:hidden">
       <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
-        What I'm hearing
+        {PICTURE_TITLE}
       </summary>
-      <ul className="mt-4 space-y-4 pb-1">
-        {props.themes.map((t) => (
-          <li key={t.id}>
-            <p className="text-sm text-ink">{t.label}</p>
-            <p className="mt-1 text-sm leading-relaxed text-ink/55">{t.support}</p>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-4 pb-1">
+        <PhaseList phases={props.phases} />
+        {props.picture.length > 0 && (
+          <ul className="mt-5 space-y-4 border-t border-ink/10 pt-4">
+            {props.picture.map((p) => (
+              <li key={p.id}>
+                <p className="text-sm text-ink">{p.label}</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink/55">{p.text}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </details>
   );
 }
@@ -247,8 +277,9 @@ function ThemeDrawer(props: { themes: { id: string; label: string; support: stri
 function ConversationBody(props: {
   c: IntakeConversation;
   voiceFirst?: boolean;
-  themes: { id: string; label: string; support: string }[];
+  picture: PictureItem[];
 }) {
+
   const { c } = props;
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
@@ -257,7 +288,11 @@ function ConversationBody(props: {
   const { reactions, react } = useMessageReactions(c.resumeToken);
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
-    bottomRef.current?.scrollIntoView({ block: "end", behavior });
+    const el = scrollerRef.current;
+    if (!el) return;
+    // Scroll the transcript itself. scrollIntoView can move an ancestor and
+    // leave the transcript stranded, which is how the trap started.
+    el.scrollTo({ top: el.scrollHeight, behavior });
   }, []);
 
   // Follow the conversation only while the founder is reading the latest lines.
@@ -278,16 +313,8 @@ function ConversationBody(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.answers.length, c.thinking, c.currentPrompt]);
 
-
-  // Nothing left worth asking — move to reflection rather than a dead end.
-  React.useEffect(() => {
-    const done = c.turn ? c.turn.should_end : c.step.kind === "contact";
-    if (done && c.hasProgress && !c.busy) c.openReflection();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c.turn, c.step.kind, c.hasProgress, c.busy]);
-
   const visible = c.answers.filter((a) => a.key !== ("founder_confirmed_reflection" as never));
-  const nearingEnd = c.offerExit;
+  const nearingEnd = c.offerExit && !c.keepTalking;
   const messageCount = visible.length * 2 + (c.currentPrompt ? 1 : 0);
 
   React.useEffect(() => {
@@ -301,9 +328,16 @@ function ConversationBody(props: {
       <div className="relative flex min-h-0 flex-1 flex-col">
       <div
         ref={scrollerRef}
-        className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto px-5 py-8 sm:px-10 sm:py-10"
+        role="log"
+        aria-label="Conversation transcript"
+        aria-live="polite"
+        tabIndex={0}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-8 outline-none sm:px-10 sm:py-10"
       >
-        <div className="mx-auto w-full max-w-2xl space-y-11">
+        {/* mt-auto keeps short conversations anchored low without the
+            justify-end flex trap that made older turns unreachable. */}
+        <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-end space-y-11">
+
 
           <div>
             <TaiBlock
@@ -365,17 +399,19 @@ function ConversationBody(props: {
 
           {c.thinking && <Thinking />}
 
-          {nearingEnd && !c.thinking && (
+          {c.ready && !c.thinking && (
             <div className="rounded-2xl border border-royal/25 bg-royal/[0.04] p-5">
-              <p className="font-display text-xl text-ink">I think I have the picture.</p>
-              <p className="mt-2 text-sm leading-relaxed text-ink/70">{EARLY_EXIT_PROMPT}</p>
+              <p className="text-[15px] leading-relaxed text-ink">
+                I have enough to see the shape of the business now. Let me show you the picture I've
+                built from what you told me.
+              </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={c.openReflection}
                   className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm text-paper transition hover:bg-royal"
                 >
-                  Show me what you heard <ArrowRight className="h-4 w-4" />
+                  Show me the picture <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
@@ -385,23 +421,20 @@ function ConversationBody(props: {
                   There's more I want to say
                 </button>
               </div>
-              {c.keepTalking && (
-                <p className="mt-3 text-sm text-ink/55">
-                  Good. Keep going, I'm still here.
+            </div>
+          )}
+
+          {nearingEnd && !c.ready && !c.thinking && (
+            <div className="rounded-2xl border border-ink/12 bg-white/70 p-5">
+              <p className="text-[15px] leading-relaxed text-ink/75">{EARLY_EXIT_PROMPT}</p>
+              {c.gaps.length > 0 && (
+                <p className="mt-2 text-sm text-ink/55">
+                  Still worth hearing: {c.gaps.join(", ")}.
                 </p>
               )}
             </div>
           )}
 
-          {!nearingEnd && !c.thinking && c.answeredCount >= 5 && (
-            <button
-              type="button"
-              onClick={c.openReflection}
-              className="text-sm text-ink/45 underline-offset-4 transition hover:text-royal hover:underline"
-            >
-              That's the picture. Show me what you heard
-            </button>
-          )}
 
           <div ref={bottomRef} />
         </div>
@@ -423,7 +456,7 @@ function ConversationBody(props: {
         )}
       </div>
 
-      <ThemeDrawer themes={props.themes} />
+      <PictureDrawer phases={props.c.journey} picture={props.picture} />
       <Composer c={c} voiceFirst={props.voiceFirst} />
     </>
 

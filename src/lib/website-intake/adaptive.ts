@@ -3,6 +3,7 @@
  *
  * Laws encoded here:
  * - one question at a time
+ * - learn today's business before asking about the future
  * - skip anything already covered in the person's own words
  * - at most one warm follow-up per trigger, and never a chain
  * - skipping is never punished, and short answerers are not dragged
@@ -14,6 +15,7 @@ import {
   FOLLOW_UPS,
   INTAKE_QUESTIONS,
   QUESTION_BY_KEY,
+  keysForPhase,
   type FollowUpKey,
   type IntakeObjectiveKey,
 } from "./questions";
@@ -27,12 +29,9 @@ const THIN_DREAM_CHARS = 120;
 const FOLLOW_UP_FLOOR_CHARS = 25;
 
 /** Hard ceilings so nobody is interrogated. */
-const MAX_QUESTIONS = 12;
-const MAX_QUESTIONS_WHEN_BRIEF = 9;
-const MAX_FOLLOW_UPS = 2;
-/** Once the essentials are understood, this is enough conversation. */
-const ENOUGH_QUESTIONS = 9;
-const ENOUGH_COVERAGE = 0.75;
+const MAX_QUESTIONS = 16;
+const MAX_QUESTIONS_WHEN_BRIEF = 12;
+const MAX_FOLLOW_UPS = 3;
 
 const DREAM_KEYS: IntakeObjectiveKey[] = ["future_day", "future_you", "future_customer"];
 
@@ -40,13 +39,20 @@ const DREAM_KEYS: IntakeObjectiveKey[] = ["future_day", "future_you", "future_cu
 const NEVER_INFERRED: IntakeObjectiveKey[] = ["future_day"];
 
 /** A past-attempt follow-up only belongs on an answer about past attempts. */
-const FAILURE_CONTEXT_KEYS: IntakeObjectiveKey[] = ["already_tried", "whats_in_the_way", "whats_working"];
+const FAILURE_CONTEXT_KEYS: IntakeObjectiveKey[] = [
+  "already_tried",
+  "whats_in_the_way",
+  "whats_working",
+];
 
 const FAILURE_PATTERNS =
   /\b(agency|consultant|freelancer|vendor|developer|contractor)\b[\s\S]{0,80}\b(didn'?t|failed|wasted|burn(?:ed|t)|left|ghosted|never)\b|\b(didn'?t work out|waste of money|got burned|fell through|nobody (?:kept|used)|never delivered|nothing changed)\b/i;
 
 const ASSET_PATTERNS =
   /\b(email list|mailing list|waiting list|audience|following|database|archive|library|back catalog(?:ue)?|testimonials|case stud(?:y|ies)|order history|past customers|course|community|dataset)\b/i;
+
+const TEAM_PATTERNS = /\b(team|staff|crew|lads|guys|employees|contractors|apprentice|people|we)\b/i;
+const HAS_NUMBER = /\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|dozen|nobody|no one|just me|only me|solo)\b/i;
 
 export type ConversationState = {
   answers: VerbatimAnswer[];
@@ -161,13 +167,42 @@ export function isBriefAnswerer(state: ConversationState): boolean {
   return thin / spoken.length >= 0.6;
 }
 
+/**
+ * Whether we understand today's business well enough to earn a question about
+ * the future. Asking someone to imagine two years ahead before we know how
+ * their week actually runs is the fastest way to sound like a form.
+ */
+export function currentStateUnderstood(state: ConversationState): boolean {
+  const covered = coveredObjectives(state);
+  const settled = (k: IntakeObjectiveKey) => covered.has(k) || state.skipped.includes(k);
+  if (!settled("the_business")) return false;
+  if (!settled("your_own_day")) return false;
+  const inside = keysForPhase("inside_the_business");
+  return inside.filter(settled).length >= 5;
+}
+
+/** The closing phase only opens once the direction is on the table. */
+function directionUnderstood(state: ConversationState): boolean {
+  const covered = coveredObjectives(state);
+  const settled = (k: IntakeObjectiveKey) => covered.has(k) || state.skipped.includes(k);
+  return settled("ninety_day_wish") && settled("future_day");
+}
+
+function isUnlocked(key: IntakeObjectiveKey, state: ConversationState): boolean {
+  const phase = QUESTION_BY_KEY[key].phase;
+  if (phase === "where_you_want_to_go") return currentStateUnderstood(state);
+  if (phase === "putting_it_together") {
+    return currentStateUnderstood(state) && directionUnderstood(state);
+  }
+  return true;
+}
+
 /** A warm follow-up owed on the answer just given, if any. */
 export function pendingFollowUp(
   state: ConversationState,
   lastKey: IntakeObjectiveKey,
 ): { key: FollowUpKey; prompt: string } | null {
   if (state.followUpsAsked.length >= MAX_FOLLOW_UPS) return null;
-  if (isBriefAnswerer(state)) return null;
 
   const last = [...state.answers]
     .reverse()
@@ -177,6 +212,20 @@ export function pendingFollowUp(
   if (!text) return null;
 
   const candidates: FollowUpKey[] = [];
+
+  // "Me and a couple of lads" is an answer, but it isn't a team size yet.
+  if (
+    lastKey === "who_carries_the_work" &&
+    TEAM_PATTERNS.test(text) &&
+    !HAS_NUMBER.test(text)
+  ) {
+    candidates.push("team_size");
+  }
+
+  if (isBriefAnswerer(state)) {
+    const next = candidates.find((c) => !state.followUpsAsked.includes(c));
+    return next ? { key: next, prompt: FOLLOW_UPS[next] } : null;
+  }
 
   // A one-line dream is the one place a short answer earns a gentle nudge.
   if (DREAM_KEYS.includes(lastKey) && text.length < THIN_DREAM_CHARS) {
@@ -197,7 +246,12 @@ export function pendingFollowUp(
 
   // Never ask "what would become possible if you used that well" about
   // something the person just told us failed.
-  if (longEnoughToProbe && !isFailureStory && lastKey !== "already_tried" && ASSET_PATTERNS.test(text)) {
+  if (
+    longEnoughToProbe &&
+    !isFailureStory &&
+    lastKey !== "already_tried" &&
+    ASSET_PATTERNS.test(text)
+  ) {
     candidates.push("hidden_asset");
   }
 
@@ -211,17 +265,24 @@ export function essentialsSettled(state: ConversationState): boolean {
   return ESSENTIAL_KEYS.every((k) => covered.has(k) || state.skipped.includes(k));
 }
 
+/** Essential ground still missing, in the order we would ask for it. */
+export function remainingEssentials(state: ConversationState): IntakeObjectiveKey[] {
+  const covered = coveredObjectives(state);
+  return ESSENTIAL_KEYS.filter((k) => !covered.has(k) && !state.skipped.includes(k));
+}
+
 /** Whether we already have a strong enough picture to offer wrapping up. */
 export function canOfferEarlyExit(state: ConversationState): boolean {
+  if (essentialsSettled(state)) return true;
   const substantive = state.answers.filter(
     (a) => !a.skipped && !isAside(a) && textOf(a).length >= ANSWER_CHARS,
   ).length;
-  if (essentialsSettled(state)) return true;
-  return questionsAsked(state) >= 7 && substantive >= 4;
+  // One or two gaps left, plenty of substance: worth naming the gaps out loud.
+  return remainingEssentials(state).length <= 2 && substantive >= 6;
 }
 
 export const EARLY_EXIT_PROMPT =
-  "I have a strong picture now. We can wrap here, or keep going if there's more you want me to understand.";
+  "I have enough to see the shape of the business now. Let me show you the picture I've built from what you told me.";
 
 /** The single next thing to ask. Contact details always come last. */
 export function nextStep(state: ConversationState): NextStep {
@@ -239,17 +300,15 @@ export function nextStep(state: ConversationState): NextStep {
   const settled = essentialsSettled(state);
 
   if (asked >= cap) return { kind: "contact" };
-  if (settled && (asked >= ENOUGH_QUESTIONS || objectiveCoverage(state) >= ENOUGH_COVERAGE)) {
-    return { kind: "contact" };
-  }
+  if (settled) return { kind: "contact" };
 
   const covered = coveredObjectives(state);
   const pool = INTAKE_QUESTIONS.filter(
-    (q) => !covered.has(q.key) && !state.skipped.includes(q.key),
+    (q) => !covered.has(q.key) && !state.skipped.includes(q.key) && isUnlocked(q.key, state),
   );
   // A brief answerer only gets the ground that genuinely matters.
   let shortlist = pool;
-  if (!settled && (brief || asked >= 5)) {
+  if (brief || asked >= 6) {
     // Don't let optional colour push the essential ground to the very end.
     const essentials = pool.filter((q) => q.essential);
     if (essentials.length > 0) shortlist = essentials;
