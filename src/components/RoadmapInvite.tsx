@@ -91,7 +91,7 @@ export function RoadmapInvite() {
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-end"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-end"
       style={{
         paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
         paddingRight: "max(0.75rem, env(safe-area-inset-right))",
@@ -105,12 +105,13 @@ export function RoadmapInvite() {
           role="dialog"
           aria-modal="false"
           aria-label="Build my roadmap invitation"
-          className="pointer-events-auto max-h-[86vh] w-full max-w-none overflow-y-auto rounded-[22px] border border-[color:var(--rule)] bg-[color:var(--paper-soft)] text-ink sm:max-w-[600px]"
+          className="pointer-events-auto max-h-[82vh] w-full max-w-none overflow-y-auto overscroll-contain rounded-[20px] border border-[color:var(--rule)] bg-[color:var(--paper-soft)] text-ink sm:max-w-[404px]"
           style={{
             boxShadow:
-              "0 1px 0 rgba(255,255,255,.7) inset, 0 18px 44px -34px rgba(10,15,31,.30), 0 0 0 10px color-mix(in oklab, var(--royal) 4%, transparent)",
+              "0 1px 0 rgba(255,255,255,.7) inset, 0 18px 44px -34px rgba(10,15,31,.30), 0 0 0 8px color-mix(in oklab, var(--royal) 4%, transparent)",
           }}
         >
+
           <div className="flex items-start justify-between border-b border-[color:var(--rule-soft)] px-5 py-4 sm:px-7 sm:py-5">
             <div className="min-w-0">
               <TrustTaiLogo />
