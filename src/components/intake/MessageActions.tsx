@@ -74,13 +74,13 @@ export function MessageActions(props: {
   };
 
   const base =
-    "inline-flex h-7 w-7 items-center justify-center rounded-full text-ink/35 transition hover:bg-ink/[0.06] hover:text-ink focus-visible:opacity-100";
+    "inline-flex h-6 w-6 items-center justify-center rounded-full text-ink/35 transition hover:bg-ink/[0.06] hover:text-ink focus-visible:opacity-100";
 
   return (
     <div
-      className={`mt-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 motion-reduce:opacity-100 ${
-        props.align === "end" ? "justify-end" : ""
-      }`}
+      className={`pointer-events-none absolute bottom-[-12px] flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 motion-reduce:opacity-100 ${
+        props.align === "end" ? "right-0 justify-end" : "left-0"
+      } ${props.className ?? ""}`}
     >
       <button type="button" onClick={copy} className={base} aria-label="Copy message">
         {copied ? <Check className="h-3.5 w-3.5 text-royal" /> : <Copy className="h-3.5 w-3.5" />}
