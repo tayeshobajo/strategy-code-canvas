@@ -186,6 +186,7 @@ function RootComponent() {
       <PageViewTracker />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <RoadmapInvite />
       <Toaster position="bottom-center" richColors />
     </QueryClientProvider>
   );
