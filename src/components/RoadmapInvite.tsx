@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { X, ArrowRight, Users, User, LayoutGrid, ShieldCheck, Clock } from "lucide-react";
+import { X, ArrowRight, Users, Clock } from "lucide-react";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { showRoadmapInvite } from "@/lib/roadmap-invite-visibility";
 
