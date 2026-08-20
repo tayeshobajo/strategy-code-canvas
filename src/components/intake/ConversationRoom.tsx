@@ -125,15 +125,14 @@ export function ConversationRoom(props: {
         }`}
       >
         <TopBar
-          phase={c.phase === "conversation" ? phaseLabel(c.coverage) : roomPhaseLabel(c.phase)}
-          progress={c.progress}
+          phase={c.phase === "conversation" ? c.activePhaseLabel : roomPhaseLabel(c.phase)}
           onClose={requestClose}
         />
 
         <div className="flex min-h-0 flex-1">
           <div className="flex min-h-0 flex-1 flex-col">
             {c.phase === "conversation" && (
-              <ConversationBody c={c} voiceFirst={props.voiceFirst} themes={showRail ? themes : []} />
+              <ConversationBody c={c} voiceFirst={props.voiceFirst} picture={picture} />
             )}
             {c.phase === "reflection" && <ReflectionBody c={c} />}
             {c.phase === "contact" && <ContactBody c={c} />}
@@ -141,37 +140,27 @@ export function ConversationRoom(props: {
           </div>
 
           {showRail && (
-            <aside className="hidden w-[28%] shrink-0 border-l border-ink/10 bg-white/60 p-6 lg:block">
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
-                What I'm hearing
-              </p>
-              <ul className="mt-5 space-y-5">
-                {themes.map((t) => (
-                  <li key={t.id}>
-                    <p className="text-sm text-ink">{t.label}</p>
-                    <p className="mt-1 text-sm leading-relaxed text-ink/55">{t.support}</p>
-                  </li>
-                ))}
-              </ul>
-              {c.offerExit && (
-                <div className="mt-8 border-t border-ink/10 pt-5">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-royal">
-                    Almost there
+            <aside className="hidden w-[30%] shrink-0 overflow-y-auto border-l border-ink/10 bg-white/60 p-6 lg:block">
+              <PhaseList phases={c.journey} />
+              {picture.length > 0 && (
+                <div className="mt-8 border-t border-ink/10 pt-6">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink/45">
+                    {PICTURE_TITLE}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-ink/60">
-                    I have most of what I need. A little more only if you want to give it.
-                  </p>
-                  <div className="mt-4 h-[3px] w-full overflow-hidden rounded-full bg-ink/10">
-                    <div
-                      className="h-full bg-royal"
-                      style={{ width: `${Math.round(Math.min(1, c.coverage) * 100)}%` }}
-                    />
-                  </div>
+                  <ul className="mt-5 space-y-5">
+                    {picture.map((p) => (
+                      <li key={p.id}>
+                        <p className="text-sm text-ink">{p.label}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-ink/55">{p.text}</p>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </aside>
           )}
         </div>
+
       </div>
 
       {closeIntent && (
