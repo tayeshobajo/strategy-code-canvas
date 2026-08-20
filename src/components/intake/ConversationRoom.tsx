@@ -548,7 +548,7 @@ function Thinking() {
     <div className="flex items-start gap-3 sm:gap-4">
       <TaiAvatar />
       <div
-        className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-4"
+        className="inline-flex items-center gap-3 rounded-2xl border border-ink/10 bg-white px-5 py-3"
         role="status"
         aria-label="Tai is replying"
       >
