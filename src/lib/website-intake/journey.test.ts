@@ -48,7 +48,11 @@ describe("journey phases", () => {
     const answers = ESSENTIAL_KEYS.map((k) =>
       answer(k, `A considered answer about ${QUESTION_BY_KEY[k].label} with genuine detail.`),
     );
-    const state = { ...empty, answers };
+    const state: ConversationState = {
+      ...empty,
+      answers,
+      followUpsAsked: ["thin_dream", "past_failure", "hidden_asset"],
+    };
     expect(readyForPicture(state)).toBe(true);
     expect(journeyPhases(state).every((p) => p.state === "complete")).toBe(true);
     expect(nextStep(state)).toEqual({ kind: "contact" });
