@@ -91,17 +91,24 @@ export function traceToAnswer(
 }
 
 const SLOTS: Array<{ id: string; label: string; keys: IntakeObjectiveKey[] }> = [
-  { id: "current", label: "Where you are", keys: ["the_business", "who_you_are", "whats_working"] },
+  { id: "you", label: "You", keys: ["who_you_are", "what_brought_you"] },
+  { id: "current", label: "Where you are", keys: ["the_business", "who_you_serve", "whats_working"] },
+  {
+    id: "operating",
+    label: "How the work runs today",
+    keys: ["your_own_day", "who_carries_the_work", "how_work_arrives", "how_work_gets_delivered"],
+  },
+  { id: "friction", label: "What's getting in the way", keys: ["recurring_problem", "whats_in_the_way"] },
+  { id: "why", label: "Why it matters", keys: ["cost_of_standing_still"] },
+  { id: "leverage", label: "What you already have going for you", keys: ["existing_assets", "whats_working"] },
   {
     id: "future",
     label: "Where you're heading",
     keys: ["future_day", "future_you", "future_customer"],
   },
-  { id: "friction", label: "What's getting in the way", keys: ["recurring_problem", "whats_in_the_way"] },
-  { id: "why", label: "Why it matters", keys: ["cost_of_standing_still"] },
-  { id: "leverage", label: "What you already have going for you", keys: ["existing_assets", "whats_working"] },
   { id: "next", label: "What you'd change first", keys: ["ninety_day_wish", "how_youd_know"] },
 ];
+
 
 /** Below this there is nothing to reflect back; echoing it would overstate understanding. */
 const REFLECTABLE_CHARS = 10;
