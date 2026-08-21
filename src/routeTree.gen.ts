@@ -19,6 +19,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BuildMyRoadmapIndexRouteImport } from './routes/build-my-roadmap.index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
+import { Route as OpsAnalyticsRouteImport } from './routes/ops.analytics'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as ClientsSpartanRouteImport } from './routes/clients.spartan'
@@ -82,6 +83,11 @@ const BuildMyRoadmapIndexRoute = BuildMyRoadmapIndexRouteImport.update({
 const WalksSlugRoute = WalksSlugRouteImport.update({
   id: '/walks_/$slug',
   path: '/walks/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsAnalyticsRoute = OpsAnalyticsRouteImport.update({
+  id: '/ops/analytics',
+  path: '/ops/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InsightsSlugRoute = InsightsSlugRouteImport.update({
@@ -174,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/insights/$slug': typeof InsightsSlugRoute
+  '/ops/analytics': typeof OpsAnalyticsRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/insights/$slug': typeof InsightsSlugRoute
+  '/ops/analytics': typeof OpsAnalyticsRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/build-my-roadmap': typeof BuildMyRoadmapIndexRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/insights_/$slug': typeof InsightsSlugRoute
+  '/ops/analytics': typeof OpsAnalyticsRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/clients/spartan'
     | '/email/unsubscribe'
     | '/insights/$slug'
+    | '/ops/analytics'
     | '/walks/$slug'
     | '/build-my-roadmap/'
     | '/checkout/walk/$pace'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/clients/spartan'
     | '/email/unsubscribe'
     | '/insights/$slug'
+    | '/ops/analytics'
     | '/walks/$slug'
     | '/build-my-roadmap'
     | '/checkout/walk/$pace'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/clients/spartan'
     | '/email/unsubscribe'
     | '/insights_/$slug'
+    | '/ops/analytics'
     | '/walks_/$slug'
     | '/build-my-roadmap/'
     | '/checkout/walk/$pace'
@@ -334,6 +346,7 @@ export interface RootRouteChildren {
   ClientsSpartanRoute: typeof ClientsSpartanRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
+  OpsAnalyticsRoute: typeof OpsAnalyticsRoute
   WalksSlugRoute: typeof WalksSlugRoute
   BuildMyRoadmapIndexRoute: typeof BuildMyRoadmapIndexRoute
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
@@ -417,6 +430,13 @@ declare module '@tanstack/react-router' {
       path: '/walks/$slug'
       fullPath: '/walks/$slug'
       preLoaderRoute: typeof WalksSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/analytics': {
+      id: '/ops/analytics'
+      path: '/ops/analytics'
+      fullPath: '/ops/analytics'
+      preLoaderRoute: typeof OpsAnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/insights_/$slug': {
@@ -534,6 +554,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsSpartanRoute: ClientsSpartanRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   InsightsSlugRoute: InsightsSlugRoute,
+  OpsAnalyticsRoute: OpsAnalyticsRoute,
   WalksSlugRoute: WalksSlugRoute,
   BuildMyRoadmapIndexRoute: BuildMyRoadmapIndexRoute,
   CheckoutWalkPaceRoute: CheckoutWalkPaceRoute,

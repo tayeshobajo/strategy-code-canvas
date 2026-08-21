@@ -3,5 +3,7 @@ Allow: /
 Disallow: /api/
 Disallow: /lovable/
 Disallow: /checkout/
+Disallow: /ops/
+
 
 Sitemap: https://trusttai.com/sitemap.xml
