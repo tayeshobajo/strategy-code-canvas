@@ -13,13 +13,31 @@ export function PageViewTracker() {
     initGoogleAnalytics();
   }, []);
 
+  // Contact intent: mail and phone links only, no form values.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement | null)?.closest?.("a");
+      const href = target?.getAttribute("href") ?? "";
+      if (!href.startsWith("mailto:") && !href.startsWith("tel:")) return;
+      trackEvent({
+        name: "contact_clicked",
+        dedupe: `${href.split(":")[0]}:${window.location.pathname}`,
+        properties: { channel: href.startsWith("mailto:") ? "email" : "phone" },
+      });
+    };
+    document.addEventListener("click", onClick, { capture: true });
+    return () => document.removeEventListener("click", onClick, { capture: true });
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (pathname.startsWith("/api") || pathname.startsWith("/lovable")) return;
-    trackEvent({ name: "page_view", dedupe: `${pathname}:${Date.now()}` });
+    // One page_view per route per session: the key is stable, so a remount or
+    // a retry never writes a second row.
+    trackEvent({ name: "page_view", dedupe: pathname });
     trackGaPageView(pathname);
   }, [pathname]);
 
   return null;
 }
-
