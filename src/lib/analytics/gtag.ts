@@ -57,11 +57,16 @@ export function initGoogleAnalytics(): void {
   gtag("config", measurementId, { send_page_view: false });
 }
 
+let lastTrackedPath: string | null = null;
+
 /** Send one GA4 page view for a client-side route change. */
 export function trackGaPageView(path: string): void {
   if (typeof window === "undefined") return;
   const measurementId = getMeasurementId();
   if (!measurementId) return;
+  // Effects can re-run for the same path (remount, hydration); send once.
+  if (lastTrackedPath === path) return;
+  lastTrackedPath = path;
   gtag("event", "page_view", {
     page_path: path,
     page_location: window.location.href,
