@@ -13,11 +13,18 @@ declare global {
 
 let initialised = false;
 
+/**
+ * Public GA4 measurement ID for trusttai.com. Not a secret (it ships in the
+ * client bundle by design). Used when the connector env var is absent from a
+ * build environment, which previously left tracking silently inert.
+ */
+const FALLBACK_MEASUREMENT_ID = "G-M7M7Y7WDXW";
+
 export function getMeasurementId(): string | null {
   const id = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY as
     | string
     | undefined;
-  const trimmed = (id ?? "").trim();
+  const trimmed = (id ?? "").trim() || FALLBACK_MEASUREMENT_ID;
   return trimmed ? trimmed : null;
 }
 
