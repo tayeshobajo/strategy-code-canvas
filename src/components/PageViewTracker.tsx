@@ -7,6 +7,10 @@ import { initGoogleAnalytics, trackGaPageView } from "@/lib/analytics/gtag";
 /** Emits one grounded page_view per path visit. Analytics only. */
 export function PageViewTracker() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Stable per history entry: survives remounts, changes on a real transition.
+  const locationKey = useRouterState({
+    select: (s) => (s.location.state as { key?: string } | undefined)?.key ?? s.location.href,
+  });
 
   useEffect(() => {
     recordFirstTouch();
@@ -35,9 +39,9 @@ export function PageViewTracker() {
     if (pathname.startsWith("/api") || pathname.startsWith("/lovable")) return;
     // One page_view per route per session: the key is stable, so a remount or
     // a retry never writes a second row.
-    trackEvent({ name: "page_view", dedupe: pathname });
+    trackEvent({ name: "page_view", dedupe: `${pathname}:${locationKey}` });
     trackGaPageView(pathname);
-  }, [pathname]);
+  }, [pathname, locationKey]);
 
   return null;
 }
