@@ -260,7 +260,7 @@ export function useIntakeConversation() {
         trackEvent({
           name: "intake_answered",
           dedupe: `${key}:${answer.answered_at}`,
-          properties: { question_id: key, question_text: currentPrompt, modality },
+          properties: { question_id: key, modality },
         });
       } catch {
         /* surfaced through saveState */
