@@ -160,6 +160,7 @@ export function toCoreIntakeBody(input: InternalSubmission): CoreIntakeBody {
 
 export const WEBSITE_EVENT_NAMES = [
   "page_view",
+  "cta_clicked",
   "intake_view",
   "intake_started",
   "intake_answered",
@@ -167,10 +168,17 @@ export const WEBSITE_EVENT_NAMES = [
   "intake_resumed",
   "intake_submitted",
   "intake_abandoned",
+  "content_read",
+  "contact_clicked",
+  "newsletter_subscribed",
 ] as const;
 
 export type WebsiteEventName = (typeof WEBSITE_EVENT_NAMES)[number];
 
+/**
+ * Core's receiver takes UTM values flat on the event. A nested `utm` object is
+ * rejected as invalid_payload, which is what silently stalled this stream.
+ */
 export type WebsiteEvent = {
   event_key: string;
   event_name: WebsiteEventName;
@@ -179,16 +187,22 @@ export type WebsiteEvent = {
   submission_id: string | null;
   path: string | null;
   referrer: string | null;
-  utm: CoreAttribution["utm"];
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_term: string | null;
+  utm_content: string | null;
   device: string | null;
   properties: Record<string, unknown>;
 };
 
 export type CoreEventsBody = {
   source_app: "website";
+  source_channel: "website";
   events: WebsiteEvent[];
 };
 
 export function toCoreEventsBody(events: WebsiteEvent[]): CoreEventsBody {
-  return { source_app: "website", events };
+  return { source_app: "website", source_channel: "website", events };
 }
+
