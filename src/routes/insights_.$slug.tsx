@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { INSIGHTS, getInsightBySlug, type Insight } from "@/lib/insights-data";
 import taiPortrait from "@/assets/tai-portrait-seated.png.asset.json";
+import { useContentRead } from "@/lib/website-intake/use-content-read";
 
 /* ----------------------- Reading progress + scroll-spy ----------------------- */
 
@@ -471,6 +472,8 @@ function InsightArticlePage() {
 
   const sectionIds = sections.map((s: { id: string }) => s.id);
   const activeId = useActiveSection(sectionIds);
+
+  useContentRead(insight.slug);
 
   const handlePrint = () => {
     if (typeof window !== "undefined") window.print();
