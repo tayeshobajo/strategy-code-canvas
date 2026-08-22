@@ -7,19 +7,13 @@
  */
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import {
-  CORE_EVENTS_ENDPOINT,
-  toCoreEventsBody,
-  WEBSITE_EVENT_NAMES,
-  type WebsiteEvent,
-} from "./core-contract";
+import { CORE_EVENTS_ENDPOINT, toCoreEventsBody, type WebsiteEvent } from "./core-contract";
+import { normalizeEvent, isWebsiteEventName } from "./event-sanitize";
 import { postSigned } from "./core-client.server";
 
 const TABLE = "website_event_outbox";
 
-export function isWebsiteEventName(name: string): boolean {
-  return (WEBSITE_EVENT_NAMES as readonly string[]).includes(name);
-}
+export { isWebsiteEventName };
 
 async function markDelivered(keys: string[]) {
   if (!keys.length) return;
@@ -38,8 +32,13 @@ async function markFailed(keys: string[], retryable: boolean, error: string) {
 }
 
 /** Persist then attempt one batched send. Always resolves. */
-export async function recordEvents(events: WebsiteEvent[]): Promise<{ queued: number; delivered: boolean }> {
-  const valid = events.filter((e) => isWebsiteEventName(e.event_name)).slice(0, 50);
+export async function recordEvents(
+  events: Array<Partial<WebsiteEvent>>,
+): Promise<{ queued: number; delivered: boolean }> {
+  const valid = events
+    .map((e) => normalizeEvent(e))
+    .filter((e): e is WebsiteEvent => e !== null)
+    .slice(0, 50);
   if (!valid.length) return { queued: 0, delivered: false };
 
   try {
@@ -76,15 +75,21 @@ export async function retryPendingEvents(limit = 100) {
     .order("created_at", { ascending: true })
     .limit(limit);
   if (error) return { processed: 0, delivered: 0 };
-  const rows = (data ?? []) as unknown as Array<{ event_key: string; payload: WebsiteEvent; attempts: number }>;
+  const rows = (data ?? []) as unknown as Array<{ event_key: string; payload: WebsiteEvent }>;
   if (!rows.length) return { processed: 0, delivered: 0 };
+
+  // Legacy rows were queued with a nested `utm` object Core rejects.
+  const payloads = rows
+    .map((r) => normalizeEvent(r.payload))
+    .filter((e): e is WebsiteEvent => e !== null);
+  if (!payloads.length) return { processed: rows.length, delivered: 0 };
 
   const result = await postSigned({
     endpoint: process.env["CORE_EVENTS_ENDPOINT"] || CORE_EVENTS_ENDPOINT,
-    body: toCoreEventsBody(rows.map((r) => r.payload)),
+    body: toCoreEventsBody(payloads),
   });
-  const keys = rows.map((r) => r.event_key);
+  const keys = payloads.map((e) => e.event_key);
   if (result.ok) await markDelivered(keys);
   else await markFailed(keys, result.retryable, result.error);
-  return { processed: rows.length, delivered: result.ok ? rows.length : 0 };
+  return { processed: rows.length, delivered: result.ok ? payloads.length : 0 };
 }
