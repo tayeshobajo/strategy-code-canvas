@@ -28,10 +28,16 @@ export function getMeasurementId(): string | null {
   return trimmed ? trimmed : null;
 }
 
+// gtag.js only processes dataLayer entries that are real `arguments` objects.
+// Pushing a plain array is silently ignored, so keep the classic shape.
 function gtag(...args: unknown[]) {
   if (typeof window === "undefined") return;
   window.dataLayer = window.dataLayer ?? [];
-  window.dataLayer.push(args);
+  // eslint-disable-next-line prefer-rest-params
+  (function () {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer!.push(arguments);
+  })(...(args as []));
 }
 
 /** Load gtag.js once. Safe to call on every render. */
