@@ -1,0 +1,1 @@
+UPDATE public.website_event_outbox SET status = 'pending', last_error = null WHERE status = 'failed' AND last_error ILIKE '%invalid_payload%';
