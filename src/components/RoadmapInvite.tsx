@@ -184,7 +184,7 @@ export function RoadmapInvite() {
             </div>
             <button
               type="button"
-              onClick={() => { trackCta("roadmap_invite", "/build-my-roadmap"); close(); }}
+              onClick={close}
               aria-label="Close invitation"
               className="group grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-[color:var(--rule)] bg-background text-[color:color-mix(in_oklab,var(--ink)_65%,transparent)] transition-colors hover:bg-[color:var(--row-hover-bg)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
             >
