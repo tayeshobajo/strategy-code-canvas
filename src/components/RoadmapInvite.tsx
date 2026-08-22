@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { X, ArrowRight, Users, Clock, Compass, LayoutGrid, ShieldCheck } from "lucide-react";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
 import { showRoadmapInvite } from "@/lib/roadmap-invite-visibility";
+import { trackCta } from "@/lib/website-intake/track";
 
 const SESSION_KEY = "tt_roadmap_invite_state_v1";
 const CUE_KEY = "tt_roadmap_invite_cue_v1";
@@ -233,7 +234,7 @@ export function RoadmapInvite() {
               <Link
                 to="/build-my-roadmap"
                 data-invite-cta
-                onClick={close}
+                onClick={() => { trackCta("roadmap_invite", "/build-my-roadmap"); close(); }}
                 className="group flex w-full cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white transition-transform duration-200 hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.985] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal focus-visible:ring-offset-2"
                 style={{ backgroundColor: NAVY, height: "56px" }}
               >

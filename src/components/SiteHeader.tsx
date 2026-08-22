@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TrustTaiLogo } from "@/components/TrustTaiLogo";
+import { trackCta } from "@/lib/website-intake/track";
 
 export type NavItem = { label: string; to: string; hash?: string };
 
@@ -77,6 +78,7 @@ export function SiteHeader() {
           <div className="flex shrink-0 items-center gap-2">
             <Link
               to="/build-my-roadmap"
+              onClick={() => trackCta("header_build_roadmap", "/build-my-roadmap")}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-3 py-2 text-[12px] font-medium text-paper transition-transform hover:scale-[1.02] sm:gap-2 sm:px-4 sm:text-[12.5px]"
             >
               <span className="sm:hidden">Build Roadmap</span>
@@ -119,6 +121,7 @@ export function SiteHeader() {
             <div className="my-2 border-t border-rule/60" />
             <Link
               to="/build-my-roadmap"
+              onClick={() => trackCta("mobile_nav_build_roadmap", "/build-my-roadmap")}
               className="mt-1 flex items-center justify-center gap-2 rounded-full bg-ink px-3 py-3 text-[15px] font-medium text-paper"
             >
               Build Your Roadmap

@@ -171,7 +171,7 @@ describe("scout handoff", () => {
 });
 
 describe("event contract", () => {
-  it("wraps events under a website source with stable keys", () => {
+  it("wraps events under a website source with stable keys and flat utm", () => {
     const body = toCoreEventsBody([
       {
         event_key: "sess_1:intake_answered:future_day",
@@ -181,13 +181,19 @@ describe("event contract", () => {
         submission_id: null,
         path: "/build-my-roadmap",
         referrer: null,
-        utm: { source: null, medium: null, campaign: null, term: null, content: null },
+        utm_source: null,
+        utm_medium: null,
+        utm_campaign: null,
+        utm_term: null,
+        utm_content: null,
         device: "desktop",
-        properties: { question_id: "future_day", question_text: "What does the good day look like?" },
+        properties: { question_id: "future_day", modality: "text" },
       },
     ]);
     expect(body.source_app).toBe("website");
     expect(body.events[0]!.event_key).toBe("sess_1:intake_answered:future_day");
-    expect(body.events[0]!.properties["question_text"]).toBeTruthy();
+    expect(body.events[0]!).not.toHaveProperty("utm");
+    expect(body.events[0]!.properties["question_id"]).toBe("future_day");
   });
 });
+

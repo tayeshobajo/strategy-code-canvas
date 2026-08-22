@@ -7,19 +7,41 @@ import { initGoogleAnalytics, trackGaPageView } from "@/lib/analytics/gtag";
 /** Emits one grounded page_view per path visit. Analytics only. */
 export function PageViewTracker() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Stable per history entry: survives remounts, changes on a real transition.
+  const locationKey = useRouterState({
+    select: (s) => (s.location.state as { key?: string } | undefined)?.key ?? s.location.href,
+  });
 
   useEffect(() => {
     recordFirstTouch();
     initGoogleAnalytics();
   }, []);
 
+  // Contact intent: mail and phone links only, no form values.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement | null)?.closest?.("a");
+      const href = target?.getAttribute("href") ?? "";
+      if (!href.startsWith("mailto:") && !href.startsWith("tel:")) return;
+      trackEvent({
+        name: "contact_clicked",
+        dedupe: `${href.split(":")[0]}:${window.location.pathname}`,
+        properties: { channel: href.startsWith("mailto:") ? "email" : "phone" },
+      });
+    };
+    document.addEventListener("click", onClick, { capture: true });
+    return () => document.removeEventListener("click", onClick, { capture: true });
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (pathname.startsWith("/api") || pathname.startsWith("/lovable")) return;
-    trackEvent({ name: "page_view", dedupe: `${pathname}:${Date.now()}` });
+    // One page_view per route per session: the key is stable, so a remount or
+    // a retry never writes a second row.
+    trackEvent({ name: "page_view", dedupe: `${pathname}:${locationKey}` });
     trackGaPageView(pathname);
-  }, [pathname]);
+  }, [pathname, locationKey]);
 
   return null;
 }
-

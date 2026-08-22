@@ -19,6 +19,7 @@ import * as React from "react";
 import { Reveal } from "@/hooks/use-reveal";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import heroRoom from "@/assets/roadmap-intake-hero.png.asset.json";
+import { trackCta } from "@/lib/website-intake/track";
 
 const STEPS = [
   {
@@ -142,7 +143,7 @@ export function IntakeLanding(props: {
                 <button
                   type="button"
                   disabled={props.resuming}
-                  onClick={props.onStart}
+                  onClick={() => { trackCta("intake_start", "/build-my-roadmap"); props.onStart(); }}
                   className="inline-flex items-center gap-2 rounded-full bg-ink px-7 py-4 text-sm text-paper transition hover:bg-royal disabled:opacity-60"
                 >
                   <Sparkles className="h-4 w-4" />
@@ -151,7 +152,7 @@ export function IntakeLanding(props: {
                 <button
                   type="button"
                   disabled={props.resuming}
-                  onClick={props.onStartVoice ?? props.onStart}
+                  onClick={() => { trackCta("intake_start_voice", "/build-my-roadmap"); (props.onStartVoice ?? props.onStart)(); }}
                   className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-white px-7 py-4 text-sm text-ink transition hover:border-royal hover:text-royal disabled:opacity-60"
                 >
                   <Mic className="h-4 w-4 text-royal" />
@@ -312,7 +313,7 @@ export function IntakeLanding(props: {
           <div className="mt-8 flex justify-end border-t border-ink/10 pt-6">
             <button
               type="button"
-              onClick={props.onStart}
+              onClick={() => { trackCta("intake_start", "/build-my-roadmap"); props.onStart(); }}
               className="inline-flex items-center gap-2 text-sm text-royal hover:underline"
             >
               {startLabel} <ArrowRight className="h-4 w-4" />

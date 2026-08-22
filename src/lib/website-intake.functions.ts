@@ -52,6 +52,7 @@ const eventSchema = z.object({
   event_key: z.string().min(3).max(300),
   event_name: z.enum([
     "page_view",
+    "cta_clicked",
     "intake_view",
     "intake_started",
     "intake_answered",
@@ -59,22 +60,24 @@ const eventSchema = z.object({
     "intake_resumed",
     "intake_submitted",
     "intake_abandoned",
+    "content_read",
+    "contact_clicked",
+    "newsletter_subscribed",
   ]),
   occurred_at: z.string().max(40),
   session_id: z.string().max(120).nullable(),
   submission_id: z.string().max(120).nullable(),
   path: z.string().max(500).nullable(),
   referrer: z.string().max(500).nullable(),
-  utm: z.object({
-    source: z.string().max(200).nullable(),
-    medium: z.string().max(200).nullable(),
-    campaign: z.string().max(200).nullable(),
-    term: z.string().max(200).nullable(),
-    content: z.string().max(200).nullable(),
-  }),
+  utm_source: z.string().max(200).nullable(),
+  utm_medium: z.string().max(200).nullable(),
+  utm_campaign: z.string().max(200).nullable(),
+  utm_term: z.string().max(200).nullable(),
+  utm_content: z.string().max(200).nullable(),
   device: z.string().max(40).nullable(),
   properties: z.record(z.string(), z.unknown()).default({}),
 });
+
 
 /** Analytics only. Never throws into the conversation UX. */
 export const trackWebsiteEvents = createServerFn({ method: "POST" })
