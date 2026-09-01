@@ -15,26 +15,38 @@ import {
   Radio,
 } from "lucide-react";
 import { PopupModal } from "react-calendly";
-import taiPortrait from "@/assets/tai-portrait.png.asset.json";
-import signatureTai from "@/assets/signature-tai.png.asset.json";
-import pttLogo from "@/assets/ptt-logo-color.png";
-import pttTeams from "@/assets/ptt-teams.jpg";
-import m01ContentEngine from "@/assets/ptt-m01-content-engine.png";
-import m02IndustryPage from "@/assets/ptt-m02-industry-page.png";
-import m03Advisor from "@/assets/ptt-m03-advisor.png";
-import m04Lead from "@/assets/ptt-m04-lead.png";
-import m05Dashboard from "@/assets/ptt-m05-dashboard.png";
-import { SectionSlider } from "@/components/SectionSlider";
-import { SideNav } from "@/components/SideNav";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+import taiPortrait from "@/assets/clients/spartan/tai-portrait.png.asset.json";
+import signatureTai from "@/assets/clients/spartan/signature-tai.png.asset.json";
+import pttLogoAsset from "@/assets/clients/pttanywhere/ptt-logo-color.png.asset.json";
+import pttTeamsAsset from "@/assets/clients/pttanywhere/ptt-teams.jpg.asset.json";
+import m01Asset from "@/assets/clients/pttanywhere/ptt-m01-content-engine.png.asset.json";
+import m02Asset from "@/assets/clients/pttanywhere/ptt-m02-industry-page.png.asset.json";
+import m03Asset from "@/assets/clients/pttanywhere/ptt-m03-advisor.png.asset.json";
+import m04Asset from "@/assets/clients/pttanywhere/ptt-m04-lead.png.asset.json";
+import m05Asset from "@/assets/clients/pttanywhere/ptt-m05-dashboard.png.asset.json";
+import { SectionSlider } from "@/components/clients/pttanywhere/SectionSlider";
+import { SideNav } from "@/components/clients/pttanywhere/SideNav";
+
+const pttLogo = pttLogoAsset.url;
+const pttTeams = pttTeamsAsset.url;
+const m01ContentEngine = m01Asset.url;
+const m02IndustryPage = m02Asset.url;
+const m03Advisor = m03Asset.url;
+const m04Lead = m04Asset.url;
+const m05Dashboard = m05Asset.url;
 
 const NAVY = "#112337";
 const CYAN = "#27B9FF";
 const CYAN_DEEP = "#0F7FBF";
 
+const CANONICAL = "https://trusttai.com/clients/pttanywhere";
+
 export const Route = createFileRoute("/clients/pttanywhere")({
   head: () => ({
     meta: [
-      { title: "PTT Anywhere Roadmap: Reach Buyers Earlier, Quote With Context" },
+      { title: "PTT Anywhere Roadmap | Trust Tai" },
       {
         name: "description",
         content:
@@ -46,38 +58,39 @@ export const Route = createFileRoute("/clients/pttanywhere")({
         content:
           "Turn PTT Anywhere's product depth into buyer education, guided product decisions, better-qualified enquiries, and stronger sales follow-up.",
       },
-      { property: "og:type", content: "website" },
+      { property: "og:type", content: "article" },
+      { property: "og:url", content: CANONICAL },
+      { property: "og:image", content: m01Asset.url },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: m01Asset.url },
     ],
-    links: [
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Instrument+Serif&display=swap",
-      },
-    ],
+    links: [{ rel: "canonical", href: CANONICAL }],
   }),
-  component: Index,
+  component: PttAnywhereRoadmap,
 });
 
-function Index() {
+function PttAnywhereRoadmap() {
   return (
-    <main
-      className="relative w-full"
-      style={{
-        backgroundColor: "var(--page-bg)",
-        fontFamily: "Inter, system-ui, sans-serif",
-        color: NAVY,
-      }}
-    >
-      <SectionSlider>
-        <PointASection />
-        <MarketGapSection />
-        <HelloSection />
-      </SectionSlider>
-      <SideNav />
-    </main>
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
+      <main
+        id="main"
+        className="ptt-deck relative w-full"
+        style={{
+          backgroundColor: "#ffffff",
+          fontFamily: "Inter, system-ui, sans-serif",
+          color: NAVY,
+        }}
+      >
+        <SectionSlider>
+          <PointASection />
+          <MarketGapSection />
+          <HelloSection />
+        </SectionSlider>
+        <SideNav />
+      </main>
+      <SiteFooter />
+    </div>
   );
 }
 
