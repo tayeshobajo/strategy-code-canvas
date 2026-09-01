@@ -25,6 +25,7 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as ClientsSpartanRouteImport } from './routes/clients.spartan'
 import { Route as ClientsRollickRouteImport } from './routes/clients.rollick'
 import { Route as ClientsPttanywhereRouteImport } from './routes/clients.pttanywhere'
+import { Route as ClientsEpayRouteImport } from './routes/clients.epay'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -117,6 +118,11 @@ const ClientsPttanywhereRoute = ClientsPttanywhereRouteImport.update({
   path: '/clients/pttanywhere',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientsEpayRoute = ClientsEpayRouteImport.update({
+  id: '/clients/epay',
+  path: '/clients/epay',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckoutRoadmapRoute = CheckoutRoadmapRouteImport.update({
   id: '/checkout/roadmap',
   path: '/checkout/roadmap',
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/what-we-build': typeof WhatWeBuildRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/clients/epay': typeof ClientsEpayRoute
   '/clients/pttanywhere': typeof ClientsPttanywhereRoute
   '/clients/rollick': typeof ClientsRollickRoute
   '/clients/spartan': typeof ClientsSpartanRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/what-we-build': typeof WhatWeBuildRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/clients/epay': typeof ClientsEpayRoute
   '/clients/pttanywhere': typeof ClientsPttanywhereRoute
   '/clients/rollick': typeof ClientsRollickRoute
   '/clients/spartan': typeof ClientsSpartanRoute
@@ -248,6 +256,7 @@ export interface FileRoutesById {
   '/what-we-build': typeof WhatWeBuildRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/clients/epay': typeof ClientsEpayRoute
   '/clients/pttanywhere': typeof ClientsPttanywhereRoute
   '/clients/rollick': typeof ClientsRollickRoute
   '/clients/spartan': typeof ClientsSpartanRoute
@@ -279,6 +288,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/clients/epay'
     | '/clients/pttanywhere'
     | '/clients/rollick'
     | '/clients/spartan'
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/clients/epay'
     | '/clients/pttanywhere'
     | '/clients/rollick'
     | '/clients/spartan'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/clients/epay'
     | '/clients/pttanywhere'
     | '/clients/rollick'
     | '/clients/spartan'
@@ -367,6 +379,7 @@ export interface RootRouteChildren {
   WhatWeBuildRoute: typeof WhatWeBuildRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
+  ClientsEpayRoute: typeof ClientsEpayRoute
   ClientsPttanywhereRoute: typeof ClientsPttanywhereRoute
   ClientsRollickRoute: typeof ClientsRollickRoute
   ClientsSpartanRoute: typeof ClientsSpartanRoute
@@ -500,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsPttanywhereRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clients/epay': {
+      id: '/clients/epay'
+      path: '/clients/epay'
+      fullPath: '/clients/epay'
+      preLoaderRoute: typeof ClientsEpayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout/roadmap': {
       id: '/checkout/roadmap'
       path: '/checkout/roadmap'
@@ -591,6 +611,7 @@ const rootRouteChildren: RootRouteChildren = {
   WhatWeBuildRoute: WhatWeBuildRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutRoadmapRoute: CheckoutRoadmapRoute,
+  ClientsEpayRoute: ClientsEpayRoute,
   ClientsPttanywhereRoute: ClientsPttanywhereRoute,
   ClientsRollickRoute: ClientsRollickRoute,
   ClientsSpartanRoute: ClientsSpartanRoute,
