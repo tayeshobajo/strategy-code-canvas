@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
-  Home,
   Activity,
   Target,
   FileText,
@@ -16,10 +15,9 @@ type NavItem = {
 };
 
 const items: NavItem[] = [
-  { id: 0, label: "Roadmap Overview", Icon: Home },
-  { id: 1, label: "Point A: Current Position", Icon: Activity },
-  { id: 2, label: "The Milestones", Icon: Target },
-  { id: 3, label: "A note from Tai", Icon: FileText },
+  { id: 0, label: "Point A: Current Position", Icon: Activity },
+  { id: 1, label: "The Milestones", Icon: Target },
+  { id: 2, label: "A note from Tai", Icon: FileText },
 ];
 
 
