@@ -24,6 +24,7 @@ import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as ClientsSpartanRouteImport } from './routes/clients.spartan'
 import { Route as ClientsRollickRouteImport } from './routes/clients.rollick'
+import { Route as ClientsPttanywhereRouteImport } from './routes/clients.pttanywhere'
 import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -111,6 +112,11 @@ const ClientsRollickRoute = ClientsRollickRouteImport.update({
   path: '/clients/rollick',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientsPttanywhereRoute = ClientsPttanywhereRouteImport.update({
+  id: '/clients/pttanywhere',
+  path: '/clients/pttanywhere',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckoutRoadmapRoute = CheckoutRoadmapRouteImport.update({
   id: '/checkout/roadmap',
   path: '/checkout/roadmap',
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/what-we-build': typeof WhatWeBuildRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/clients/pttanywhere': typeof ClientsPttanywhereRoute
   '/clients/rollick': typeof ClientsRollickRoute
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -211,6 +218,7 @@ export interface FileRoutesByTo {
   '/what-we-build': typeof WhatWeBuildRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/clients/pttanywhere': typeof ClientsPttanywhereRoute
   '/clients/rollick': typeof ClientsRollickRoute
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/what-we-build': typeof WhatWeBuildRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/roadmap': typeof CheckoutRoadmapRoute
+  '/clients/pttanywhere': typeof ClientsPttanywhereRoute
   '/clients/rollick': typeof ClientsRollickRoute
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/clients/pttanywhere'
     | '/clients/rollick'
     | '/clients/spartan'
     | '/email/unsubscribe'
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/clients/pttanywhere'
     | '/clients/rollick'
     | '/clients/spartan'
     | '/email/unsubscribe'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/what-we-build'
     | '/checkout/return'
     | '/checkout/roadmap'
+    | '/clients/pttanywhere'
     | '/clients/rollick'
     | '/clients/spartan'
     | '/email/unsubscribe'
@@ -355,6 +367,7 @@ export interface RootRouteChildren {
   WhatWeBuildRoute: typeof WhatWeBuildRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutRoadmapRoute: typeof CheckoutRoadmapRoute
+  ClientsPttanywhereRoute: typeof ClientsPttanywhereRoute
   ClientsRollickRoute: typeof ClientsRollickRoute
   ClientsSpartanRoute: typeof ClientsSpartanRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
@@ -480,6 +493,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsRollickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clients/pttanywhere': {
+      id: '/clients/pttanywhere'
+      path: '/clients/pttanywhere'
+      fullPath: '/clients/pttanywhere'
+      preLoaderRoute: typeof ClientsPttanywhereRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout/roadmap': {
       id: '/checkout/roadmap'
       path: '/checkout/roadmap'
@@ -571,6 +591,7 @@ const rootRouteChildren: RootRouteChildren = {
   WhatWeBuildRoute: WhatWeBuildRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutRoadmapRoute: CheckoutRoadmapRoute,
+  ClientsPttanywhereRoute: ClientsPttanywhereRoute,
   ClientsRollickRoute: ClientsRollickRoute,
   ClientsSpartanRoute: ClientsSpartanRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
