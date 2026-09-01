@@ -1053,6 +1053,10 @@
   height: auto;
   min-height: 100dvh;
 }
+/* Clear the floating Trust Tai site header on the first deck section. */
+.rollick-deck #section-0 {
+  padding-top: clamp(72px, 9vh, 112px);
+}
 .rollick-deck .slide-stage {
   position: static;
   height: auto;
