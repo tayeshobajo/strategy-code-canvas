@@ -688,7 +688,7 @@ function MarketGapSection() {
                 </button>
 
                 <span
-                  className="w-[56px] text-center text-[13px] font-black tabular-nums tracking-[0.18em] sm:w-[64px]"
+                  className="shrink-0 whitespace-nowrap text-center text-[12px] font-black tabular-nums tracking-[0.12em] sm:w-[64px] sm:text-[13px] sm:tracking-[0.18em]"
                   style={{ color: NAVY, fontFamily: sans }}
                 >
                   {slide.num}
