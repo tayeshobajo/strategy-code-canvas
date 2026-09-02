@@ -770,7 +770,7 @@ function MarketGapSection() {
               <span className="hidden text-[11px] font-black uppercase tracking-[0.22em] sm:inline">Prev</span>
             </button>
 
-            <span className="w-[56px] text-center text-[13px] font-black tabular-nums tracking-[0.18em] sm:w-[64px]" style={{ color: NAVY, fontFamily: sans }}>
+            <span className="shrink-0 whitespace-nowrap text-center text-[12px] font-black tabular-nums tracking-[0.12em] sm:w-[64px] sm:text-[13px] sm:tracking-[0.18em]" style={{ color: NAVY, fontFamily: sans }}>
               {slide.num}
               <span style={{ color: "rgba(11,37,69,0.35)" }}> / {String(total).padStart(2, "0")}</span>
             </span>
