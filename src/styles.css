@@ -1384,6 +1384,7 @@
 .shugashack-deck .slide-snap {
   height: auto;
   min-height: 100dvh;
+  scroll-margin-top: 88px;
 }
 /* Clear the floating Trust Tai site header on the first deck section. */
 .shugashack-deck #section-0 {
@@ -1392,15 +1393,20 @@
 .shugashack-deck .slide-stage {
   position: static;
   height: auto;
+  min-height: 100dvh;
   overflow: visible;
 }
 .shugashack-deck .slide-inner {
   height: auto;
+  min-height: 100dvh;
   width: 100%;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
 .shugashack-deck .slide-inner > * {
-  min-height: 100%;
+  flex: 1 0 auto;
+  min-height: 100dvh;
 }
 .shugashack-deck [data-slide-frame] {
   padding-left: clamp(20px, 4vw, 56px);
