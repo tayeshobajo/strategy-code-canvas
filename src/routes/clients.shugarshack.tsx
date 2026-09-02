@@ -722,7 +722,7 @@ function HelloSection({
             </div>
 
             <div className="mt-6 space-y-4 text-[14px] leading-[1.75] sm:mt-8 sm:space-y-5 sm:text-[15px]" style={{ color: muted }}>
-              <p>Hello Ese,</p>
+              <p>Hi Bimpe & Ese,</p>
               <p>
                 When I asked you where you could see Shugar Shack in three years, you did not describe a small bakery.
               </p>
