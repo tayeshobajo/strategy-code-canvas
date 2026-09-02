@@ -121,7 +121,7 @@ export function IntakeLanding(props: {
       {/* Hero */}
       <section className="relative overflow-hidden bg-paper">
         <div className="grid lg:grid-cols-[1fr_1fr]">
-          <div className="flex items-center px-6 py-16 md:py-24 lg:pl-[max(1.5rem,calc((100vw-1280px)/2))] lg:pr-16">
+          <div className="flex items-center px-6 pt-24 pb-16 md:pt-32 md:pb-24 lg:pl-[max(1.5rem,calc((100vw-1280px)/2))] lg:pr-16">
             <Reveal className="max-w-xl">
               <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-royal">
                 Build Your Roadmap
