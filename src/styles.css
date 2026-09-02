@@ -1052,6 +1052,7 @@
 .rollick-deck .slide-snap {
   height: auto;
   min-height: 100dvh;
+  scroll-margin-top: 88px;
 }
 /* Clear the floating Trust Tai site header on the first deck section. */
 .rollick-deck #section-0 {
@@ -1060,15 +1061,20 @@
 .rollick-deck .slide-stage {
   position: static;
   height: auto;
+  min-height: 100dvh;
   overflow: visible;
 }
 .rollick-deck .slide-inner {
   height: auto;
+  min-height: 100dvh;
   width: 100%;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
 .rollick-deck .slide-inner > * {
-  min-height: 100%;
+  flex: 1 0 auto;
+  min-height: 100dvh;
 }
 .rollick-deck [data-slide-frame] {
   padding-left: clamp(20px, 4vw, 56px);
@@ -1182,6 +1188,7 @@
 .ptt-deck .slide-snap {
   height: auto;
   min-height: 100dvh;
+  scroll-margin-top: 88px;
 }
 /* Clear the floating Trust Tai site header on the first deck section. */
 .ptt-deck #section-0 {
@@ -1190,15 +1197,20 @@
 .ptt-deck .slide-stage {
   position: static;
   height: auto;
+  min-height: 100dvh;
   overflow: visible;
 }
 .ptt-deck .slide-inner {
   height: auto;
+  min-height: 100dvh;
   width: 100%;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
 .ptt-deck .slide-inner > * {
-  min-height: 100%;
+  flex: 1 0 auto;
+  min-height: 100dvh;
 }
 .ptt-deck [data-slide-frame] {
   padding-left: clamp(20px, 4vw, 56px);
@@ -1285,6 +1297,7 @@
 .epay-deck .slide-snap {
   height: auto;
   min-height: 100dvh;
+  scroll-margin-top: 88px;
 }
 /* Clear the floating Trust Tai site header on the first deck section. */
 .epay-deck #section-0 {
@@ -1293,15 +1306,20 @@
 .epay-deck .slide-stage {
   position: static;
   height: auto;
+  min-height: 100dvh;
   overflow: visible;
 }
 .epay-deck .slide-inner {
   height: auto;
+  min-height: 100dvh;
   width: 100%;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
 .epay-deck .slide-inner > * {
-  min-height: 100%;
+  flex: 1 0 auto;
+  min-height: 100dvh;
 }
 .epay-deck [data-slide-frame] {
   padding-left: clamp(20px, 4vw, 56px);
