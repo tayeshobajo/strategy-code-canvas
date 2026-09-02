@@ -697,7 +697,7 @@ function MarketGapSection() {
 
       <div className="grid w-full flex-1 grid-cols-1 bg-white lg:grid-cols-12">
         {/* LEFT: text */}
-        <div className="market-gap-left flex flex-col p-6 sm:p-10 md:p-14 lg:col-span-5 lg:p-16 xl:p-20" style={{ fontFamily: sans }}>
+        <div className="market-gap-left order-2 flex flex-col lg:order-1 p-6 sm:p-10 md:p-14 lg:col-span-5 lg:p-16 xl:p-20" style={{ fontFamily: sans }}>
           {/* Nav moved below the feature image caption */}
 
 
@@ -814,7 +814,7 @@ function MarketGapSection() {
 
         {/* RIGHT: mockup */}
         <div
-          className="market-gap-right relative flex flex-col justify-start overflow-hidden p-6 sm:p-8 md:p-10 lg:col-span-7 lg:p-10 xl:p-12"
+          className="market-gap-right relative order-1 flex flex-col lg:order-2 justify-start overflow-hidden p-6 sm:p-8 md:p-10 lg:col-span-7 lg:p-10 xl:p-12"
           style={{ backgroundColor: NAVY }}
         >
           <div
