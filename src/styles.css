@@ -1384,6 +1384,7 @@
 .shugashack-deck .slide-snap {
   height: auto;
   min-height: 100dvh;
+  scroll-margin-top: 88px;
 }
 /* Clear the floating Trust Tai site header on the first deck section. */
 .shugashack-deck #section-0 {
