@@ -12,7 +12,6 @@ import {
   CreditCard,
   Palette,
   ChefHat,
-  Mail,
 } from "lucide-react";
 import { PopupModal } from "react-calendly";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -774,7 +773,7 @@ function HelloSection({
                 Ready to take the next step?
               </div>
               <p className="mt-2 text-[14px] leading-[1.6]" style={{ color: DARK }}>
-                Send the monthly amount you would like to work with, or book a call and we will finalise the route together.
+                Book a call and we will finalise the route together.
               </p>
 
               <div ref={calendlyRootRef} className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -788,20 +787,10 @@ function HelloSection({
                   Book a call
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
                 </button>
-
-                <a
-                  href="mailto:tai@trusttai.com?subject=Shugar Shack monthly amount"
-                  className="group inline-flex w-auto items-center justify-center gap-2 whitespace-nowrap rounded-full border px-6 py-3.5 text-[11px] font-bold uppercase tracking-[0.14em] transition-all duration-300 hover:-translate-y-0.5 sm:gap-3 sm:px-7 sm:py-4 sm:text-[12.5px] sm:tracking-[0.16em]"
-                  style={{ borderColor: "rgba(123,45,59,0.35)", color: BURGUNDY_DEEP, background: "transparent" }}
-                >
-                  <Mail className="h-4 w-4" />
-                  Send monthly amount
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-                </a>
               </div>
 
               <div className="mt-3 text-[10.5px] font-medium uppercase tracking-[0.18em]" style={{ color: "rgba(44,24,16,0.55)" }}>
-                30 minutes · No pitch · Monthly amount from $750–$1,500
+                30 minutes · No pitch
               </div>
 
               {calendlyRootRef.current && (
