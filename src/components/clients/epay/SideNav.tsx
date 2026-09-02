@@ -62,8 +62,7 @@ export function SideNav() {
     setActive(i);
     setHoveredGroup(null);
 
-    const h = window.innerHeight || document.documentElement.clientHeight || 1;
-    window.scrollTo({ top: i * h, behavior: "smooth" });
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
 
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     scrollTimeoutRef.current = setTimeout(() => {
