@@ -483,7 +483,7 @@ function MilestonesSection() {
 
       <div className="grid w-full flex-1 grid-cols-1 items-stretch bg-white lg:grid-cols-12">
         {/* LEFT: text */}
-        <div className="market-gap-left flex flex-col items-center p-6 sm:p-10 md:p-14 lg:col-span-5 lg:p-10 xl:p-14" style={{ fontFamily: sans }}>
+        <div className="market-gap-left order-2 flex flex-col items-center p-6 sm:p-10 md:p-14 lg:order-1 lg:col-span-5 lg:p-10 xl:p-14" style={{ fontFamily: sans }}>
           <div className="flex w-full max-w-md flex-1 flex-col justify-center pt-8 md:pt-10">
               <div key={`h-${index}`} className="market-gap-header relative animate-fade-in">
 
@@ -558,7 +558,7 @@ function MilestonesSection() {
                 <span className="hidden text-[11px] font-black uppercase tracking-[0.22em] sm:inline">Prev</span>
               </button>
 
-              <span className="w-[52px] text-center text-[13px] font-black tabular-nums tracking-[0.18em] sm:w-[56px]" style={{ color: DARK, fontFamily: sans }}>
+              <span className="shrink-0 whitespace-nowrap text-center text-[12px] font-black tabular-nums tracking-[0.12em] sm:w-[56px] sm:text-[13px] sm:tracking-[0.18em]" style={{ color: DARK, fontFamily: sans }}>
                 {slide.num}
                 <span style={{ color: "rgba(44,24,16,0.35)" }}> / {String(total).padStart(2, "0")}</span>
               </span>
@@ -596,7 +596,7 @@ function MilestonesSection() {
 
         {/* RIGHT: mockup */}
         <div
-          className="market-gap-right relative flex flex-col justify-center overflow-hidden lg:col-span-7"
+          className="market-gap-right relative order-1 flex flex-col justify-center overflow-hidden lg:order-2 lg:col-span-7"
           style={{ backgroundColor: BURGUNDY_DEEP }}
         >
           <div

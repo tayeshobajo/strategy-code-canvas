@@ -850,7 +850,7 @@ function HiddenOpportunitiesSection() {
               </button>
 
               <span
-                className="text-[13px] font-black tabular-nums tracking-[0.18em]"
+                className="shrink-0 whitespace-nowrap text-[12px] font-black tabular-nums tracking-[0.12em] sm:text-[13px] sm:tracking-[0.18em]"
                 style={{ color: navy }}
               >
                 {gapNum}

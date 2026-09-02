@@ -606,7 +606,7 @@ function MilestonesSection() {
 
       <div className="grid w-full flex-1 grid-cols-1 items-start bg-white lg:grid-cols-12">
         {/* LEFT: text */}
-        <div className="market-gap-left flex flex-col p-6 sm:p-10 md:p-14 lg:col-span-4 lg:min-h-[calc(100dvh-180px)] lg:p-10 xl:p-14" style={{ fontFamily: sans }}>
+        <div className="market-gap-left order-2 flex flex-col lg:order-1 p-6 sm:p-10 md:p-14 lg:col-span-4 lg:min-h-[calc(100dvh-180px)] lg:p-10 xl:p-14" style={{ fontFamily: sans }}>
           <div className="flex flex-1 flex-col">
             <div className="market-gap-scroll flex flex-1 flex-col pr-1 pt-5 pb-5">
               <div key={`h-${index}`} className="market-gap-header relative animate-fade-in">
@@ -680,7 +680,7 @@ function MilestonesSection() {
                 <span className="hidden text-[10px] font-black uppercase tracking-[0.2em] sm:inline">Prev</span>
               </button>
 
-              <span className="w-[44px] text-center text-[12px] font-black tabular-nums tracking-[0.16em] sm:w-[48px]" style={{ color: NAVY, fontFamily: sans }}>
+              <span className="shrink-0 whitespace-nowrap text-center text-[12px] font-black tabular-nums tracking-[0.12em] sm:w-[48px] sm:tracking-[0.16em]" style={{ color: NAVY, fontFamily: sans }}>
                 {slide.num}
                 <span style={{ color: "rgba(19,42,76,0.35)" }}> / {String(total).padStart(2, "0")}</span>
               </span>
@@ -719,7 +719,7 @@ function MilestonesSection() {
 
         {/* RIGHT: mockup */}
         <div
-          className="market-gap-right relative flex flex-col justify-center overflow-hidden p-4 sm:p-6 md:p-8 lg:col-span-8 lg:p-10 xl:p-12"
+          className="market-gap-right relative order-1 flex flex-col lg:order-2 justify-center overflow-hidden p-4 sm:p-6 md:p-8 lg:col-span-8 lg:p-10 xl:p-12"
           style={{ backgroundColor: NAVY }}
         >
           <div

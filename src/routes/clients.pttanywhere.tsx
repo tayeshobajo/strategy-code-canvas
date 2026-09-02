@@ -611,7 +611,7 @@ function MarketGapSection() {
 
       <div className="grid w-full flex-1 grid-cols-1 bg-white lg:grid-cols-12 lg:min-h-0">
         {/* LEFT: text */}
-        <div className="market-gap-left flex flex-col p-6 sm:p-10 md:p-14 lg:col-span-5 lg:p-16 xl:p-20 lg:[@media(min-height:860px)]:min-h-0 lg:[@media(min-height:860px)]:py-10 xl:[@media(min-height:860px)]:py-12" style={{ fontFamily: sans }}>
+        <div className="market-gap-left order-2 flex flex-col lg:order-1 p-6 sm:p-10 md:p-14 lg:col-span-5 lg:p-16 xl:p-20 lg:[@media(min-height:860px)]:min-h-0 lg:[@media(min-height:860px)]:py-10 xl:[@media(min-height:860px)]:py-12" style={{ fontFamily: sans }}>
           <div className="flex flex-1 flex-col">
             <div key={`h-${index}`} className="market-gap-header relative animate-fade-in">
               <span
@@ -688,7 +688,7 @@ function MarketGapSection() {
                 </button>
 
                 <span
-                  className="w-[56px] text-center text-[13px] font-black tabular-nums tracking-[0.18em] sm:w-[64px]"
+                  className="shrink-0 whitespace-nowrap text-center text-[12px] font-black tabular-nums tracking-[0.12em] sm:w-[64px] sm:text-[13px] sm:tracking-[0.18em]"
                   style={{ color: NAVY, fontFamily: sans }}
                 >
                   {slide.num}
@@ -730,7 +730,7 @@ function MarketGapSection() {
 
         {/* RIGHT: mockup */}
         <div
-          className="market-gap-right relative flex flex-col justify-start overflow-hidden p-6 sm:p-8 md:p-10 lg:col-span-7 lg:p-10 xl:p-12 lg:[@media(min-height:860px)]:min-h-0"
+          className="market-gap-right relative order-1 flex flex-col lg:order-2 justify-start overflow-hidden p-6 sm:p-8 md:p-10 lg:col-span-7 lg:p-10 xl:p-12 lg:[@media(min-height:860px)]:min-h-0"
           style={{ backgroundColor: NAVY }}
         >
           <div
