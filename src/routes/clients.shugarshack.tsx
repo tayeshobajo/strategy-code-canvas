@@ -558,7 +558,7 @@ function MilestonesSection() {
                 <span className="hidden text-[11px] font-black uppercase tracking-[0.22em] sm:inline">Prev</span>
               </button>
 
-              <span className="w-[52px] text-center text-[13px] font-black tabular-nums tracking-[0.18em] sm:w-[56px]" style={{ color: DARK, fontFamily: sans }}>
+              <span className="shrink-0 whitespace-nowrap text-center text-[12px] font-black tabular-nums tracking-[0.12em] sm:w-[56px] sm:text-[13px] sm:tracking-[0.18em]" style={{ color: DARK, fontFamily: sans }}>
                 {slide.num}
                 <span style={{ color: "rgba(44,24,16,0.35)" }}> / {String(total).padStart(2, "0")}</span>
               </span>
