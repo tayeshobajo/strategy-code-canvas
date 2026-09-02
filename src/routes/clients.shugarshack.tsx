@@ -37,14 +37,14 @@ const m3Calculator = m3CalculatorAsset.url;
 const m4Checkout = m4CheckoutAsset.url;
 const m5Admin = m5AdminAsset.url;
 
-const CANONICAL = "https://trusttai.com/clients/shugashack";
+const CANONICAL = "https://trusttai.com/clients/shugarshack";
 
 const BURGUNDY = "#7B2D3B";
 const BURGUNDY_DEEP = "#5C1F2B";
 const CREAM = "#F8F1E5";
 const DARK = "#2C1810";
 
-export const Route = createFileRoute("/clients/shugashack")({
+export const Route = createFileRoute("/clients/shugarshack")({
   head: () => ({
     meta: [
       { title: "Shugar Shack Roadmap | Trust Tai" },

@@ -23,7 +23,7 @@ import { Route as OpsAnalyticsRouteImport } from './routes/ops.analytics'
 import { Route as InsightsSlugRouteImport } from './routes/insights_.$slug'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as ClientsSpartanRouteImport } from './routes/clients.spartan'
-import { Route as ClientsShugashackRouteImport } from './routes/clients.shugashack'
+import { Route as ClientsShugarshackRouteImport } from './routes/clients.shugarshack'
 import { Route as ClientsRollickRouteImport } from './routes/clients.rollick'
 import { Route as ClientsPttanywhereRouteImport } from './routes/clients.pttanywhere'
 import { Route as ClientsEpayRouteImport } from './routes/clients.epay'
@@ -109,9 +109,9 @@ const ClientsSpartanRoute = ClientsSpartanRouteImport.update({
   path: '/clients/spartan',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ClientsShugashackRoute = ClientsShugashackRouteImport.update({
-  id: '/clients/shugashack',
-  path: '/clients/shugashack',
+const ClientsShugarshackRoute = ClientsShugarshackRouteImport.update({
+  id: '/clients/shugarshack',
+  path: '/clients/shugarshack',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientsRollickRoute = ClientsRollickRouteImport.update({
@@ -204,7 +204,7 @@ export interface FileRoutesByFullPath {
   '/clients/epay': typeof ClientsEpayRoute
   '/clients/pttanywhere': typeof ClientsPttanywhereRoute
   '/clients/rollick': typeof ClientsRollickRoute
-  '/clients/shugashack': typeof ClientsShugashackRoute
+  '/clients/shugarshack': typeof ClientsShugarshackRoute
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -235,7 +235,7 @@ export interface FileRoutesByTo {
   '/clients/epay': typeof ClientsEpayRoute
   '/clients/pttanywhere': typeof ClientsPttanywhereRoute
   '/clients/rollick': typeof ClientsRollickRoute
-  '/clients/shugashack': typeof ClientsShugashackRoute
+  '/clients/shugarshack': typeof ClientsShugarshackRoute
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/insights/$slug': typeof InsightsSlugRoute
@@ -267,7 +267,7 @@ export interface FileRoutesById {
   '/clients/epay': typeof ClientsEpayRoute
   '/clients/pttanywhere': typeof ClientsPttanywhereRoute
   '/clients/rollick': typeof ClientsRollickRoute
-  '/clients/shugashack': typeof ClientsShugashackRoute
+  '/clients/shugarshack': typeof ClientsShugarshackRoute
   '/clients/spartan': typeof ClientsSpartanRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/insights_/$slug': typeof InsightsSlugRoute
@@ -300,7 +300,7 @@ export interface FileRouteTypes {
     | '/clients/epay'
     | '/clients/pttanywhere'
     | '/clients/rollick'
-    | '/clients/shugashack'
+    | '/clients/shugarshack'
     | '/clients/spartan'
     | '/email/unsubscribe'
     | '/insights/$slug'
@@ -331,7 +331,7 @@ export interface FileRouteTypes {
     | '/clients/epay'
     | '/clients/pttanywhere'
     | '/clients/rollick'
-    | '/clients/shugashack'
+    | '/clients/shugarshack'
     | '/clients/spartan'
     | '/email/unsubscribe'
     | '/insights/$slug'
@@ -362,7 +362,7 @@ export interface FileRouteTypes {
     | '/clients/epay'
     | '/clients/pttanywhere'
     | '/clients/rollick'
-    | '/clients/shugashack'
+    | '/clients/shugarshack'
     | '/clients/spartan'
     | '/email/unsubscribe'
     | '/insights_/$slug'
@@ -394,7 +394,7 @@ export interface RootRouteChildren {
   ClientsEpayRoute: typeof ClientsEpayRoute
   ClientsPttanywhereRoute: typeof ClientsPttanywhereRoute
   ClientsRollickRoute: typeof ClientsRollickRoute
-  ClientsShugashackRoute: typeof ClientsShugashackRoute
+  ClientsShugarshackRoute: typeof ClientsShugarshackRoute
   ClientsSpartanRoute: typeof ClientsSpartanRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
@@ -512,11 +512,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsSpartanRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/clients/shugashack': {
-      id: '/clients/shugashack'
-      path: '/clients/shugashack'
-      fullPath: '/clients/shugashack'
-      preLoaderRoute: typeof ClientsShugashackRouteImport
+    '/clients/shugarshack': {
+      id: '/clients/shugarshack'
+      path: '/clients/shugarshack'
+      fullPath: '/clients/shugarshack'
+      preLoaderRoute: typeof ClientsShugarshackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients/rollick': {
@@ -634,7 +634,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsEpayRoute: ClientsEpayRoute,
   ClientsPttanywhereRoute: ClientsPttanywhereRoute,
   ClientsRollickRoute: ClientsRollickRoute,
-  ClientsShugashackRoute: ClientsShugashackRoute,
+  ClientsShugarshackRoute: ClientsShugarshackRoute,
   ClientsSpartanRoute: ClientsSpartanRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   InsightsSlugRoute: InsightsSlugRoute,
