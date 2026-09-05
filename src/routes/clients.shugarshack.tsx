@@ -16,6 +16,7 @@ import {
 import { PopupModal } from "react-calendly";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { RoadmapDeckTracking } from "@/components/clients/RoadmapDeckTracking";
 import taiPortrait from "@/assets/clients/spartan/tai-portrait.png.asset.json";
 import signatureTai from "@/assets/clients/spartan/signature-tai.png.asset.json";
 import shugarHeroAsset from "@/assets/clients/shugashack/shugar-hero.jpg.asset.json";
@@ -79,6 +80,7 @@ function ShugashackRoadmap() {
   return (
     <>
       <SiteHeader />
+      <RoadmapDeckTracking slug="shugarshack" />
       <main
         id="main"
         className="shugashack-deck relative w-full"

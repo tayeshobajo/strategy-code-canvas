@@ -17,6 +17,7 @@ import {
 import { PopupModal } from "react-calendly";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { RoadmapDeckTracking } from "@/components/clients/RoadmapDeckTracking";
 import taiPortraitAsset from "@/assets/clients/spartan/tai-portrait.png.asset.json";
 import signatureTaiAsset from "@/assets/clients/spartan/signature-tai.png.asset.json";
 import rollickLogoAsset from "@/assets/clients/rollick/rollick-logo.png.asset.json";
@@ -83,6 +84,7 @@ function RollickRoadmap() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
+      <RoadmapDeckTracking slug="rollick" />
       <main
         id="main"
         className="rollick-deck relative w-full"

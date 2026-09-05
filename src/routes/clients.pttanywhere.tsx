@@ -17,6 +17,7 @@ import {
 import { PopupModal } from "react-calendly";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { RoadmapDeckTracking } from "@/components/clients/RoadmapDeckTracking";
 import taiPortrait from "@/assets/clients/spartan/tai-portrait.png.asset.json";
 import signatureTai from "@/assets/clients/spartan/signature-tai.png.asset.json";
 import pttLogoAsset from "@/assets/clients/pttanywhere/ptt-logo-color.png.asset.json";
@@ -73,6 +74,7 @@ function PttAnywhereRoadmap() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
+      <RoadmapDeckTracking slug="pttanywhere" />
       <main
         id="main"
         className="ptt-deck relative w-full"
