@@ -83,15 +83,15 @@ describe("publish endpoint", () => {
 
   it("rejects malformed bodies", async () => {
     const { store } = memoryStore();
-    const bad = await handlePublish(
-      request(payload({ slug: "Not A Slug" }), { key: "key-001" }),
-      { token: TOKEN, store },
-    );
+    const bad = await handlePublish(request(payload({ slug: "Not A Slug" }), { key: "key-001" }), {
+      token: TOKEN,
+      store,
+    });
     expect(bad.status).toBe(400);
-    const missing = await handlePublish(
-      request({ slug: "ok-slug" }, { key: "key-001" }),
-      { token: TOKEN, store },
-    );
+    const missing = await handlePublish(request({ slug: "ok-slug" }, { key: "key-001" }), {
+      token: TOKEN,
+      store,
+    });
     expect(missing.status).toBe(400);
   });
 

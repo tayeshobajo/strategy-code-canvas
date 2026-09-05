@@ -18,9 +18,7 @@ export type StoredInsight = {
   published_at: string;
 };
 
-export type InsertOutcome =
-  | { status: "inserted"; row: StoredInsight }
-  | { status: "conflict" };
+export type InsertOutcome = { status: "inserted"; row: StoredInsight } | { status: "conflict" };
 
 export type PublishStore = {
   findByIdempotencyKey(key: string): Promise<StoredInsight | null>;
@@ -54,10 +52,7 @@ function safeEquals(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export async function handlePublish(
-  request: Request,
-  deps: PublishDeps,
-): Promise<Response> {
+export async function handlePublish(request: Request, deps: PublishDeps): Promise<Response> {
   const expected = deps.token;
   if (!expected) {
     // Fail closed when the runtime secret is not configured.

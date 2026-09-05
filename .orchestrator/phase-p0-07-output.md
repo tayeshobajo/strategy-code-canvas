@@ -20,6 +20,6 @@
 - `/insights` still returns 200; six source-controlled insights untouched.
 
 ## Not done / remaining before Production Verified
-- Migration NOT applied — recorded in `.orchestrator/PENDING_MIGRATIONS.md`.
+- Migration APPLIED via the approved migration tool (published_insights, RLS on, service-role only).
 - `TRUST_TAI_PUBLISH_TOKEN` not set (runtime secret dependency).
 - Nothing published this turn; no seed rows created.

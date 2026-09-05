@@ -25,9 +25,7 @@ export type PublishPayload = {
   image: PublishImage;
 };
 
-export type ValidationResult =
-  | { ok: true; value: PublishPayload }
-  | { ok: false; error: string };
+export type ValidationResult = { ok: true; value: PublishPayload } | { ok: false; error: string };
 
 function isNonEmptyString(v: unknown, max: number): v is string {
   return typeof v === "string" && v.trim().length > 0 && v.length <= max;
@@ -35,10 +33,7 @@ function isNonEmptyString(v: unknown, max: number): v is string {
 
 export function isSafeSlug(slug: unknown): slug is string {
   return (
-    typeof slug === "string" &&
-    slug.length > 0 &&
-    slug.length <= 120 &&
-    SLUG_PATTERN.test(slug)
+    typeof slug === "string" && slug.length > 0 && slug.length <= 120 && SLUG_PATTERN.test(slug)
   );
 }
 
