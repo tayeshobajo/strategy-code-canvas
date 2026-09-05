@@ -1,4 +1,5 @@
 import { INSIGHTS } from "@/lib/insights-data";
+import { listedRoadmaps } from "@/lib/client-roadmaps/registry";
 import { getPublicSiteUrl } from "@/lib/site-url";
 
 export interface SitemapEntry {
@@ -24,7 +25,12 @@ export const SITE_ENTRIES: SitemapEntry[] = [
   { path: "/walks", changefreq: "monthly", priority: "0.8" },
   { path: "/insights", changefreq: "weekly", priority: "0.8" },
   { path: "/build-my-roadmap", changefreq: "monthly", priority: "0.9" },
-  { path: "/clients/spartan", changefreq: "monthly", priority: "0.7" },
+  { path: "/clients", changefreq: "monthly", priority: "0.8" },
+  ...listedRoadmaps().map((r) => ({
+    path: `/clients/${r.slug}`,
+    changefreq: "monthly" as const,
+    priority: "0.7",
+  })),
   ...INSIGHTS.map((i) => ({
     path: `/insights/${i.slug}`,
     changefreq: "monthly" as const,
