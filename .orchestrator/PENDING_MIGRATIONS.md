@@ -5303,3 +5303,8 @@ and swap the Studio's in-memory position state to persisted reads. Material
 milestone moves (cross-phase / dependency-breaking) continue to route
 through `admin_edit_milestone_governed` and the amendment flow — this table
 holds *presentation* state only.
+
+## 2026-09-05 — Client portal access + questions (APPLIED, user-approved)
+Tables: public.client_roadmap_access, public.portal_questions.
+RLS: clients read only rows matching their own auth email / uid; service role manages.
+Approved by Tai through the Lovable migration approval gate before execution.

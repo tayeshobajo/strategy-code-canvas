@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_roadmap_access: {
+        Row: {
+          created_at: string
+          email: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          roadmap_slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          roadmap_slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          roadmap_slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -146,6 +176,51 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      portal_questions: {
+        Row: {
+          body: string
+          core_delivered_at: string | null
+          core_error: string | null
+          core_status: string
+          created_at: string
+          email: string
+          id: string
+          roadmap_slug: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          core_delivered_at?: string | null
+          core_error?: string | null
+          core_status?: string
+          created_at?: string
+          email: string
+          id?: string
+          roadmap_slug?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          core_delivered_at?: string | null
+          core_error?: string | null
+          core_status?: string
+          created_at?: string
+          email?: string
+          id?: string
+          roadmap_slug?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

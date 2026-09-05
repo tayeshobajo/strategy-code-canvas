@@ -23,6 +23,7 @@ import {
 import { PopupModal } from "react-calendly";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { RoadmapDeckTracking } from "@/components/clients/RoadmapDeckTracking";
 import taiPortrait from "@/assets/clients/spartan/tai-portrait.png.asset.json";
 import signatureTai from "@/assets/clients/spartan/signature-tai.png.asset.json";
 import epayEagleAsset from "@/assets/clients/epay/epay-eagle-clean.png.asset.json";
@@ -81,6 +82,7 @@ function EpayRoadmap() {
   return (
     <>
       <SiteHeader />
+      <RoadmapDeckTracking slug="epay" />
       <main
         id="main"
         className="epay-deck relative w-full"

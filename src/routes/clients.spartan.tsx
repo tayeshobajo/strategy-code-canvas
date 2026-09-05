@@ -18,6 +18,7 @@ import { PopupModal } from "react-calendly";
 
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { RoadmapDeckTracking } from "@/components/clients/RoadmapDeckTracking";
 
 import spartanLogo from "@/assets/clients/spartan/spartan-logo-new.png.asset.json";
 import heroSuvSkyline from "@/assets/clients/spartan/hero-suv-skyline.jpg.asset.json";
@@ -72,6 +73,7 @@ function SpartanRoadmap() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
+      <RoadmapDeckTracking slug="spartan" />
       <main id="main"
         className="spartan-deck relative w-full"
         style={{
