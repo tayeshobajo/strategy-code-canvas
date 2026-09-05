@@ -20,6 +20,8 @@ import {
 } from "@/lib/insights-virtualization";
 
 export const Route = createFileRoute("/insights")({
+  // Additive: source-controlled insights plus anything published through the seam.
+  loader: async () => ({ published: await listPublishedInsights() }),
   head: () => {
     const title = "Insights | Trust Tai";
     const description =
