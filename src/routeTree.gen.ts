@@ -35,6 +35,7 @@ import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as CheckoutWalkPaceRouteImport } from './routes/checkout.walk.$pace'
+import { Route as ApiTrustTaiPublishRouteImport } from './routes/api/trust-tai/publish'
 import { Route as AuthenticatedPortalRoadmapRouteImport } from './routes/_authenticated/portal.roadmap'
 import { Route as AuthenticatedPortalIntakeRouteImport } from './routes/_authenticated/portal.intake'
 import { Route as AuthenticatedPortalActivityRouteImport } from './routes/_authenticated/portal.activity'
@@ -175,6 +176,11 @@ const CheckoutWalkPaceRoute = CheckoutWalkPaceRouteImport.update({
   path: '/checkout/walk/$pace',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTrustTaiPublishRoute = ApiTrustTaiPublishRouteImport.update({
+  id: '/api/trust-tai/publish',
+  path: '/api/trust-tai/publish',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedPortalRoadmapRoute =
   AuthenticatedPortalRoadmapRouteImport.update({
     id: '/portal/roadmap',
@@ -261,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/portal/activity': typeof AuthenticatedPortalActivityRoute
   '/portal/intake': typeof AuthenticatedPortalIntakeRoute
   '/portal/roadmap': typeof AuthenticatedPortalRoadmapRoute
+  '/api/trust-tai/publish': typeof ApiTrustTaiPublishRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
@@ -298,6 +305,7 @@ export interface FileRoutesByTo {
   '/portal/activity': typeof AuthenticatedPortalActivityRoute
   '/portal/intake': typeof AuthenticatedPortalIntakeRoute
   '/portal/roadmap': typeof AuthenticatedPortalRoadmapRoute
+  '/api/trust-tai/publish': typeof ApiTrustTaiPublishRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
@@ -337,6 +345,7 @@ export interface FileRoutesById {
   '/_authenticated/portal/activity': typeof AuthenticatedPortalActivityRoute
   '/_authenticated/portal/intake': typeof AuthenticatedPortalIntakeRoute
   '/_authenticated/portal/roadmap': typeof AuthenticatedPortalRoadmapRoute
+  '/api/trust-tai/publish': typeof ApiTrustTaiPublishRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
@@ -376,6 +385,7 @@ export interface FileRouteTypes {
     | '/portal/activity'
     | '/portal/intake'
     | '/portal/roadmap'
+    | '/api/trust-tai/publish'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
     | '/api/public/intake/retry-handoff'
@@ -413,6 +423,7 @@ export interface FileRouteTypes {
     | '/portal/activity'
     | '/portal/intake'
     | '/portal/roadmap'
+    | '/api/trust-tai/publish'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
     | '/api/public/intake/retry-handoff'
@@ -451,6 +462,7 @@ export interface FileRouteTypes {
     | '/_authenticated/portal/activity'
     | '/_authenticated/portal/intake'
     | '/_authenticated/portal/roadmap'
+    | '/api/trust-tai/publish'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
     | '/api/public/intake/retry-handoff'
@@ -487,6 +499,7 @@ export interface RootRouteChildren {
   BuildMyRoadmapIndexRoute: typeof BuildMyRoadmapIndexRoute
   ClientsIndexRoute: typeof ClientsIndexRoute
   PortalIndexRoute: typeof PortalIndexRoute
+  ApiTrustTaiPublishRoute: typeof ApiTrustTaiPublishRoute
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicIntakeRetryHandoffRoute: typeof ApiPublicIntakeRetryHandoffRoute
@@ -682,6 +695,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutWalkPaceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/trust-tai/publish': {
+      id: '/api/trust-tai/publish'
+      path: '/api/trust-tai/publish'
+      fullPath: '/api/trust-tai/publish'
+      preLoaderRoute: typeof ApiTrustTaiPublishRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/portal/roadmap': {
       id: '/_authenticated/portal/roadmap'
       path: '/portal/roadmap'
@@ -795,6 +815,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuildMyRoadmapIndexRoute: BuildMyRoadmapIndexRoute,
   ClientsIndexRoute: ClientsIndexRoute,
   PortalIndexRoute: PortalIndexRoute,
+  ApiTrustTaiPublishRoute: ApiTrustTaiPublishRoute,
   CheckoutWalkPaceRoute: CheckoutWalkPaceRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicIntakeRetryHandoffRoute: ApiPublicIntakeRetryHandoffRoute,
