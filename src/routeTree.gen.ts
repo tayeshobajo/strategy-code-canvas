@@ -16,7 +16,9 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as ClientsIndexRouteImport } from './routes/clients.index'
 import { Route as BuildMyRoadmapIndexRouteImport } from './routes/build-my-roadmap.index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
@@ -33,6 +35,9 @@ import { Route as CheckoutRoadmapRouteImport } from './routes/checkout.roadmap'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as CheckoutWalkPaceRouteImport } from './routes/checkout.walk.$pace'
+import { Route as AuthenticatedPortalRoadmapRouteImport } from './routes/_authenticated/portal.roadmap'
+import { Route as AuthenticatedPortalIntakeRouteImport } from './routes/_authenticated/portal.intake'
+import { Route as AuthenticatedPortalActivityRouteImport } from './routes/_authenticated/portal.activity'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -76,9 +81,18 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/portal/',
+  path: '/portal/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientsIndexRoute = ClientsIndexRouteImport.update({
@@ -161,6 +175,24 @@ const CheckoutWalkPaceRoute = CheckoutWalkPaceRouteImport.update({
   path: '/checkout/walk/$pace',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPortalRoadmapRoute =
+  AuthenticatedPortalRoadmapRouteImport.update({
+    id: '/portal/roadmap',
+    path: '/portal/roadmap',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPortalIntakeRoute =
+  AuthenticatedPortalIntakeRouteImport.update({
+    id: '/portal/intake',
+    path: '/portal/intake',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPortalActivityRoute =
+  AuthenticatedPortalActivityRouteImport.update({
+    id: '/portal/activity',
+    path: '/portal/activity',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -225,6 +257,10 @@ export interface FileRoutesByFullPath {
   '/walks/$slug': typeof WalksSlugRoute
   '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
   '/clients/': typeof ClientsIndexRoute
+  '/portal/': typeof PortalIndexRoute
+  '/portal/activity': typeof AuthenticatedPortalActivityRoute
+  '/portal/intake': typeof AuthenticatedPortalIntakeRoute
+  '/portal/roadmap': typeof AuthenticatedPortalRoadmapRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
@@ -258,6 +294,10 @@ export interface FileRoutesByTo {
   '/walks/$slug': typeof WalksSlugRoute
   '/build-my-roadmap': typeof BuildMyRoadmapIndexRoute
   '/clients': typeof ClientsIndexRoute
+  '/portal': typeof PortalIndexRoute
+  '/portal/activity': typeof AuthenticatedPortalActivityRoute
+  '/portal/intake': typeof AuthenticatedPortalIntakeRoute
+  '/portal/roadmap': typeof AuthenticatedPortalRoadmapRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
@@ -271,6 +311,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/insights': typeof InsightsRoute
   '/investment': typeof InvestmentRoute
@@ -292,6 +333,10 @@ export interface FileRoutesById {
   '/walks_/$slug': typeof WalksSlugRoute
   '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
   '/clients/': typeof ClientsIndexRoute
+  '/portal/': typeof PortalIndexRoute
+  '/_authenticated/portal/activity': typeof AuthenticatedPortalActivityRoute
+  '/_authenticated/portal/intake': typeof AuthenticatedPortalIntakeRoute
+  '/_authenticated/portal/roadmap': typeof AuthenticatedPortalRoadmapRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
@@ -327,6 +372,10 @@ export interface FileRouteTypes {
     | '/walks/$slug'
     | '/build-my-roadmap/'
     | '/clients/'
+    | '/portal/'
+    | '/portal/activity'
+    | '/portal/intake'
+    | '/portal/roadmap'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
     | '/api/public/intake/retry-handoff'
@@ -360,6 +409,10 @@ export interface FileRouteTypes {
     | '/walks/$slug'
     | '/build-my-roadmap'
     | '/clients'
+    | '/portal'
+    | '/portal/activity'
+    | '/portal/intake'
+    | '/portal/roadmap'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
     | '/api/public/intake/retry-handoff'
@@ -372,6 +425,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/about'
     | '/insights'
     | '/investment'
@@ -393,6 +447,10 @@ export interface FileRouteTypes {
     | '/walks_/$slug'
     | '/build-my-roadmap/'
     | '/clients/'
+    | '/portal/'
+    | '/_authenticated/portal/activity'
+    | '/_authenticated/portal/intake'
+    | '/_authenticated/portal/roadmap'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
     | '/api/public/intake/retry-handoff'
@@ -406,6 +464,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   InsightsRoute: typeof InsightsRoute
   InvestmentRoute: typeof InvestmentRoute
@@ -427,6 +486,7 @@ export interface RootRouteChildren {
   WalksSlugRoute: typeof WalksSlugRoute
   BuildMyRoadmapIndexRoute: typeof BuildMyRoadmapIndexRoute
   ClientsIndexRoute: typeof ClientsIndexRoute
+  PortalIndexRoute: typeof PortalIndexRoute
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicIntakeRetryHandoffRoute: typeof ApiPublicIntakeRetryHandoffRoute
@@ -489,11 +549,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/': {
+      id: '/portal/'
+      path: '/portal'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients/': {
@@ -608,6 +682,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutWalkPaceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/portal/roadmap': {
+      id: '/_authenticated/portal/roadmap'
+      path: '/portal/roadmap'
+      fullPath: '/portal/roadmap'
+      preLoaderRoute: typeof AuthenticatedPortalRoadmapRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/portal/intake': {
+      id: '/_authenticated/portal/intake'
+      path: '/portal/intake'
+      fullPath: '/portal/intake'
+      preLoaderRoute: typeof AuthenticatedPortalIntakeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/portal/activity': {
+      id: '/_authenticated/portal/activity'
+      path: '/portal/activity'
+      fullPath: '/portal/activity'
+      preLoaderRoute: typeof AuthenticatedPortalActivityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -660,8 +755,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedPortalActivityRoute: typeof AuthenticatedPortalActivityRoute
+  AuthenticatedPortalIntakeRoute: typeof AuthenticatedPortalIntakeRoute
+  AuthenticatedPortalRoadmapRoute: typeof AuthenticatedPortalRoadmapRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedPortalActivityRoute: AuthenticatedPortalActivityRoute,
+  AuthenticatedPortalIntakeRoute: AuthenticatedPortalIntakeRoute,
+  AuthenticatedPortalRoadmapRoute: AuthenticatedPortalRoadmapRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   InsightsRoute: InsightsRoute,
   InvestmentRoute: InvestmentRoute,
@@ -683,6 +794,7 @@ const rootRouteChildren: RootRouteChildren = {
   WalksSlugRoute: WalksSlugRoute,
   BuildMyRoadmapIndexRoute: BuildMyRoadmapIndexRoute,
   ClientsIndexRoute: ClientsIndexRoute,
+  PortalIndexRoute: PortalIndexRoute,
   CheckoutWalkPaceRoute: CheckoutWalkPaceRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicIntakeRetryHandoffRoute: ApiPublicIntakeRetryHandoffRoute,
