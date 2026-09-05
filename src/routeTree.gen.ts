@@ -17,6 +17,7 @@ import { Route as InvestmentRouteImport } from './routes/investment'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ClientsIndexRouteImport } from './routes/clients.index'
 import { Route as BuildMyRoadmapIndexRouteImport } from './routes/build-my-roadmap.index'
 import { Route as WalksSlugRouteImport } from './routes/walks_.$slug'
 import { Route as OpsAnalyticsRouteImport } from './routes/ops.analytics'
@@ -78,6 +79,11 @@ const AboutRoute = AboutRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsIndexRoute = ClientsIndexRouteImport.update({
+  id: '/clients/',
+  path: '/clients/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BuildMyRoadmapIndexRoute = BuildMyRoadmapIndexRouteImport.update({
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/ops/analytics': typeof OpsAnalyticsRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
+  '/clients/': typeof ClientsIndexRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
@@ -250,6 +257,7 @@ export interface FileRoutesByTo {
   '/ops/analytics': typeof OpsAnalyticsRoute
   '/walks/$slug': typeof WalksSlugRoute
   '/build-my-roadmap': typeof BuildMyRoadmapIndexRoute
+  '/clients': typeof ClientsIndexRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   '/ops/analytics': typeof OpsAnalyticsRoute
   '/walks_/$slug': typeof WalksSlugRoute
   '/build-my-roadmap/': typeof BuildMyRoadmapIndexRoute
+  '/clients/': typeof ClientsIndexRoute
   '/checkout/walk/$pace': typeof CheckoutWalkPaceRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/intake/retry-handoff': typeof ApiPublicIntakeRetryHandoffRoute
@@ -317,6 +326,7 @@ export interface FileRouteTypes {
     | '/ops/analytics'
     | '/walks/$slug'
     | '/build-my-roadmap/'
+    | '/clients/'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
     | '/api/public/intake/retry-handoff'
@@ -349,6 +359,7 @@ export interface FileRouteTypes {
     | '/ops/analytics'
     | '/walks/$slug'
     | '/build-my-roadmap'
+    | '/clients'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
     | '/api/public/intake/retry-handoff'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/ops/analytics'
     | '/walks_/$slug'
     | '/build-my-roadmap/'
+    | '/clients/'
     | '/checkout/walk/$pace'
     | '/lovable/email/suppression'
     | '/api/public/intake/retry-handoff'
@@ -414,6 +426,7 @@ export interface RootRouteChildren {
   OpsAnalyticsRoute: typeof OpsAnalyticsRoute
   WalksSlugRoute: typeof WalksSlugRoute
   BuildMyRoadmapIndexRoute: typeof BuildMyRoadmapIndexRoute
+  ClientsIndexRoute: typeof ClientsIndexRoute
   CheckoutWalkPaceRoute: typeof CheckoutWalkPaceRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicIntakeRetryHandoffRoute: typeof ApiPublicIntakeRetryHandoffRoute
@@ -481,6 +494,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients/': {
+      id: '/clients/'
+      path: '/clients'
+      fullPath: '/clients/'
+      preLoaderRoute: typeof ClientsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/build-my-roadmap/': {
@@ -662,6 +682,7 @@ const rootRouteChildren: RootRouteChildren = {
   OpsAnalyticsRoute: OpsAnalyticsRoute,
   WalksSlugRoute: WalksSlugRoute,
   BuildMyRoadmapIndexRoute: BuildMyRoadmapIndexRoute,
+  ClientsIndexRoute: ClientsIndexRoute,
   CheckoutWalkPaceRoute: CheckoutWalkPaceRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicIntakeRetryHandoffRoute: ApiPublicIntakeRetryHandoffRoute,
