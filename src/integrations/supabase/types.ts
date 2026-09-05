@@ -245,6 +245,54 @@ export type Database = {
         }
         Relationships: []
       }
+      published_insights: {
+        Row: {
+          body_markdown: string
+          category: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          image_alt: string | null
+          image_url: string | null
+          meta_description: string
+          published_at: string
+          seo_title: string
+          slug: string
+          tags: string[]
+          title: string
+        }
+        Insert: {
+          body_markdown: string
+          category: string
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          image_alt?: string | null
+          image_url?: string | null
+          meta_description: string
+          published_at?: string
+          seo_title: string
+          slug: string
+          tags?: string[]
+          title: string
+        }
+        Update: {
+          body_markdown?: string
+          category?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          image_alt?: string | null
+          image_url?: string | null
+          meta_description?: string
+          published_at?: string
+          seo_title?: string
+          slug?: string
+          tags?: string[]
+          title?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
