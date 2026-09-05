@@ -78,10 +78,14 @@ function ReadingProgressBar() {
 }
 
 export const Route = createFileRoute("/insights_/$slug")({
-  loader: ({ params }) => {
+  loader: async ({ params }) => {
     const insight = getInsightBySlug(params.slug);
-    if (!insight) throw notFound();
-    return { insight };
+    if (insight) return { insight, markdown: null as string | null };
+    // Additive: articles published through the Trust Tai publishing seam.
+    const published = await getPublishedInsight({ data: { slug: params.slug } });
+    if (!published) throw notFound();
+    const { markdown, ...rest } = published;
+    return { insight: rest as Insight, markdown };
   },
   head: ({ params, loaderData }) => {
     const insight = loaderData?.insight;
