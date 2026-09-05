@@ -6,6 +6,8 @@ import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { INSIGHTS, getInsightBySlug, type Insight } from "@/lib/insights-data";
 import taiPortrait from "@/assets/tai-portrait-seated.png.asset.json";
 import { useContentRead } from "@/lib/website-intake/use-content-read";
+import ReactMarkdown from "react-markdown";
+import { getPublishedInsight } from "@/lib/insights/published.functions";
 
 /* ----------------------- Reading progress + scroll-spy ----------------------- */
 
