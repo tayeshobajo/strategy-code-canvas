@@ -18,6 +18,7 @@ import {
   shouldVirtualize,
   logVirtualizationTransition,
 } from "@/lib/insights-virtualization";
+import { listPublishedInsights } from "@/lib/insights/published.functions";
 
 export const Route = createFileRoute("/insights")({
   // Additive: source-controlled insights plus anything published through the seam.
