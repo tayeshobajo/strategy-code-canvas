@@ -6,6 +6,8 @@ import { SiteClosing, Accent } from "@/components/SiteClosing";
 import { INSIGHTS, getInsightBySlug, type Insight } from "@/lib/insights-data";
 import taiPortrait from "@/assets/tai-portrait-seated.png.asset.json";
 import { useContentRead } from "@/lib/website-intake/use-content-read";
+import ReactMarkdown from "react-markdown";
+import { getPublishedInsight } from "@/lib/insights/published.functions";
 
 /* ----------------------- Reading progress + scroll-spy ----------------------- */
 
@@ -78,10 +80,14 @@ function ReadingProgressBar() {
 }
 
 export const Route = createFileRoute("/insights_/$slug")({
-  loader: ({ params }) => {
+  loader: async ({ params }) => {
     const insight = getInsightBySlug(params.slug);
-    if (!insight) throw notFound();
-    return { insight };
+    if (insight) return { insight, markdown: null as string | null };
+    // Additive: articles published through the Trust Tai publishing seam.
+    const published = await getPublishedInsight({ data: { slug: params.slug } });
+    if (!published) throw notFound();
+    const { markdown, ...rest } = published;
+    return { insight: rest as Insight, markdown };
   },
   head: ({ params, loaderData }) => {
     const insight = loaderData?.insight;
@@ -450,7 +456,7 @@ function PrintStyles() {
 /* --------------------------------- Page --------------------------------- */
 
 function InsightArticlePage() {
-  const { insight } = Route.useLoaderData();
+  const { insight, markdown } = Route.useLoaderData();
 
   const related: Insight[] = [...INSIGHTS]
     .filter((i) => i.slug !== insight.slug)
@@ -553,6 +559,11 @@ function InsightArticlePage() {
             <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-14">
               {/* Body */}
               <div className="lg:col-span-7 lg:col-start-2">
+                {markdown ? (
+                  <div className="insight-markdown text-[15.5px] leading-[1.75] text-ink/75 [&_a]:text-royal [&_blockquote]:mt-6 [&_blockquote]:border-l-2 [&_blockquote]:border-ink/15 [&_blockquote]:pl-4 [&_h2]:mt-12 [&_h2]:font-display [&_h2]:text-[24px] [&_h2]:leading-[1.2] [&_h2]:text-ink [&_h3]:mt-8 [&_h3]:font-display [&_h3]:text-[19px] [&_h3]:text-ink [&_li]:mt-2 [&_p]:mt-4 [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5">
+                    <ReactMarkdown>{markdown}</ReactMarkdown>
+                  </div>
+                ) : null}
                 {sections.map((sec: { id: string; title: string; paragraphs: string[] }, idx: number) => (
                   <section
                     key={sec.id}

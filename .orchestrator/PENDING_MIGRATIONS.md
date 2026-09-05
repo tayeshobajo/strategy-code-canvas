@@ -5308,3 +5308,49 @@ holds *presentation* state only.
 Tables: public.client_roadmap_access, public.portal_questions.
 RLS: clients read only rows matching their own auth email / uid; service role manages.
 Approved by Tai through the Lovable migration approval gate before execution.
+
+---
+
+## P0-07 — published_insights (Trust Tai publishing seam)
+
+**Status:** NOT APPLIED. Requires Tai approval (doctrine rule 1: no autonomous
+schema migrations). The repo's `supabase/migrations/` directory is managed by
+the migration tool, so the SQL is recorded here verbatim and must be applied
+through the approved migration workflow.
+
+Server-only table backing `POST /api/trust-tai/publish` and the additive
+dynamic reads on `/insights` and `/insights/$slug`.
+
+```sql
+CREATE TABLE IF NOT EXISTS public.published_insights (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  idempotency_key text NOT NULL UNIQUE,
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  seo_title text NOT NULL,
+  meta_description text NOT NULL,
+  body_markdown text NOT NULL,
+  category text NOT NULL,
+  tags text[] NOT NULL DEFAULT '{}',
+  image_url text,
+  image_alt text,
+  published_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Server-only: no anon/authenticated grants. Service role only.
+REVOKE ALL ON public.published_insights FROM anon, authenticated;
+GRANT ALL ON public.published_insights TO service_role;
+
+ALTER TABLE public.published_insights ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role manages published insights"
+  ON public.published_insights
+  FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+CREATE INDEX IF NOT EXISTS published_insights_published_at_idx
+  ON public.published_insights (published_at DESC);
+```
+
+Runtime secret dependency (not created by this phase): `TRUST_TAI_PUBLISH_TOKEN`.

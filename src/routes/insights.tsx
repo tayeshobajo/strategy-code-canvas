@@ -18,8 +18,11 @@ import {
   shouldVirtualize,
   logVirtualizationTransition,
 } from "@/lib/insights-virtualization";
+import { listPublishedInsights } from "@/lib/insights/published.functions";
 
 export const Route = createFileRoute("/insights")({
+  // Additive: source-controlled insights plus anything published through the seam.
+  loader: async () => ({ published: await listPublishedInsights() }),
   head: () => {
     const title = "Insights | Trust Tai";
     const description =
@@ -271,10 +274,19 @@ function ArticleList() {
   const tabRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const listParentRef = React.useRef<HTMLDivElement | null>(null);
+  const { published } = Route.useLoaderData();
+
+  const all = React.useMemo<Insight[]>(() => {
+    const slugs = new Set(INSIGHTS.map((i) => i.slug));
+    const extra = (published ?? [])
+      .filter((p) => !slugs.has(p.slug))
+      .map(({ markdown: _markdown, ...rest }) => rest as Insight);
+    return [...INSIGHTS, ...extra];
+  }, [published]);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
-    return INSIGHTS.filter((a) => {
+    return all.filter((a) => {
       if (active !== "All" && a.category !== active) return false;
       if (!q) return true;
       return (
@@ -283,7 +295,7 @@ function ArticleList() {
         a.category.toLowerCase().includes(q)
       );
     }).sort((a, b) => compare(a, b, sort));
-  }, [active, query, sort]);
+  }, [all, active, query, sort]);
 
   // Deterministic guards ---------------------------------------------------
   // Token bumps every time the filter set changes; any in-flight page load
