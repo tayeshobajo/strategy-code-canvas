@@ -456,7 +456,7 @@ function PrintStyles() {
 /* --------------------------------- Page --------------------------------- */
 
 function InsightArticlePage() {
-  const { insight } = Route.useLoaderData();
+  const { insight, markdown } = Route.useLoaderData();
 
   const related: Insight[] = [...INSIGHTS]
     .filter((i) => i.slug !== insight.slug)
