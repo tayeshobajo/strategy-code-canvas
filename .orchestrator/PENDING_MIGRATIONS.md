@@ -5313,7 +5313,7 @@ Approved by Tai through the Lovable migration approval gate before execution.
 
 ## P0-07 — published_insights (Trust Tai publishing seam)
 
-**Status:** NOT APPLIED. Requires Tai approval (doctrine rule 1: no autonomous
+**Status:** APPLIED 2026-09-05 via the approved migration tool.
 schema migrations). The repo's `supabase/migrations/` directory is managed by
 the migration tool, so the SQL is recorded here verbatim and must be applied
 through the approved migration workflow.
