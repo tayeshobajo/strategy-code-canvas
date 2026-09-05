@@ -559,6 +559,11 @@ function InsightArticlePage() {
             <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-14">
               {/* Body */}
               <div className="lg:col-span-7 lg:col-start-2">
+                {markdown ? (
+                  <div className="insight-markdown text-[15.5px] leading-[1.75] text-ink/75 [&_a]:text-royal [&_blockquote]:mt-6 [&_blockquote]:border-l-2 [&_blockquote]:border-ink/15 [&_blockquote]:pl-4 [&_h2]:mt-12 [&_h2]:font-display [&_h2]:text-[24px] [&_h2]:leading-[1.2] [&_h2]:text-ink [&_h3]:mt-8 [&_h3]:font-display [&_h3]:text-[19px] [&_h3]:text-ink [&_li]:mt-2 [&_p]:mt-4 [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5">
+                    <ReactMarkdown>{markdown}</ReactMarkdown>
+                  </div>
+                ) : null}
                 {sections.map((sec: { id: string; title: string; paragraphs: string[] }, idx: number) => (
                   <section
                     key={sec.id}
