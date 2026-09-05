@@ -11,9 +11,18 @@ import epayTeam from "@/assets/clients/epay/epay-team-booth-2.png.asset.json";
 import pttTeams from "@/assets/clients/pttanywhere/ptt-teams.jpg.asset.json";
 import shugarHero from "@/assets/clients/shugashack/shugar-hero.jpg.asset.json";
 
+/** Route paths that exist as real deck files under src/routes. */
+export type RoadmapPath =
+  | "/clients/spartan"
+  | "/clients/rollick"
+  | "/clients/epay"
+  | "/clients/pttanywhere"
+  | "/clients/shugarshack";
+
 export type ClientRoadmap = {
   /** URL segment under /clients. */
   slug: string;
+  to: RoadmapPath;
   client: string;
   headline: string;
   summary: string;
@@ -27,6 +36,7 @@ export type ClientRoadmap = {
 export const CLIENT_ROADMAPS: ClientRoadmap[] = [
   {
     slug: "spartan",
+    to: "/clients/spartan",
     client: "Spartan Security Services",
     headline: "Growth roadmap",
     summary:
@@ -38,6 +48,7 @@ export const CLIENT_ROADMAPS: ClientRoadmap[] = [
   },
   {
     slug: "rollick",
+    to: "/clients/rollick",
     client: "Rollick",
     headline: "Revenue intelligence roadmap",
     summary:
@@ -49,6 +60,7 @@ export const CLIENT_ROADMAPS: ClientRoadmap[] = [
   },
   {
     slug: "epay",
+    to: "/clients/epay",
     client: "ePayPolicy",
     headline: "Payments growth roadmap",
     summary:
@@ -60,6 +72,7 @@ export const CLIENT_ROADMAPS: ClientRoadmap[] = [
   },
   {
     slug: "pttanywhere",
+    to: "/clients/pttanywhere",
     client: "PTT Anywhere",
     headline: "Demand and discovery roadmap",
     summary:
@@ -71,6 +84,7 @@ export const CLIENT_ROADMAPS: ClientRoadmap[] = [
   },
   {
     slug: "shugarshack",
+    to: "/clients/shugarshack",
     client: "Shugar Shack",
     headline: "Brand and commerce roadmap",
     summary:

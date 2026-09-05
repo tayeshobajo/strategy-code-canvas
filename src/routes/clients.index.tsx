@@ -69,8 +69,7 @@ function ClientRoadmapsGallery() {
           {roadmaps.map((r) => (
             <li key={r.slug}>
               <Link
-                to="/clients/$slug"
-                params={{ slug: r.slug }}
+                to={r.to}
                 onClick={() => trackCta("roadmap_gallery_card", r.slug)}
                 className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-transform duration-300 hover:-translate-y-1"
               >
